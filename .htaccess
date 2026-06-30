@@ -25,13 +25,17 @@ ErrorDocument 404 /404.php
 </IfModule>
 <IfModule mod_expires.c>
   ExpiresActive on
-  ExpiresByType image/jpeg "access plus 3 day"
-  ExpiresByType image/gif "access plus 3 day"
-  ExpiresByType image/png "access plus 3 day"
-  ExpiresByType text/css "access plus 3 day"
-  ExpiresByType application/javascript "access plus 3 day"  
-</IfModule> 
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/gif "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+</IfModule>
+
+<FilesMatch "(audit_code\.tar\.gz|audit_full\.tar\.gz|Dorsum_export\.xml|install\.config|readme\.html|\.csv)$">
+  Order allow,deny
+  Deny from all
+</FilesMatch> 
 php_value opcache.revalidate_freq 0
 php_value max_input_vars 10000
-php_value open_basedir none
 php_value opcache.max_accelerated_files 100000

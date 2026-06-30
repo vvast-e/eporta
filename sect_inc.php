@@ -2,7 +2,7 @@
 <?
 $APPLICATION->IncludeComponent("bitrix:catalog.top", "", array(
 	"IBLOCK_TYPE_ID" => "catalog",
-	"IBLOCK_ID" => "#CATALOG_IBLOCK_ID#",
+	"IBLOCK_ID" => "19",
 	"ELEMENT_SORT_FIELD" => "SORT",
 	"ELEMENT_SORT_ORDER" => "asc",
 	"ELEMENT_COUNT" => "6",

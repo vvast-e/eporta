@@ -8,7 +8,7 @@
 							<a href="#SERVER_NAME#" target="_blank"><img src="#SERVER_NAME#/bitrix/templates/dresscode/images/logo.png" style="max-width:100%;" alt="Some alt"></a>
 						</td>
 						<td style="width:50%;text-align:right;">
-							<div><span style="font-weight:bold;font-family:'Arial Bold',Gadget,sans-serif;font-size:20px;color:#000000;">8 (800) 000-00-00</span></div>
+							<div><span style="font-weight:bold;font-family:'Arial Bold',Gadget,sans-serif;font-size:20px;color:#000000;">+7 (495) 120-11-38</span></div>
 							<div><a href="mailto:#SALE_EMAIL#" style="font-weight:bold;font-family:'Arial Bold',Gadget,sans-serif;font-size:14px;color:#000000;text-decoration:none;border-bottom:1px solid #000000;" target="_blank">#SALE_EMAIL#</a></div>
 						</td>
 					</tr>
@@ -67,7 +67,7 @@
 					<tr>
 						<td style="width:50%;padding-top:18px;padding-bottom:18px;text-align:center;border-right:5px solid #fff;text-align:center;background:#f3f3f3;">
 							<div style="margin-bottom:8px;font-weight:normal;font-family:'Arial',sans-serif;font-size:14px;line-height:18px;color:#000000;">Телефон магазина</div>
-							<div style="font-weight:bold;font-family:'Arial Bold',Gadget,sans-serif;font-size:16px;line-height:18px;color:#000000;">8 (800) 000-00-00</div>
+							<div style="font-weight:bold;font-family:'Arial Bold',Gadget,sans-serif;font-size:16px;line-height:18px;color:#000000;">+7 (495) 120-11-38</div>
 						</td>
 						<td style="width:50%;padding-top:18px;padding-bottom:18px;text-align:center;border-left:5px solid #fff;text-align:center;background:#f3f3f3;">
 							<div style="margin-bottom:8px;font-weight:normal;font-family:'Arial',sans-serif;font-size:14px;line-height:18px;color:#000000;">Email магазина</div>

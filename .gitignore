@@ -19,3 +19,6 @@ Dorsum_export_files/
 # Системное
 .fmsettings
 aquota.*
+
+.playwright-mcp/
+.claude/
