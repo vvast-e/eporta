@@ -37,7 +37,7 @@
 	$TEMPLATE_WATERMARK_SIZE = "big";
 	$TEMPLATE_WATERMARK_FILL = "exact";
 	$TEMPLATE_WATERMARK_POSITION = "topleft";
-	$TEMPLATE_WATERMARK_FONT = "/var/www/www-root/data/www/eporta.ru/bitrix/templates/dresscodeV2/fonts/roboto/roboto-regular.ttf";
+	$TEMPLATE_WATERMARK_FONT = "";
 	$TEMPLATE_AGREEMENT_ID = "1";
 	$siteId = "s2";
 ?>
