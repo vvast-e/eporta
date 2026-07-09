@@ -18,9 +18,220 @@ $APPLICATION->SetTitle("Каталог товаров");
 		$arPriceCodes = explode(", ", $arTemplateSettings["TEMPLATE_PRICE_CODES"]);
 	}
 ?>
+<?
+	// Дев-превью нового шаблона eporta: статичная вёрстка (Этап 1, Фаза A).
+	// Боевой dresscode:catalog не трогаем — при любом другом активном шаблоне
+	// страница работает как прежде.
+	$isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH) === "eporta";
+?>
+<?if ($isEportaTemplate):?>
+
+	<!-- Хлебные крошки -->
+	<div class="breadcrumb" style="padding:12px 56px 0">Главная · Каталог · Межкомнатные</div>
+
+	<!-- Заголовок + сортировка -->
+	<div style="display:flex;align-items:flex-end;justify-content:space-between;padding:8px 56px 4px">
+		<div>
+			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Межкомнатные двери</h1>
+			<div style="font:500 13px;color:#8a857b;margin-top:5px">Найдено 2 418 моделей</div>
+		</div>
+		<div style="display:flex;align-items:center;gap:10px">
+			<div style="display:flex;align-items:center;gap:9px;border:1.5px solid #e7e3db;border-radius:10px;padding:10px 14px;font:600 13px 'Manrope';color:#3a3631;cursor:pointer">Сначала популярные <span style="color:#a39e95">▾</span></div>
+			<div style="display:flex;border:1.5px solid #e7e3db;border-radius:10px;overflow:hidden">
+				<span style="width:38px;height:40px;display:flex;align-items:center;justify-content:center;background:#1b1a17;cursor:pointer">
+					<span style="display:grid;grid-template-columns:1fr 1fr;gap:2px"><span style="width:5px;height:5px;background:#fff"></span><span style="width:5px;height:5px;background:#fff"></span><span style="width:5px;height:5px;background:#fff"></span><span style="width:5px;height:5px;background:#fff"></span></span>
+				</span>
+				<span style="width:38px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer">
+					<span style="display:flex;flex-direction:column;gap:3px"><span style="width:14px;height:3px;background:#b3aea2"></span><span style="width:14px;height:3px;background:#b3aea2"></span><span style="width:14px;height:3px;background:#b3aea2"></span></span>
+				</span>
+			</div>
+		</div>
+	</div>
+
+	<!-- Активные фильтры -->
+	<div style="display:flex;align-items:center;gap:9px;padding:14px 56px 6px;flex-wrap:wrap">
+		<span style="display:inline-flex;align-items:center;gap:8px;font:600 12.5px 'Manrope';background:#f3f1ec;color:#3a3631;padding:8px 12px;border-radius:20px;cursor:pointer">Экошпон <span style="color:#a39e95">✕</span></span>
+		<span style="display:inline-flex;align-items:center;gap:8px;font:600 12.5px 'Manrope';background:#f3f1ec;color:#3a3631;padding:8px 12px;border-radius:20px;cursor:pointer">Белый <span style="color:#a39e95">✕</span></span>
+		<span style="display:inline-flex;align-items:center;gap:8px;font:600 12.5px 'Manrope';background:#f3f1ec;color:#3a3631;padding:8px 12px;border-radius:20px;cursor:pointer">до 10 000 ₽ <span style="color:#a39e95">✕</span></span>
+		<span style="font:700 12.5px 'Manrope';color:#c2670a;padding:8px 6px;cursor:pointer">Сбросить всё</span>
+	</div>
+
+	<!-- Фильтры + сетка -->
+	<div style="display:flex;gap:22px;padding:8px 56px 28px;align-items:flex-start">
+
+		<!-- Боковой фильтр -->
+		<div style="flex:none;width:248px">
+			<!-- Цена -->
+			<div style="border-bottom:1px solid #efece6;padding:6px 0 18px">
+				<div style="font:800 14px 'Manrope';margin-bottom:14px">Цена, ₽</div>
+				<div style="position:relative;height:4px;background:#e7e3db;border-radius:3px;margin:20px 6px 16px">
+					<div style="position:absolute;left:12%;right:38%;top:0;height:4px;background:#e8820a;border-radius:3px"></div>
+					<span style="position:absolute;left:12%;top:-6px;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #e8820a;margin-left:-8px;cursor:pointer"></span>
+					<span style="position:absolute;right:38%;top:-6px;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #e8820a;margin-right:-8px;cursor:pointer"></span>
+				</div>
+				<div style="display:flex;gap:8px">
+					<div style="flex:1;border:1.5px solid #e7e3db;border-radius:9px;padding:9px 11px;font:600 12.5px 'Manrope'">4 000</div>
+					<div style="flex:1;border:1.5px solid #e7e3db;border-radius:9px;padding:9px 11px;font:600 12.5px 'Manrope'">40 000</div>
+				</div>
+			</div>
+
+			<!-- Стиль -->
+			<div style="border-bottom:1px solid #efece6;padding:16px 0">
+				<div style="font:800 14px 'Manrope';margin-bottom:12px">Стиль</div>
+				<div style="display:flex;align-items:center;gap:10px;padding:5px 0;font:600 13px 'Manrope';cursor:pointer">
+					<span style="width:18px;height:18px;border-radius:5px;background:#e8820a;position:relative;flex:none"><span style="position:absolute;left:6px;top:3px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)"></span></span>
+					Модерн / хай-тек <span style="color:#c2bdb2;margin-left:auto;font-weight:600">862</span>
+				</div>
+				<div style="display:flex;align-items:center;gap:10px;padding:5px 0;font:600 13px 'Manrope';cursor:pointer">
+					<span style="width:18px;height:18px;border-radius:5px;border:1.5px solid #e0dbd4;flex:none"></span>
+					Классика <span style="color:#c2bdb2;margin-left:auto;font-weight:600">504</span>
+				</div>
+				<div style="display:flex;align-items:center;gap:10px;padding:5px 0;font:600 13px 'Manrope';cursor:pointer">
+					<span style="width:18px;height:18px;border-radius:5px;border:1.5px solid #e0dbd4;flex:none"></span>
+					Лофт <span style="color:#c2bdb2;margin-left:auto;font-weight:600">218</span>
+				</div>
+				<div style="display:flex;align-items:center;gap:10px;padding:5px 0;font:600 13px 'Manrope';cursor:pointer">
+					<span style="width:18px;height:18px;border-radius:5px;border:1.5px solid #e0dbd4;flex:none"></span>
+					Минимализм <span style="color:#c2bdb2;margin-left:auto;font-weight:600">312</span>
+				</div>
+			</div>
+
+			<!-- Покрытие -->
+			<div style="border-bottom:1px solid #efece6;padding:16px 0">
+				<div style="font:800 14px 'Manrope';margin-bottom:12px">Покрытие</div>
+				<div style="display:flex;align-items:center;gap:10px;padding:5px 0;font:600 13px 'Manrope';cursor:pointer">
+					<span style="width:18px;height:18px;border-radius:5px;background:#e8820a;position:relative;flex:none"><span style="position:absolute;left:6px;top:3px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)"></span></span>
+					Экошпон <span style="color:#c2bdb2;margin-left:auto;font-weight:600">1 204</span>
+				</div>
+				<div style="display:flex;align-items:center;gap:10px;padding:5px 0;font:600 13px 'Manrope';cursor:pointer">
+					<span style="width:18px;height:18px;border-radius:5px;border:1.5px solid #e0dbd4;flex:none"></span>
+					Эмаль <span style="color:#c2bdb2;margin-left:auto;font-weight:600">386</span>
+				</div>
+				<div style="display:flex;align-items:center;gap:10px;padding:5px 0;font:600 13px 'Manrope';cursor:pointer">
+					<span style="width:18px;height:18px;border-radius:5px;border:1.5px solid #e0dbd4;flex:none"></span>
+					Шпон <span style="color:#c2bdb2;margin-left:auto;font-weight:600">228</span>
+				</div>
+			</div>
+
+			<!-- Цвет -->
+			<div style="padding:16px 0">
+				<div style="font:800 14px 'Manrope';margin-bottom:12px">Цвет</div>
+				<div style="display:flex;flex-wrap:wrap;gap:8px">
+					<span title="Белый" style="width:30px;height:30px;border-radius:50%;background:#fff;border:2px solid #e8820a;cursor:pointer"></span>
+					<span title="Чёрный" style="width:30px;height:30px;border-radius:50%;background:#1b1a17;border:2px solid transparent;cursor:pointer"></span>
+					<span title="Серый" style="width:30px;height:30px;border-radius:50%;background:#9a9182;border:2px solid transparent;cursor:pointer"></span>
+					<span title="Дуб" style="width:30px;height:30px;border-radius:50%;background:#c8a96e;border:2px solid transparent;cursor:pointer"></span>
+					<span title="Орех" style="width:30px;height:30px;border-radius:50%;background:#7b4a2d;border:2px solid transparent;cursor:pointer"></span>
+					<span title="Бежевый" style="width:30px;height:30px;border-radius:50%;background:#e8dfc8;border:2px solid transparent;cursor:pointer"></span>
+				</div>
+			</div>
+
+			<button style="width:100%;background:#e8820a;color:#fff;font:700 14px 'Manrope';padding:13px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 8px 20px rgba(232,130,10,.28)">Показать 247 моделей</button>
+		</div>
+
+		<!-- Сетка товаров -->
+		<div style="flex:1">
+			<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+
+				<a href="/catalog/dorsum-11-1.html" class="product-card">
+					<div class="img-wrap"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/hit-1.jpg" alt="Дверь Dorsum 11.1"><span class="badge hit">ХИТ</span></div>
+					<div class="info">
+						<div class="stars">★★★★★ <span>42</span></div>
+						<div class="name">Дверь Dorsum 11.1 экошпон</div>
+						<div class="price-row"><div class="price">7 880 ₽</div><button class="btn-cart" onclick="event.preventDefault()">В корзину</button></div>
+					</div>
+				</a>
+
+				<a href="/catalog/vilis-21.html" class="product-card">
+					<div class="img-wrap"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/hit-2.jpg" alt="Дверь Vilis 21"></div>
+					<div class="info">
+						<div class="stars">★★★★★ <span>31</span></div>
+						<div class="name">Дверь Vilis 21 экошпон, стекло</div>
+						<div class="price-row"><div class="price">4 500 ₽</div><button class="btn-cart" onclick="event.preventDefault()">В корзину</button></div>
+					</div>
+				</a>
+
+				<a href="/catalog/vilis-18.html" class="product-card">
+					<div class="img-wrap"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/hit-3.jpg" alt="Дверь Vilis 18"></div>
+					<div class="info">
+						<div class="stars">★★★★★ <span>28</span></div>
+						<div class="name">Дверь Vilis 18 экошпон беленая</div>
+						<div class="price-row"><div class="price">4 770 ₽</div><button class="btn-cart" onclick="event.preventDefault()">В корзину</button></div>
+					</div>
+				</a>
+
+				<a href="/catalog/vilis-26.html" class="product-card">
+					<div class="img-wrap"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/hit-4.jpg" alt="Vilis 26"><span class="badge sale">−18%</span></div>
+					<div class="info">
+						<div class="stars">★★★★★ <span>37</span></div>
+						<div class="name">Дверь Vilis 26 экошпон кремовая</div>
+						<div class="price-row"><div><span class="price">5 400 ₽</span> <span class="price-old">6 580</span></div><button class="btn-cart" onclick="event.preventDefault()">В корзину</button></div>
+					</div>
+				</a>
+
+				<a href="/catalog/actus-6-1.html" class="product-card">
+					<div class="img-wrap"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/hit-5.jpg" alt="Actus 6.1"></div>
+					<div class="info">
+						<div class="stars">★★★★★ <span>19</span></div>
+						<div class="name">Дверь Actus 6.1 эмаль, триплекс</div>
+						<div class="price-row"><div class="price">34 825 ₽</div><button class="btn-cart" onclick="event.preventDefault()">В корзину</button></div>
+					</div>
+				</a>
+
+				<a href="/catalog/dorsum-10-2.html" class="product-card">
+					<div class="img-wrap"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/hit-6.jpg" alt="Dorsum 10.2"><span class="badge hit">ХИТ</span></div>
+					<div class="info">
+						<div class="stars">★★★★★ <span>24</span></div>
+						<div class="name">Дверь Dorsum 10.2 эмалит серый</div>
+						<div class="price-row"><div class="price">11 385 ₽</div><button class="btn-cart" onclick="event.preventDefault()">В корзину</button></div>
+					</div>
+				</a>
+
+				<a href="/catalog/vilis-34.html" class="product-card">
+					<div class="img-wrap"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/hit-7.jpg" alt="Vilis 34"></div>
+					<div class="info">
+						<div class="stars">★★★★★ <span>15</span></div>
+						<div class="name">Дверь Vilis 34 экошпон, стекло</div>
+						<div class="price-row"><div class="price">4 500 ₽</div><button class="btn-cart" onclick="event.preventDefault()">В корзину</button></div>
+					</div>
+				</a>
+
+				<a href="/catalog/premier-229.html" class="product-card">
+					<div class="img-wrap"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/hit-8.jpg" alt="Премьер 229"><span class="badge sale">−12%</span></div>
+					<div class="info">
+						<div class="stars">★★★★★ <span>22</span></div>
+						<div class="name">Премьер Люкс 229 шагрень, зеркало</div>
+						<div class="price-row"><div class="price">38 600 ₽</div><button class="btn-cart" onclick="event.preventDefault()">В корзину</button></div>
+					</div>
+				</a>
+
+				<a href="/catalog/dorsum-11-2.html" class="product-card">
+					<div class="img-wrap"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/sim-1.jpg" alt="Dorsum 11.2"></div>
+					<div class="info">
+						<div class="stars">★★★★☆ <span>11</span></div>
+						<div class="name">Дверь Dorsum 11.2 эмалит чёрная</div>
+						<div class="price-row"><div class="price">16 300 ₽</div><button class="btn-cart" onclick="event.preventDefault()">В корзину</button></div>
+					</div>
+				</a>
+
+			</div>
+
+			<!-- Пагинация -->
+			<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:28px">
+				<span style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:#1b1a17;color:#fff;font:700 13px 'Manrope';cursor:pointer">1</span>
+				<span style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:9px;border:1.5px solid #e7e3db;font:600 13px 'Manrope';cursor:pointer">2</span>
+				<span style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:9px;border:1.5px solid #e7e3db;font:600 13px 'Manrope';cursor:pointer">3</span>
+				<span style="font:600 13px;color:#a39e95">…</span>
+				<span style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:9px;border:1.5px solid #e7e3db;font:600 13px 'Manrope';cursor:pointer">27</span>
+				<span style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:9px;border:1.5px solid #e7e3db;font:600 13px 'Manrope';cursor:pointer">→</span>
+			</div>
+		</div>
+	</div>
+
+<?else:?>
 <?$APPLICATION->IncludeComponent(
-	"dresscode:catalog", 
-	".default", 
+	"dresscode:catalog",
+	".default",
 	[
 		"IBLOCK_TYPE" => "catalog",
 		"IBLOCK_ID" => "19",
@@ -769,4 +980,6 @@ $APPLICATION->SetTitle("Каталог товаров");
 		]
 	],
 	false
-);?><?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>
+);?>
+<?endif;?>
+<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>
