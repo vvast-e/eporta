@@ -129,102 +129,68 @@ $APPLICATION->SetTitle("Каталог товаров");
 			<button style="width:100%;background:#e8820a;color:#fff;font:700 14px 'Manrope';padding:13px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 8px 20px rgba(232,130,10,.28)">Показать 247 моделей</button>
 		</div>
 
-		<!-- Сетка товаров -->
+		<!-- Сетка товаров: реальные данные IBLOCK 19 (Этап 1, Фаза B) -->
 		<div style="flex:1">
-			<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
-
-				<a href="/catalog/dorsum-11-1.html" class="product-card">
-					<div class="img-wrap"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/hit-1.jpg" alt="Дверь Dorsum 11.1"><span class="badge hit">ХИТ</span></div>
-					<div class="info">
-						<div class="stars">★★★★★ <span>42</span></div>
-						<div class="name">Дверь Dorsum 11.1 экошпон</div>
-						<div class="price-row"><div class="price">7 880 ₽</div><button class="btn-cart" onclick="event.preventDefault()">В корзину</button></div>
-					</div>
-				</a>
-
-				<a href="/catalog/vilis-21.html" class="product-card">
-					<div class="img-wrap"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/hit-2.jpg" alt="Дверь Vilis 21"></div>
-					<div class="info">
-						<div class="stars">★★★★★ <span>31</span></div>
-						<div class="name">Дверь Vilis 21 экошпон, стекло</div>
-						<div class="price-row"><div class="price">4 500 ₽</div><button class="btn-cart" onclick="event.preventDefault()">В корзину</button></div>
-					</div>
-				</a>
-
-				<a href="/catalog/vilis-18.html" class="product-card">
-					<div class="img-wrap"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/hit-3.jpg" alt="Дверь Vilis 18"></div>
-					<div class="info">
-						<div class="stars">★★★★★ <span>28</span></div>
-						<div class="name">Дверь Vilis 18 экошпон беленая</div>
-						<div class="price-row"><div class="price">4 770 ₽</div><button class="btn-cart" onclick="event.preventDefault()">В корзину</button></div>
-					</div>
-				</a>
-
-				<a href="/catalog/vilis-26.html" class="product-card">
-					<div class="img-wrap"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/hit-4.jpg" alt="Vilis 26"><span class="badge sale">−18%</span></div>
-					<div class="info">
-						<div class="stars">★★★★★ <span>37</span></div>
-						<div class="name">Дверь Vilis 26 экошпон кремовая</div>
-						<div class="price-row"><div><span class="price">5 400 ₽</span> <span class="price-old">6 580</span></div><button class="btn-cart" onclick="event.preventDefault()">В корзину</button></div>
-					</div>
-				</a>
-
-				<a href="/catalog/actus-6-1.html" class="product-card">
-					<div class="img-wrap"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/hit-5.jpg" alt="Actus 6.1"></div>
-					<div class="info">
-						<div class="stars">★★★★★ <span>19</span></div>
-						<div class="name">Дверь Actus 6.1 эмаль, триплекс</div>
-						<div class="price-row"><div class="price">34 825 ₽</div><button class="btn-cart" onclick="event.preventDefault()">В корзину</button></div>
-					</div>
-				</a>
-
-				<a href="/catalog/dorsum-10-2.html" class="product-card">
-					<div class="img-wrap"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/hit-6.jpg" alt="Dorsum 10.2"><span class="badge hit">ХИТ</span></div>
-					<div class="info">
-						<div class="stars">★★★★★ <span>24</span></div>
-						<div class="name">Дверь Dorsum 10.2 эмалит серый</div>
-						<div class="price-row"><div class="price">11 385 ₽</div><button class="btn-cart" onclick="event.preventDefault()">В корзину</button></div>
-					</div>
-				</a>
-
-				<a href="/catalog/vilis-34.html" class="product-card">
-					<div class="img-wrap"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/hit-7.jpg" alt="Vilis 34"></div>
-					<div class="info">
-						<div class="stars">★★★★★ <span>15</span></div>
-						<div class="name">Дверь Vilis 34 экошпон, стекло</div>
-						<div class="price-row"><div class="price">4 500 ₽</div><button class="btn-cart" onclick="event.preventDefault()">В корзину</button></div>
-					</div>
-				</a>
-
-				<a href="/catalog/premier-229.html" class="product-card">
-					<div class="img-wrap"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/hit-8.jpg" alt="Премьер 229"><span class="badge sale">−12%</span></div>
-					<div class="info">
-						<div class="stars">★★★★★ <span>22</span></div>
-						<div class="name">Премьер Люкс 229 шагрень, зеркало</div>
-						<div class="price-row"><div class="price">38 600 ₽</div><button class="btn-cart" onclick="event.preventDefault()">В корзину</button></div>
-					</div>
-				</a>
-
-				<a href="/catalog/dorsum-11-2.html" class="product-card">
-					<div class="img-wrap"><img src="<?=SITE_TEMPLATE_PATH?>/assets/img/sim-1.jpg" alt="Dorsum 11.2"></div>
-					<div class="info">
-						<div class="stars">★★★★☆ <span>11</span></div>
-						<div class="name">Дверь Dorsum 11.2 эмалит чёрная</div>
-						<div class="price-row"><div class="price">16 300 ₽</div><button class="btn-cart" onclick="event.preventDefault()">В корзину</button></div>
-					</div>
-				</a>
-
-			</div>
-
-			<!-- Пагинация -->
-			<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:28px">
-				<span style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:#1b1a17;color:#fff;font:700 13px 'Manrope';cursor:pointer">1</span>
-				<span style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:9px;border:1.5px solid #e7e3db;font:600 13px 'Manrope';cursor:pointer">2</span>
-				<span style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:9px;border:1.5px solid #e7e3db;font:600 13px 'Manrope';cursor:pointer">3</span>
-				<span style="font:600 13px;color:#a39e95">…</span>
-				<span style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:9px;border:1.5px solid #e7e3db;font:600 13px 'Manrope';cursor:pointer">27</span>
-				<span style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:9px;border:1.5px solid #e7e3db;font:600 13px 'Manrope';cursor:pointer">→</span>
-			</div>
+			<?$APPLICATION->IncludeComponent(
+				"bitrix:catalog.section",
+				".default",
+				[
+					"IBLOCK_TYPE" => "catalog",
+					"IBLOCK_ID" => "19",
+					"SECTION_ID" => false,
+					"SECTION_CODE" => "",
+					"SECTION_USER_FIELDS" => [],
+					"ELEMENT_SORT_FIELD" => "sort",
+					"ELEMENT_SORT_ORDER" => "asc",
+					"ELEMENT_SORT_FIELD2" => "id",
+					"ELEMENT_SORT_ORDER2" => "desc",
+					"FILTER_NAME" => "",
+					"HIDE_NOT_AVAILABLE" => "N",
+					"HIDE_NOT_AVAILABLE_OFFERS" => "N",
+					"PAGE_ELEMENT_COUNT" => "9",
+					"LINE_ELEMENT_COUNT" => "3",
+					"PROPERTY_CODE" => ["STYLE", "COATING_COLOR", "GLAZING", "MAIN_COLOR", "PRODUCT_DAY", "RATING", "VOTE_COUNT", "CML2_ARTICLE"],
+					"OFFERS_FIELD_CODE" => [],
+					"OFFERS_PROPERTY_CODE" => [],
+					"BACKGROUND_IMAGE" => "-",
+					"LABEL_PROP" => "-",
+					"PRODUCT_SUBSCRIPTION" => "N",
+					"SHOW_DISCOUNT_PERCENT" => "Y",
+					"SHOW_OLD_PRICE" => "Y",
+					"PRICE_CODE" => ["BASE"],
+					"USE_PRICE_COUNT" => "N",
+					"SHOW_PRICE_COUNT" => "1",
+					"PRICE_VAT_INCLUDE" => "Y",
+					"CONVERT_CURRENCY" => "N",
+					"BASKET_URL" => "/personal/cart/",
+					"ACTION_VARIABLE" => "action",
+					"PRODUCT_ID_VARIABLE" => "id",
+					"PRODUCT_QUANTITY_VARIABLE" => "quantity",
+					"ADD_PROPERTIES_TO_BASKET" => "Y",
+					"PRODUCT_PROPS_VARIABLE" => "prop",
+					"PARTIAL_PRODUCT_PROPERTIES" => "N",
+					"USE_PRODUCT_QUANTITY" => "N",
+					"CACHE_TYPE" => "A",
+					"CACHE_TIME" => "3600",
+					"CACHE_GROUPS" => "N",
+					"CACHE_FILTER" => "N",
+					"DISPLAY_COMPARE" => "N",
+					"SET_TITLE" => "N",
+					"SET_STATUS_404" => "N",
+					"SEF_MODE" => "N",
+					"PAGER_TEMPLATE" => "round",
+					"DISPLAY_TOP_PAGER" => "N",
+					"DISPLAY_BOTTOM_PAGER" => "Y",
+					"PAGER_TITLE" => "Товары",
+					"PAGER_SHOW_ALWAYS" => "N",
+					"PAGER_SHOW_ALL" => "N",
+					"ADD_SECTIONS_CHAIN" => "N",
+					"COMPATIBLE_MODE" => "Y",
+					"AJAX_MODE" => "N",
+					"TEMPLATE_THEME" => "site",
+				],
+				false
+			);?>
 		</div>
 	</div>
 

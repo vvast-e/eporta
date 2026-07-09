@@ -1,9 +1,9 @@
 # Ядро Битрикс (симлинк на dverimarket.ru — не трекаем)
-bitrix
-upload
+/bitrix
+/upload
 
 # Конфиг с кредами БД
-bitrix/.settings.php
+/bitrix/.settings.php
 
 # Большие файлы данных
 *.tar.gz
