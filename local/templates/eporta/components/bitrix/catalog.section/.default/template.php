@@ -5,8 +5,9 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();
 /** @var array $arParams */
 
 $placeholderImg = SITE_TEMPLATE_PATH . "/assets/img/hit-1.jpg";
+$eportaCols = (int)($arParams["LINE_ELEMENT_COUNT"] ?? 3) ?: 3;
 ?>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+<div style="display:grid;grid-template-columns:repeat(<?=$eportaCols?>,1fr);gap:16px">
 <?php foreach ($arResult["ITEMS"] as $arItem):
 	$rating = (int)($arItem["PROPERTIES"]["RATING"]["VALUE"] ?? 0);
 	$voteCount = (int)($arItem["PROPERTIES"]["VOTE_COUNT"]["VALUE"] ?? 0);
