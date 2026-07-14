@@ -3,6 +3,14 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();
 
 use Bitrix\Main\Page\Asset;
 
+// Dev-превью: если пришли по ?dev_preview=<токен>, закрепляем токен в cookie на
+// сессию браузера, чтобы шаблон eporta не слетал на dresscode при переходе по
+// обычным ссылкам без параметра (см. условие показа шаблона в b_site_template,
+// SITE_ID=s2 — теперь принимает токен и из $_REQUEST, и из $_COOKIE).
+if (($_REQUEST["dev_preview"] ?? "") === "x7Qm2pR9vL" && empty($_COOKIE["dev_preview"])) {
+	setcookie("dev_preview", "x7Qm2pR9vL", 0, "/");
+}
+
 $asset = Asset::getInstance();
 $asset->addCss(SITE_TEMPLATE_PATH."/template_styles.css");
 $asset->addString('<link rel="preconnect" href="https://fonts.googleapis.com">');
