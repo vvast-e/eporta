@@ -690,10 +690,26 @@ img { display: block; }
 #basket-root .basket-item-price-current-text { font: 800 17px var(--font); color: var(--dark); }
 #basket-root .basket-item-price-old-text { font: 500 11.5px var(--font); color: var(--text-hint); text-decoration: line-through; }
 
+/* Кнопка удаления у вендора — пустой <span>, крестик целиком рисуется через
+   ::before/::after (2px×14px, повёрнуты ±45deg, красный фон). Раньше здесь
+   просто подменялся content на "::before" — текст "Удалить" рендерился внутри
+   этой узкой красной полоски вместо нормальной ссылки. Сбрасываем геометрию
+   псевдоэлементов и превращаем в обычный текстовый линк. */
 #basket-root .basket-item-actions-remove {
-  font: 500 12.5px var(--font); color: var(--text-muted); cursor: pointer;
+  position: static; width: auto; height: auto; display: inline-block;
+  cursor: pointer;
 }
-#basket-root .basket-item-actions-remove::before { content: "Удалить"; }
+#basket-root .basket-item-actions-remove::after { content: none; }
+#basket-root .basket-item-actions-remove::before {
+  content: "Удалить";
+  position: static; width: auto; height: auto;
+  background: none; transform: none;
+  font: 500 12.5px var(--font); color: var(--text-muted);
+  transition: color .15s;
+}
+#basket-root .basket-item-actions-remove:hover::before {
+  background: none; color: var(--accent-dark);
+}
 
 /* Итог заказа */
 #basket-root .basket-checkout-container {
