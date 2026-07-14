@@ -12,11 +12,18 @@ if (($_REQUEST["dev_preview"] ?? "") === "x7Qm2pR9vL" && empty($_COOKIE["dev_pre
 }
 
 $asset = Asset::getInstance();
-$asset->addCss(SITE_TEMPLATE_PATH."/template_styles.css");
+// Cache-busting через filemtime: nginx отдаёт статику immutable+1y без версионирования
+// (конфиг генерируется ISPmanager, ручную правку не сохранить), поэтому версионируем
+// на стороне PHP через query-параметр — браузер перекачает файл при изменении даты правки.
+$cssPath = SITE_TEMPLATE_PATH."/template_styles.css";
+$cssVer = @filemtime($_SERVER["DOCUMENT_ROOT"].$cssPath) ?: time();
+$asset->addCss($cssPath."?v=".$cssVer);
 $asset->addString('<link rel="preconnect" href="https://fonts.googleapis.com">');
 $asset->addString('<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>');
 $asset->addString('<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">');
-$asset->addJs(SITE_TEMPLATE_PATH."/assets/app.js");
+$jsPath = SITE_TEMPLATE_PATH."/assets/app.js";
+$jsVer = @filemtime($_SERVER["DOCUMENT_ROOT"].$jsPath) ?: time();
+$asset->addJs($jsPath."?v=".$jsVer);
 
 // Телефон/почта: параметры шаблона (.parameters.php), с фолбэком на dw.deluxe
 $templatePhone = $arParams["TEMPLATE_TELEPHONE_1"] ?? "+7 (495) 120-11-38";

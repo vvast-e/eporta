@@ -227,7 +227,7 @@ $APPLICATION->SetTitle("Eporta");?> <?
 	"dresscode:slider",
 	"promoSlider",
 	Array(
-		"CACHE_TIME" => "3600000",
+		"CACHE_TIME" => "86400",
 		"CACHE_TYPE" => "Y",
 		"COMPONENT_TEMPLATE" => "promoSlider",
 		"COMPOSITE_FRAME_MODE" => "A",
@@ -243,7 +243,7 @@ $APPLICATION->SetTitle("Eporta");?> <?
 	".default",
 	[
 		"AJAX_OPTION_ADDITIONAL" => "offers_style_387",
-		"CACHE_TIME" => "360000",
+		"CACHE_TIME" => "3600",
 		"CACHE_TYPE" => "A",
 		"COMPOSITE_FRAME_MODE" => "A",
 		"COMPOSITE_FRAME_TYPE" => "AUTO",
