@@ -43,6 +43,15 @@ $stars = str_repeat("★", $ratingRounded) . str_repeat("☆", 5 - $ratingRounde
 $isHit = eportaPropText($arResult, "PRODUCT_DAY") !== "";
 $article = eportaPropText($arResult, "CML2_ARTICLE");
 
+// Реальное добавление в корзину: официальный compatible-mode механизм
+// bitrix:catalog.element (см. ACTION_VARIABLE="action"/PRODUCT_ID_VARIABLE="id"
+// в catalog/index.php). ADD_URL_TEMPLATE — готовый URL текущей страницы с
+// параметром ?action=ADD2BASKET&id=#ID#, компонент сам добавит товар в
+// Bitrix\Sale\Basket при обращении по этому URL.
+$addToBasketUrl = !empty($arResult["ADD_URL_TEMPLATE"])
+	? str_replace("#ID#", $arResult["ID"], $arResult["ADD_URL_TEMPLATE"])
+	: null;
+
 $price = $arResult["PRICES"]["BASE"] ?? null;
 $hasDiscount = $price && !empty($price["DISCOUNT_VALUE"]) && $price["DISCOUNT_VALUE"] < $price["VALUE"];
 $priceValue = $price["DISCOUNT_VALUE"] ?? $price["VALUE"] ?? 0;
@@ -260,6 +269,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 // ---- Реальная цена товара (Этап 2, Фаза B) ----
 var DOOR_PRICE = <?= (int)$priceValue ?>;
 var addonTotal = 0;
+var ADD_TO_BASKET_URL = <?= $addToBasketUrl ? json_encode($addToBasketUrl, JSON_UNESCAPED_SLASHES) : "null" ?>;
 
 function fmtPrice(n) { return n.toLocaleString('ru-RU') + ' ₽'; }
 
@@ -283,9 +293,9 @@ function updateTotals() {
 	document.getElementById('ctaPrice').textContent = fmtPrice(DOOR_PRICE + addonTotal);
 }
 
-function showToast(msg) {
+function showToast(msg, withCartLink) {
 	var t = document.getElementById('toast');
-	t.innerHTML = '<span>' + msg + '</span>';
+	t.innerHTML = '<span>' + msg + '</span>' + (withCartLink ? '<a href="/personal/cart/" class="toast-btn">В корзину →</a>' : '');
 	t.classList.add('show');
 	clearTimeout(showToast._timer);
 	showToast._timer = setTimeout(function(){ t.classList.remove('show'); }, 3500);
@@ -444,15 +454,47 @@ function closeKit() {
 	document.body.style.overflow = '';
 }
 
-// Добавление в корзину — заглушка до Этапа 4 (живая корзина)
+// Реальное добавление в корзину (Этап 4): фоновый запрос по официальному
+// compatible-mode URL компонента — тот же путь, что при обычном переходе по
+// ссылке с ?action=ADD2BASKET&id=..., только без перезагрузки страницы.
 function addMainToCart(e) {
 	e.preventDefault();
-	showToast('Дверь добавлена в корзину · ' + document.getElementById('ctaPrice').textContent);
+	if (!ADD_TO_BASKET_URL) {
+		showToast('Не удалось добавить в корзину', false);
+		return;
+	}
+	var btn = document.getElementById('ctaBtn');
+	btn.style.pointerEvents = 'none';
+	fetch(ADD_TO_BASKET_URL, { credentials: 'same-origin' })
+		.then(function(resp) {
+			btn.style.pointerEvents = '';
+			if (!resp.ok) throw new Error('bad status');
+			showToast('Дверь добавлена в корзину · ' + document.getElementById('ctaPrice').textContent, true);
+		})
+		.catch(function() {
+			btn.style.pointerEvents = '';
+			showToast('Не удалось добавить в корзину', false);
+		});
 }
+
+// Комплектация (допы) пока мок без реальных Bitrix-товаров (см. коммент выше
+// ADDON_POOL) — в корзину реально уходит только полотно двери, допы в неё не
+// попадают до появления настоящих SKU/услуг на проде.
 function addKitToCart() {
 	var total = DOOR_PRICE + calcAddonTotal();
 	closeKit();
-	showToast('Комплект добавлен в корзину · ' + fmtPrice(total));
+	if (!ADD_TO_BASKET_URL) {
+		showToast('Не удалось добавить в корзину', false);
+		return;
+	}
+	fetch(ADD_TO_BASKET_URL, { credentials: 'same-origin' })
+		.then(function(resp) {
+			if (!resp.ok) throw new Error('bad status');
+			showToast('Комплект добавлен в корзину · ' + fmtPrice(total), true);
+		})
+		.catch(function() {
+			showToast('Не удалось добавить в корзину', false);
+		});
 }
 
 document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeKit(); });

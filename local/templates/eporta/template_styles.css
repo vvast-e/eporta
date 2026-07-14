@@ -588,14 +588,14 @@ img { display: block; }
 /* ========== Тост-уведомление ========== */
 .toast {
   position: fixed;
-  bottom: 28px;
+  bottom: 32px;
   left: 50%;
   transform: translateX(-50%) translateY(60px);
   background: var(--dark);
   color: #fff;
-  font: 600 13.5px var(--font);
-  padding: 13px 18px 13px 22px;
-  border-radius: 12px;
+  font: 600 15px var(--font);
+  padding: 17px 22px 17px 26px;
+  border-radius: 14px;
   z-index: 300;
   opacity: 0;
   transition: all .28s;
@@ -603,16 +603,17 @@ img { display: block; }
   pointer-events: none;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
+  box-shadow: 0 18px 40px rgba(27,26,23,.28);
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
 .toast-btn {
-  font: 700 13px var(--font);
+  font: 700 14.5px var(--font);
   color: var(--accent);
   background: none;
-  border: 1px solid rgba(232,130,10,.5);
-  border-radius: 8px;
-  padding: 6px 13px;
+  border: 1.5px solid rgba(232,130,10,.5);
+  border-radius: 9px;
+  padding: 9px 16px;
   cursor: pointer;
   white-space: nowrap;
   text-decoration: none;

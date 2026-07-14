@@ -60,7 +60,7 @@ if (empty($arParams["TEMPLATE_TELEPHONE_1"]) && \Bitrix\Main\Loader::includeModu
 	</div>
 	<div class="header-actions">
 		<a href="/auth/" class="btn-account"></a>
-		<a href="/cart/" class="cart-btn"><span class="icon"></span><span class="badge">0</span></a>
+		<a href="/personal/cart/" class="cart-btn"><span class="icon"></span><span class="badge">0</span></a>
 	</div>
 </div>
 
