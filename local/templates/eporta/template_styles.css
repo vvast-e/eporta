@@ -710,3 +710,19 @@ img { display: block; }
   box-shadow: 0 10px 24px rgba(232,130,10,.32); margin-top: 14px;
 }
 .basket-btn-checkout.disabled { opacity: .5; pointer-events: none; }
+
+/* ========== Защита общей шапки/навигации/подвала от bootstrap.css ==========
+   Компонент bitrix:sale.basket.basket (.default) на этой странице сам
+   подключает /bitrix/css/main/bootstrap.css, у которого `a:hover, a:focus
+   { color: #23527c; text-decoration: underline; }` специфичнее нашего общего
+   сброса `a { text-decoration: none; color: inherit; }` — из-за этого на
+   странице корзины (единственной, где грузится bootstrap.css) обычные ссылки
+   шапки/навигации/подвала подсвечивались и подчёркивались при наведении.
+   Явные :hover-правила ниже специфичнее bootstrap-овского `a:hover`, поэтому
+   перебивают его без !important. */
+.logo-wrap:hover, .logo-wrap:hover * { text-decoration: none; color: inherit; }
+.header-phone a:hover { text-decoration: none; }
+.header-actions a:hover { text-decoration: none; }
+.cat-nav a:hover, .cat-nav .nav-item:hover { text-decoration: none; }
+.breadcrumb a:hover { text-decoration: none; color: inherit; }
+.site-footer nav a:hover { text-decoration: none; }

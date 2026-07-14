@@ -45,11 +45,14 @@ $article = eportaPropText($arResult, "CML2_ARTICLE");
 
 // Реальное добавление в корзину: официальный compatible-mode механизм
 // bitrix:catalog.element (см. ACTION_VARIABLE="action"/PRODUCT_ID_VARIABLE="id"
-// в catalog/index.php). ADD_URL_TEMPLATE — готовый URL текущей страницы с
-// параметром ?action=ADD2BASKET&id=#ID#, компонент сам добавит товар в
-// Bitrix\Sale\Basket при обращении по этому URL.
-$addToBasketUrl = !empty($arResult["ADD_URL_TEMPLATE"])
-	? str_replace("#ID#", $arResult["ID"], $arResult["ADD_URL_TEMPLATE"])
+// в catalog/index.php). ~ADD_URL_TEMPLATE — СЫРОЙ (не HTML-экранированный) URL
+// текущей страницы с параметром ?action=ADD2BASKET&id=#ID#; ADD_URL_TEMPLATE
+// (без ~) — та же строка, но с &amp; для вставки в HTML-атрибут, для fetch()
+// в JS не годится. ajax_basket=Y просим у ядра чистый JSON-ответ
+// {"STATUS":"OK"|"ERROR",...} вместо редиректа/полного рендера страницы
+// (см. processLinkAction() в bitrix/modules/iblock/lib/component/base.php).
+$addToBasketUrl = !empty($arResult["~ADD_URL_TEMPLATE"])
+	? str_replace("#ID#", $arResult["ID"], $arResult["~ADD_URL_TEMPLATE"]) . "&ajax_basket=Y"
 	: null;
 
 $price = $arResult["PRICES"]["BASE"] ?? null;
@@ -466,14 +469,15 @@ function addMainToCart(e) {
 	var btn = document.getElementById('ctaBtn');
 	btn.style.pointerEvents = 'none';
 	fetch(ADD_TO_BASKET_URL, { credentials: 'same-origin' })
-		.then(function(resp) {
+		.then(function(resp) { return resp.json(); })
+		.then(function(data) {
 			btn.style.pointerEvents = '';
-			if (!resp.ok) throw new Error('bad status');
+			if (data.STATUS !== 'OK') throw new Error(data.MESSAGE || 'add failed');
 			showToast('Дверь добавлена в корзину · ' + document.getElementById('ctaPrice').textContent, true);
 		})
-		.catch(function() {
+		.catch(function(err) {
 			btn.style.pointerEvents = '';
-			showToast('Не удалось добавить в корзину', false);
+			showToast((err && err.message) || 'Не удалось добавить в корзину', false);
 		});
 }
 
@@ -488,12 +492,13 @@ function addKitToCart() {
 		return;
 	}
 	fetch(ADD_TO_BASKET_URL, { credentials: 'same-origin' })
-		.then(function(resp) {
-			if (!resp.ok) throw new Error('bad status');
+		.then(function(resp) { return resp.json(); })
+		.then(function(data) {
+			if (data.STATUS !== 'OK') throw new Error(data.MESSAGE || 'add failed');
 			showToast('Комплект добавлен в корзину · ' + fmtPrice(total), true);
 		})
-		.catch(function() {
-			showToast('Не удалось добавить в корзину', false);
+		.catch(function(err) {
+			showToast((err && err.message) || 'Не удалось добавить в корзину', false);
 		});
 }
 
