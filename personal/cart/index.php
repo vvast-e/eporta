@@ -39,7 +39,13 @@ $isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH
 				"USE_DYNAMIC_SCROLL" => "N",
 				"SHOW_FILTER" => "N",
 				"TOTAL_BLOCK_DISPLAY" => ["bottom"],
-				"TEMPLATE_THEME" => "site",
+				// TEMPLATE_THEME намеренно не задаём: "site" здесь не создаёт
+				// кастомную тему — компонент трактует это как спец-значение и
+				// пытается разрешить через legacy-опцию wizard_*_theme_id
+				// (актуально только для сайтов, поставленных мастером Bitrix),
+				// не находит ничего и всё равно откатывается на "blue". Реальный
+				// вид корзины полностью держится на #basket-root-переопределениях
+				// в template_styles.css, а не на выборе вендорской темы.
 				"SET_TITLE" => "N",
 			],
 			false
