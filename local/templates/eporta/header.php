@@ -59,8 +59,15 @@ if (empty($arParams["TEMPLATE_TELEPHONE_1"]) && \Bitrix\Main\Loader::includeModu
 		<a href="#">Заказать звонок</a>
 	</div>
 	<div class="header-actions">
-		<a href="/auth/" class="btn-account"></a>
-		<a href="/personal/cart/" class="cart-btn"><span class="icon"></span><span class="badge">0</span></a>
+		<a href="/auth/" class="btn-account" aria-label="Личный кабинет">
+			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"></path></svg>
+		</a>
+		<a href="/personal/cart/" class="cart-btn" aria-label="Корзина">
+			<span class="icon">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 12.2a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 2-1.6L21 8H6"></path><circle cx="9.5" cy="20" r="1.4"></circle><circle cx="17.5" cy="20" r="1.4"></circle></svg>
+			</span>
+			<span class="badge">0</span>
+		</a>
 	</div>
 </div>
 

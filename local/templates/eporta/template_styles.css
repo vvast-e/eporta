@@ -117,19 +117,25 @@ img { display: block; }
 .header-actions .btn-account {
   width: 22px;
   height: 22px;
-  border: 1.6px solid #b3aea2;
-  border-radius: 50%;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #726c62;
+  transition: color .15s;
 }
-.header-actions .btn-account.active { border-color: var(--accent); }
-.cart-btn { position: relative; display: block; }
+.header-actions .btn-account svg { width: 100%; height: 100%; }
+.header-actions .btn-account:hover,
+.header-actions .btn-account.active { color: var(--accent); }
+.cart-btn { position: relative; display: block; color: var(--dark); transition: color .15s; }
+.cart-btn:hover { color: var(--accent); }
 .cart-btn .icon {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 22px;
   height: 22px;
-  border: 1.6px solid var(--dark);
-  border-radius: 6px;
 }
+.cart-btn .icon svg { width: 100%; height: 100%; }
 .cart-btn .badge {
   position: absolute;
   top: -6px;
