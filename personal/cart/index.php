@@ -18,13 +18,18 @@ $isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH
 	</div>
 
 	<!-- Живая корзина: реальные данные (Этап 4, Фаза B).
-	     Используем родной .default шаблон bitrix:sale.basket.basket (не dresscode) —
-	     рабочие AJAX кол-во/удаление/купон "из коробки", вид переопределён CSS
-	     под EPORTA (см. template_styles.css, блок "Корзина (bx-basket)"). -->
+	     Шаблон "eporta" — override родного .default (не dresscode): рабочие AJAX
+	     кол-во/удаление/купон "из коробки" (JS-контроллер и вендорские ассеты
+	     подключаются напрямую из .default, см. components/bitrix/sale.basket.basket/eporta/template.php),
+	     вёрстка/структура — по эталону "EPORTA Прототип" (#cart), см. template_styles.css,
+	     блок "Корзина (bx-basket)". Допы позиций — фронтенд-надстройка, см. assets/kit-modal.php + cart-kit.js. -->
+	<?php require $_SERVER["DOCUMENT_ROOT"] . SITE_TEMPLATE_PATH . '/include/kit-modal.php'; ?>
+	<script src="<?=SITE_TEMPLATE_PATH?>/assets/kit.js"></script>
+	<script src="<?=SITE_TEMPLATE_PATH?>/assets/cart-kit.js"></script>
 	<div style="padding:0 56px 40px">
 		<?$APPLICATION->IncludeComponent(
 			"bitrix:sale.basket.basket",
-			".default",
+			"eporta",
 			[
 				"HIDE_COUPON" => "N",
 				"PATH_TO_ORDER" => "/personal/order/make/",

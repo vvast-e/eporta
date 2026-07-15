@@ -235,46 +235,23 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 </div>
 <?php endif; ?>
 
-<!-- ======= Модалка конструктора (комплектация) ======= -->
-<div class="kit-overlay" id="kitOverlay" onclick="closeKit()">
-	<div class="kit-modal" onclick="event.stopPropagation()">
-		<div class="kit-mhead">
-			<div>
-				<h2>Собрать комплект</h2>
-				<div class="sub"><?= htmlspecialcharsbx($arResult["NAME"]) ?> · <span id="kitDoorPriceLabel"><?= $price ? ($price["PRINT_DISCOUNT_VALUE"] ?? $price["PRINT_VALUE"]) : "" ?></span> · выберите нужные позиции</div>
-			</div>
-			<button class="kit-close" onclick="closeKit()">✕</button>
-		</div>
-		<div class="kit-body">
-			<div class="kit-tabs" id="kitTabs"></div>
-			<div class="kit-panel">
-				<div class="kit-search">
-					<input type="text" id="kitSearchInput" placeholder="Поиск по названию…" oninput="renderItems()">
-					<span class="scnt" id="kitSearchCount"></span>
-				</div>
-				<div class="kit-items" id="kitItemsList"></div>
-			</div>
-		</div>
-		<div class="kit-foot">
-			<div>
-				<div class="total-info" id="kitTotalInfo">Полотно · допы не выбраны</div>
-				<div class="total-price" id="kitTotalPrice"></div>
-			</div>
-			<button class="kit-cta" onclick="addKitToCart()">В корзину · <span id="kitCtaPrice"></span></button>
-		</div>
-	</div>
-</div>
+<?php require $_SERVER["DOCUMENT_ROOT"] . SITE_TEMPLATE_PATH . '/include/kit-modal.php'; ?>
 
 <!-- Тост -->
 <div class="toast" id="toast"></div>
 
+<script src="<?=SITE_TEMPLATE_PATH?>/assets/kit.js"></script>
 <script>
 // ---- Реальная цена товара (Этап 2, Фаза B) ----
 var DOOR_PRICE = <?= (int)$priceValue ?>;
+var DOOR_FIT = 'eco'; // мок: реальный подбор комплектующих по типу двери (SKU) на проде пока не заполнен
 var addonTotal = 0;
 var ADD_TO_BASKET_URL = <?= $addToBasketUrl ? json_encode($addToBasketUrl, JSON_UNESCAPED_SLASHES) : "null" ?>;
+var DOOR_NAME = <?= json_encode($arResult["NAME"], JSON_UNESCAPED_UNICODE) ?>;
+var DOOR_PRICE_LABEL = <?= json_encode($price ? ($price["PRINT_DISCOUNT_VALUE"] ?? $price["PRINT_VALUE"]) : "", JSON_UNESCAPED_UNICODE) ?>;
+var productKitSelection = {}; // сохраняем выбор допов между открытиями модалки на этой странице
 
-function fmtPrice(n) { return n.toLocaleString('ru-RU') + ' ₽'; }
+function fmtPrice(n) { return KitModal.fmtPrice(n); }
 
 function changePhoto(img) {
 	document.getElementById('mainPhoto').src = img.src;
@@ -292,10 +269,6 @@ function toggleFav() {
 	showToast(isFav ? 'Добавлено в избранное' : 'Удалено из избранного');
 }
 
-function updateTotals() {
-	document.getElementById('ctaPrice').textContent = fmtPrice(DOOR_PRICE + addonTotal);
-}
-
 function showToast(msg, withCartLink) {
 	var t = document.getElementById('toast');
 	t.innerHTML = '<span>' + msg + '</span>' + (withCartLink ? '<a href="/personal/cart/" class="toast-btn">В корзину →</a>' : '');
@@ -304,157 +277,34 @@ function showToast(msg, withCartLink) {
 	showToast._timer = setTimeout(function(){ t.classList.remove('show'); }, 3500);
 }
 
-// ---- Конструктор комплекта: статичный мок, без реального источника (Этап 2 — RELATED_PRODUCT/SIMILAR_PRODUCT пусты на проде) ----
-var DOOR_FIT = 'eco';
-var ADDON_CATEGORIES = [
-	{ key:'frame',  name:'Коробка',              mode:'multi',  hint:'по числу проёмов' },
-	{ key:'casing', name:'Наличники',            mode:'multi',  hint:'комплект на проём' },
-	{ key:'ext',    name:'Доборы',               mode:'multi',  hint:'для широких стен' },
-	{ key:'hinge',  name:'Петли',                mode:'multi',  hint:'' },
-	{ key:'lock',   name:'Замки',                mode:'single', hint:'один на полотно' },
-	{ key:'handle', name:'Ручки',                mode:'single', hint:'один комплект' },
-	{ key:'stop',   name:'Упоры и ограничители', mode:'single', hint:'' }
-];
-var ADDON_POOL = [
-	{ id:'fr-eco',    cat:'frame',  fit:'eco',  name:'Коробка телескопическая, экошпон в тон', sub:'МДФ · кромка ПВХ', price:1980 },
-	{ id:'fr-eco2',   cat:'frame',  fit:'eco',  name:'Коробка прямая, экошпон в тон', sub:'фиксированная ширина', price:1490 },
-	{ id:'fr-emal',   cat:'frame',  fit:'emal', name:'Коробка эмаль, под покраску', sub:'массив сосны + МДФ', price:2680 },
-	{ id:'fr-steel',  cat:'frame',  fit:'dark', name:'Коробка стальная усиленная', sub:'для входной группы', price:5900 },
-	{ id:'cs-tele',   cat:'casing', fit:'eco',  name:'Наличник телескопический, экошпон', sub:'комплект 5 шт · 2.2 м', price:1240 },
-	{ id:'cs-flat',   cat:'casing', fit:'eco',  name:'Наличник плоский 70 мм, экошпон', sub:'комплект 5 шт · 2.2 м', price:960 },
-	{ id:'cs-emal',   cat:'casing', fit:'emal', name:'Наличник фигурный, эмаль', sub:'комплект 5 шт · 2.2 м', price:1680 },
-	{ id:'ex-100',    cat:'ext',    fit:'eco',  name:'Добор 100 мм, экошпон в тон', sub:'2 шт · стены до 120 мм', price:1120 },
-	{ id:'ex-150',    cat:'ext',    fit:'eco',  name:'Добор 150 мм, экошпон в тон', sub:'2 шт · стены до 180 мм', price:1460 },
-	{ id:'ex-emal',   cat:'ext',    fit:'emal', name:'Добор 100 мм, эмаль', sub:'2 шт · под покраску', price:1590 },
-	{ id:'hg-univ',   cat:'hinge',  fit:'all',  name:'Петли универсальные, чёрные', sub:'пара · врезные 100 мм', price:640 },
-	{ id:'hg-hidden', cat:'hinge',  fit:'all',  name:'Петли скрытые AGB', sub:'пара · регулировка 3D', price:2340 },
-	{ id:'hg-brass',  cat:'hinge',  fit:'all',  name:'Петли латунь, бронза', sub:'пара · декоративные', price:1180 },
-	{ id:'lk-mag',    cat:'lock',   fit:'all',  name:'Замок магнитный Morelli, чёрный', sub:'бесшумный', price:1890 },
-	{ id:'lk-cyl',    cat:'lock',   fit:'all',  name:'Замок под цилиндр MC85BL', sub:'с ключом', price:2100 },
-	{ id:'lk-wc',     cat:'lock',   fit:'all',  name:'Защёлка WC для санузла', sub:'с фиксатором', price:820 },
-	{ id:'hn-black',  cat:'handle', fit:'all',  name:'Ручка Fimet, чёрный матовый', sub:'на розетке', price:2340 },
-	{ id:'hn-nickel', cat:'handle', fit:'all',  name:'Ручка Morelli, никель', sub:'на планке', price:1980 },
-	{ id:'hn-brass',  cat:'handle', fit:'all',  name:'Ручка Colombo, бронза', sub:'премиум', price:4650 },
-	{ id:'hn-chrome', cat:'handle', fit:'all',  name:'Ручка Fuaro, хром глянец', sub:'на розетке', price:1460 },
-	{ id:'st-floor',  cat:'stop',   fit:'all',  name:'Ограничитель напольный, чёрный', sub:'магнитный', price:480 },
-	{ id:'st-wall',   cat:'stop',   fit:'all',  name:'Упор настенный, чёрный', sub:'силиконовый', price:290 }
-];
-var ADDON_FIT = { eco:['eco','all'], emal:['emal','all'], dark:['dark','eco','all'] };
-var activeCat = 'frame';
-var selection = {};
-
-function getCompatible() { var fits = ADDON_FIT[DOOR_FIT] || ['all']; return ADDON_POOL.filter(function(a){ return fits.indexOf(a.fit) >= 0; }); }
-function getCatItems(catKey) { return getCompatible().filter(function(a){ return a.cat === catKey; }); }
-function plural(n, a, b, c) { var m = Math.abs(n) % 100, m1 = m % 10; if (m > 10 && m < 20) return c; if (m1 > 1 && m1 < 5) return b; if (m1 === 1) return a; return c; }
-function calcAddonTotal() { var sum = 0; Object.keys(selection).forEach(function(id){ var item = ADDON_POOL.find(function(a){ return a.id === id; }); if (item) sum += item.price * selection[id]; }); return sum; }
-function countCatSelected(catKey) {
-	var cat = ADDON_CATEGORIES.find(function(c){ return c.key === catKey; });
-	if (!cat) return 0;
-	if (cat.mode === 'single') return getCatItems(catKey).some(function(a){ return selection[a.id]; }) ? 1 : 0;
-	return getCatItems(catKey).reduce(function(s, a){ return s + (selection[a.id] || 0); }, 0);
-}
-
-function renderTabs() {
-	var html = '';
-	ADDON_CATEGORIES.forEach(function(cat){
-		var cnt = countCatSelected(cat.key);
-		var isActive = cat.key === activeCat;
-		html += '<div class="kit-tab' + (isActive ? ' active' : '') + '" onclick="switchCat(\'' + cat.key + '\')">' +
-			'<div><div class="tname">' + cat.name + '</div>' +
-			(cat.hint ? '<div class="thint">' + cat.hint + '</div>' : '') + '</div>' +
-			(cnt > 0 ? '<div class="tbadge">' + cnt + '</div>' : '') +
-			'</div>';
-	});
-	document.getElementById('kitTabs').innerHTML = html;
-}
-
-function renderItems() {
-	var cat = ADDON_CATEGORIES.find(function(c){ return c.key === activeCat; });
-	var items = getCatItems(activeCat);
-	var q = (document.getElementById('kitSearchInput').value || '').toLowerCase().trim();
-	if (q) items = items.filter(function(a){ return (a.name + a.sub).toLowerCase().indexOf(q) >= 0; });
-	document.getElementById('kitSearchCount').textContent = items.length + ' ' + plural(items.length,'вариант','варианта','вариантов');
-	if (!items.length) {
-		document.getElementById('kitItemsList').innerHTML = '<div class="kit-empty">По запросу ничего не найдено<br><span style="font-size:12px;margin-top:6px;display:block">Попробуйте другой запрос</span></div>';
-		return;
-	}
-	var html = '';
-	items.forEach(function(item){
-		var qty = selection[item.id] || 0;
-		var sel = qty > 0;
-		html += '<div class="kit-row' + (sel ? ' selected' : '') + '" id="row-' + item.id + '">';
-		if (cat.mode === 'single') {
-			html += '<span class="rmark">' + (sel ? '✓' : '') + '</span>';
-			html += '<div style="flex:1;min-width:0" onclick="toggleSingle(\'' + item.id + '\')">' +
-				'<div class="rname">' + item.name + '</div>' +
-				'<div class="rsub">' + item.sub + '</div></div>';
-			html += '<div class="rprice" onclick="toggleSingle(\'' + item.id + '\')">+' + fmtPrice(item.price) + '</div>';
-		} else {
-			html += '<div style="flex:1;min-width:0;cursor:pointer" onclick="toggleMulti(\'' + item.id + '\')">' +
-				'<div class="rname">' + item.name + '</div>' +
-				'<div class="rsub">' + item.sub + '</div></div>';
-			html += '<div class="rprice" style="margin-right:10px">+' + fmtPrice(item.price) + '</div>';
-			if (sel) {
-				html += '<div class="kit-stepper">' +
-					'<button onclick="changeQtyAddon(\'' + item.id + '\',-1)">−</button>' +
-					'<span>' + qty + '</span>' +
-					'<button onclick="changeQtyAddon(\'' + item.id + '\',1)">+</button>' +
-					'</div>';
-			} else {
-				html += '<div style="width:34px;height:34px;border-radius:9px;background:#f4f1ea;color:#8a857b;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer" onclick="toggleMulti(\'' + item.id + '\')">+</div>';
-			}
-		}
-		html += '</div>';
-	});
-	document.getElementById('kitItemsList').innerHTML = html;
-}
-
-function updateKitFooter() {
-	var addons = calcAddonTotal();
-	var total = DOOR_PRICE + addons;
+// Общий конструктор допов вынесен в assets/kit.js (KitModal) — переиспользуется
+// и в корзине (см. assets/cart-kit.js). Здесь только колбэки контекста "карточка товара".
+function onProductKitChange(selection, addonsTotal, total) {
+	addonTotal = addonsTotal;
+	productKitSelection = selection;
+	document.getElementById('ctaPrice').textContent = fmtPrice(total);
 	var cnt = Object.keys(selection).filter(function(id){ return selection[id] > 0; }).length;
-	var info = cnt > 0 ? 'Полотно + ' + cnt + ' ' + plural(cnt,'доп.','доп.','доп.') : 'Полотно · допы не выбраны';
-	document.getElementById('kitTotalInfo').textContent = info;
-	document.getElementById('kitTotalPrice').textContent = fmtPrice(total);
-	document.getElementById('kitCtaPrice').textContent = fmtPrice(total);
-	addonTotal = addons;
-	updateTotals();
 	if (cnt > 0) {
-		document.getElementById('ktLabel').textContent = 'Комплект собран · ' + cnt + ' ' + plural(cnt,'доп.','доп.','доп.');
-		document.getElementById('ktSub').textContent = '+' + fmtPrice(addons) + ' к стоимости';
+		document.getElementById('ktLabel').textContent = 'Комплект собран · ' + cnt + ' ' + KitModal.plural(cnt,'доп.','доп.','доп.');
+		document.getElementById('ktSub').textContent = '+' + fmtPrice(addonsTotal) + ' к стоимости';
 	} else {
 		document.getElementById('ktLabel').textContent = 'Собрать комплект';
 		document.getElementById('ktSub').textContent = 'Коробка, наличники, петли, ручки и другое';
 	}
 }
 
-function toggleSingle(id) {
-	getCatItems(activeCat).forEach(function(a){ delete selection[a.id]; });
-	if (!selection[id]) selection[id] = 1;
-	renderItems(); renderTabs(); updateKitFooter();
-}
-function toggleMulti(id) {
-	if (selection[id]) delete selection[id]; else selection[id] = 1;
-	renderItems(); renderTabs(); updateKitFooter();
-}
-function changeQtyAddon(id, delta) {
-	selection[id] = (selection[id] || 0) + delta;
-	if (selection[id] <= 0) delete selection[id];
-	renderItems(); renderTabs(); updateKitFooter();
-}
-function switchCat(key) {
-	activeCat = key;
-	document.getElementById('kitSearchInput').value = '';
-	renderTabs(); renderItems();
-}
 function openKit() {
-	document.getElementById('kitOverlay').classList.add('open');
-	document.body.style.overflow = 'hidden';
-	renderTabs(); renderItems(); updateKitFooter();
-}
-function closeKit() {
-	document.getElementById('kitOverlay').classList.remove('open');
-	document.body.style.overflow = '';
+	KitModal.open({
+		key: 'main',
+		doorPrice: DOOR_PRICE,
+		doorFit: DOOR_FIT,
+		title: DOOR_NAME,
+		priceLabel: DOOR_PRICE_LABEL,
+		ctaLabel: 'В корзину',
+		initialSelection: productKitSelection,
+		onChange: onProductKitChange,
+		onSubmit: addKitToCart
+	});
 }
 
 // Реальное добавление в корзину (Этап 4): фоновый запрос по официальному
@@ -481,12 +331,10 @@ function addMainToCart(e) {
 		});
 }
 
-// Комплектация (допы) пока мок без реальных Bitrix-товаров (см. коммент выше
-// ADDON_POOL) — в корзину реально уходит только полотно двери, допы в неё не
-// попадают до появления настоящих SKU/услуг на проде.
-function addKitToCart() {
-	var total = DOOR_PRICE + calcAddonTotal();
-	closeKit();
+// Комплектация (допы) пока мок без реальных Bitrix-товаров (см. комментарий в
+// assets/kit.js над ADDON_POOL) — в корзину реально уходит только полотно двери,
+// допы в неё не попадают до появления настоящих SKU/услуг на проде.
+function addKitToCart(selection, addonsTotal, total) {
 	if (!ADD_TO_BASKET_URL) {
 		showToast('Не удалось добавить в корзину', false);
 		return;
@@ -501,6 +349,4 @@ function addKitToCart() {
 			showToast((err && err.message) || 'Не удалось добавить в корзину', false);
 		});
 }
-
-document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeKit(); });
 </script>
