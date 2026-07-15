@@ -129,9 +129,9 @@
 
 	function updateHeader(itemId) {
 		var row = findRow(itemId);
-		if (!row) return;
+		if (!row) { window.__ekDebug && console.debug('[ek] updateHeader: no row', itemId); return; }
 		var header = row.querySelector('.basket-kit-header');
-		if (!header) return;
+		if (!header) { window.__ekDebug && console.debug('[ek] updateHeader: no header', itemId); return; }
 		var selection = state[itemId] || {};
 		var addonsTotal = KitModal.calcAddonTotal(selection);
 		var cnt = Object.keys(selection).filter(function (id) { return selection[id] > 0; }).length;
@@ -146,10 +146,13 @@
 				badge.classList.remove('bkh-badge-kit');
 			}
 		}
-		if (total) total.textContent = KitModal.fmtPrice(getDoorUnitPrice(itemId) + addonsTotal);
+		var newTotal = getDoorUnitPrice(itemId) + addonsTotal;
+		if (window.__ekDebug) console.debug('[ek] updateHeader', itemId, 'doorPrice=', getDoorUnitPrice(itemId), 'addonsTotal=', addonsTotal, 'total-el-found=', !!total, 'writing=', newTotal);
+		if (total) total.textContent = KitModal.fmtPrice(newTotal);
 	}
 
 	function renderAll() {
+		if (window.__ekDebug) console.debug('[ek] renderAll called');
 		var zones = document.querySelectorAll('.basket-item-addons[data-kit-item]');
 		var seenIds = [];
 		zones.forEach(function (zoneEl) {
