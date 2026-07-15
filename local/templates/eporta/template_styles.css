@@ -662,7 +662,13 @@ img { display: block; }
 #basket-root .basket-items-list-header { display: none; }
 
 #basket-root .basket-items-list-wrapper { border: none; box-shadow: none; }
-#basket-root .basket-items-list-table { width: 100%; border-collapse: collapse; }
+/* table-layout:fixed обязателен: с дефолтным auto длинное название двери в .basket-item-info-name
+   (одна ячейка на всю строку, см. basket-item.php) заставляет таблицу вырасти по контенту шире
+   родительской колонки (width:100% не ограничивает auto-таблицу сверху) — карточка визуально
+   "наезжала" на соседнюю колонку "Итого". С fixed таблица держит 100% и переносит длинный текст. */
+#basket-root .basket-items-list-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+#basket-root .basket-item-info-name,
+#basket-root .basket-kit-header .bkh-name { overflow-wrap: break-word; word-break: break-word; }
 #basket-root .basket-items-list-item-container {
   border: 1px solid var(--border);
   border-radius: 16px;
