@@ -24,8 +24,16 @@ $isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH
 	     вёрстка/структура — по эталону "EPORTA Прототип" (#cart), см. template_styles.css,
 	     блок "Корзина (bx-basket)". Допы позиций — фронтенд-надстройка, см. assets/kit-modal.php + cart-kit.js. -->
 	<?php require $_SERVER["DOCUMENT_ROOT"] . SITE_TEMPLATE_PATH . '/include/kit-modal.php'; ?>
-	<script src="<?=SITE_TEMPLATE_PATH?>/assets/kit.js"></script>
-	<script src="<?=SITE_TEMPLATE_PATH?>/assets/cart-kit.js"></script>
+	<?php
+	// Cache-busting по mtime файла: nginx отдаёт /assets/*.js как immutable,max-age=31536000
+	// без версионирования (см. память проекта project_deploy_cache_layers) — без ?v=... браузер
+	// (и наш собственный, при повторных проверках) продолжает использовать старую закэшированную
+	// версию скрипта даже после деплоя правок на сервер, пока URL не изменится.
+	$eportaKitJsPath = $_SERVER["DOCUMENT_ROOT"] . SITE_TEMPLATE_PATH . "/assets/kit.js";
+	$eportaCartKitJsPath = $_SERVER["DOCUMENT_ROOT"] . SITE_TEMPLATE_PATH . "/assets/cart-kit.js";
+	?>
+	<script src="<?=SITE_TEMPLATE_PATH?>/assets/kit.js?v=<?=@filemtime($eportaKitJsPath) ?: time()?>"></script>
+	<script src="<?=SITE_TEMPLATE_PATH?>/assets/cart-kit.js?v=<?=@filemtime($eportaCartKitJsPath) ?: time()?>"></script>
 	<div style="padding:0 56px 40px">
 		<?$APPLICATION->IncludeComponent(
 			"bitrix:sale.basket.basket",
