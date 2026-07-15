@@ -109,6 +109,24 @@
 		if (priceTd.style.display !== 'none') priceTd.style.display = 'none';
 	}
 
+	// Степпер количества у вендора — отдельная <td class="basket-items-list-item-amount"> (нужна для
+	// табличной структуры/colspan, не трогаем), которая у нас рендерится отдельным блоком в самом низу
+	// карточки. Переносим сам степпер (.basket-item-block-amount) сразу под свойства товара
+	// (.basket-item-block-properties, там же "Розничная цена") — тем же приёмом, что и relocatePrice.
+	function relocateAmount(itemId) {
+		var row = findRow(itemId);
+		if (!row) return;
+		var amountTd = row.querySelector('.basket-items-list-item-amount');
+		if (!amountTd) return;
+		var amountBlock = amountTd.querySelector('.basket-item-block-amount');
+		var propsBlock = row.querySelector('.basket-item-block-properties');
+		if (amountBlock && propsBlock && amountBlock.parentElement !== propsBlock.parentNode) {
+			amountBlock.classList.add('basket-item-amount-inline');
+			propsBlock.parentNode.insertBefore(amountBlock, propsBlock.nextSibling);
+		}
+		if (amountTd.style.display !== 'none') amountTd.style.display = 'none';
+	}
+
 	function updateHeader(itemId) {
 		var row = findRow(itemId);
 		if (!row) return;
@@ -138,6 +156,7 @@
 			var itemId = zoneEl.getAttribute('data-kit-item');
 			seenIds.push(itemId);
 			relocatePrice(itemId);
+			relocateAmount(itemId);
 			renderAddonZone(zoneEl);
 			updateHeader(itemId);
 		});
@@ -252,17 +271,81 @@
 		setTimeout(attachObservers, 0);
 	}
 
-	var scheduled = false;
+	// EPORTA: вендор АНИМИРУЕТ изменение цены (component.js: duration.priceAnimation=300) — при смене
+	// количества текст цены проходит через промежуточные кадры на протяжении ~300мс, и только в конце
+	// анимации переносит финальное значение в PRICE/PRICE_FORMATED. Раньше здесь был троттлинг (не чаще
+	// раза в 30мс) — за время одной анимации renderAll() успевал сработать ~10 раз, каждый раз читая ЕЩЁ
+	// НЕ финальную цену и перезаписывая bkh-total — визуальное мерцание, а последний рендер иногда
+	// проскакивал ДО того, как анимация осела, оставляя устаревшее значение. Debounce с периодом тишины
+	// 400мс (с запасом на 300мс анимации + сетевой джиттер): каждая новая мутация сбрасывает таймер,
+	// рендерим один раз, уже после того как всё осело.
+	var renderTimer = null;
 	function scheduleRenderAll() {
-		if (scheduled) return;
-		scheduled = true;
-		setTimeout(function () { scheduled = false; withPausedObservers(renderAll); }, 30);
+		if (renderTimer) clearTimeout(renderTimer);
+		renderTimer = setTimeout(function () { renderTimer = null; withPausedObservers(renderAll); }, 400);
 	}
 
 	document.addEventListener('DOMContentLoaded', function () {
 		// withPausedObservers само подключит наблюдатели после первого рендера (через attachObservers).
 		withPausedObservers(renderAll);
 	});
+
+	// EPORTA: подтверждение перед удалением позиции. Раньше вендор при удалении переводил строку в
+	// состояние SHOW_RESTORE ("Товар удалён… Восстановить") — теперь оно отключено параметром компонента
+	// (SHOW_RESTORE=>"N" в personal/cart/index.php), удаление сразу окончательное, поэтому вместо
+	// "undo после" делаем "подтверждение до". Перехватываем клик по кнопке удаления в CAPTURE-фазе — она
+	// всегда отрабатывает раньше bubble-фазового делегированного обработчика вендора (component.js),
+	// независимо от порядка регистрации листенеров.
+	var confirmModalEl = null;
+	var confirmPendingCb = null;
+
+	function ensureConfirmModal() {
+		if (confirmModalEl) return confirmModalEl;
+		var overlay = document.createElement('div');
+		overlay.className = 'ek-confirm-overlay';
+		overlay.innerHTML =
+			'<div class="ek-confirm-modal">' +
+				'<div class="ek-confirm-text">Удалить эту дверь из корзины?</div>' +
+				'<div class="ek-confirm-actions">' +
+					'<button type="button" class="ek-confirm-cancel">Отмена</button>' +
+					'<button type="button" class="ek-confirm-delete">Удалить</button>' +
+				'</div>' +
+			'</div>';
+		document.body.appendChild(overlay);
+		overlay.addEventListener('click', function (e) { if (e.target === overlay) closeConfirm(); });
+		overlay.querySelector('.ek-confirm-cancel').addEventListener('click', closeConfirm);
+		overlay.querySelector('.ek-confirm-delete').addEventListener('click', function () {
+			var cb = confirmPendingCb;
+			closeConfirm();
+			if (cb) cb();
+		});
+		confirmModalEl = overlay;
+		return overlay;
+	}
+	function closeConfirm() {
+		confirmPendingCb = null;
+		if (confirmModalEl) confirmModalEl.classList.remove('open');
+	}
+	function showConfirm(onConfirm) {
+		var overlay = ensureConfirmModal();
+		confirmPendingCb = onConfirm;
+		overlay.classList.add('open');
+	}
+
+	document.addEventListener('click', function (e) {
+		var el = e.target && e.target.closest && e.target.closest('[data-entity="basket-item-delete"]');
+		if (!el) return;
+		if (el.__eportaConfirmed) { delete el.__eportaConfirmed; return; } // пропускаем один раз — это наш собственный повторный клик после подтверждения
+		e.preventDefault();
+		e.stopPropagation();
+		if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+		showConfirm(function () {
+			el.__eportaConfirmed = true;
+			el.click(); // теперь дойдёт до вендорского обработчика и запустит реальное удаление
+		});
+	}, true);
+
+	document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeConfirm(); });
 
 	window.EportaCartKit = { openFor: openFor, removeAddon: removeAddon };
 })();

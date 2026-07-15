@@ -51,6 +51,10 @@ $isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH
 				"USE_GIFTS" => "N",
 				"USE_DYNAMIC_SCROLL" => "N",
 				"SHOW_FILTER" => "N",
+				// Без этого вендор после удаления переводит строку в состояние SHOW_RESTORE
+				// ("Товар удалён… Восстановить", неоформленный блок в вендорском стиле) —
+				// вместо undo-после теперь своя confirm-модалка до удаления (assets/cart-kit.js).
+				"SHOW_RESTORE" => "N",
 				"TOTAL_BLOCK_DISPLAY" => ["bottom"],
 				// TEMPLATE_THEME намеренно не задаём: "site" здесь не создаёт
 				// кастомную тему — компонент трактует это как спец-значение и

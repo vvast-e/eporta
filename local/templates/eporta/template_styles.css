@@ -403,6 +403,31 @@ img { display: block; }
   transition: transform .2s;
 }
 .kit-overlay.open .kit-modal { transform: none; }
+
+/* ========== Подтверждение удаления позиции корзины (assets/cart-kit.js) ========== */
+.ek-confirm-overlay {
+  position: fixed; inset: 0; background: rgba(20,17,12,.6); z-index: 210;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .15s;
+}
+.ek-confirm-overlay.open { opacity: 1; pointer-events: all; }
+.ek-confirm-modal {
+  background: #fff; border-radius: 16px; width: 360px; max-width: 90vw;
+  padding: 24px 22px 20px; box-shadow: 0 24px 60px rgba(0,0,0,.35);
+  transform: translateY(10px); transition: transform .15s;
+}
+.ek-confirm-overlay.open .ek-confirm-modal { transform: none; }
+.ek-confirm-text { font: 700 15.5px var(--font); color: var(--dark); margin-bottom: 20px; }
+.ek-confirm-actions { display: flex; gap: 10px; }
+.ek-confirm-cancel, .ek-confirm-delete {
+  flex: 1; padding: 12px; border-radius: 10px; font: 700 13.5px var(--font); cursor: pointer;
+  border: none; transition: background .15s, color .15s;
+}
+.ek-confirm-cancel { background: var(--bg-warm); color: var(--dark); }
+.ek-confirm-cancel:hover { background: var(--border-soft); }
+.ek-confirm-delete { background: #fdeceb; color: #c0392b; }
+.ek-confirm-delete:hover { background: #c0392b; color: #fff; }
+
 .kit-mhead {
   display: flex;
   align-items: center;
@@ -743,6 +768,10 @@ img { display: block; }
 /* Цена двери, перенесённая cart-kit.js рядом с фото/названием (см. relocatePrice) — эталон #cart
    показывает её справа от строки фото+название, а не отдельной строкой внизу карточки. */
 #basket-root .basket-item-price-inline { flex: none; margin-left: auto; text-align: right; }
+
+/* Степпер количества, перенесённый cart-kit.js под свойства товара (см. relocateAmount) —
+   в исходной табличной вёрстке шёл отдельным блоком в самом низу карточки. */
+#basket-root .basket-item-amount-inline { margin-top: 12px; }
 
 /* Кнопка удаления у вендора — пустой <span>, крестик целиком рисуется через
    ::before/::after (2px×14px, повёрнуты ±45deg, красный фон). Раньше здесь
