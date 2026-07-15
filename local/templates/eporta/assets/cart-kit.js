@@ -80,7 +80,33 @@
 			'<span class="kb-kit-trigger-icon">+</span>' +
 			'<span>Собрать комплект</span>' +
 			'</div>';
-		zoneEl.innerHTML = html;
+		// Идемпотентно: renderAll() вызывается на КАЖДУЮ AJAX-перерисовку корзины (в т.ч. чисто
+		// вендорскую — смена количества, где состав допов не менялся). Безусловная запись innerHTML
+		// пересоздавала бы DOM-узлы допов/триггера на каждый такой чих — заметный визуальный "дёрг".
+		// Пишем, только если контент реально изменился.
+		if (zoneEl.innerHTML !== html) zoneEl.innerHTML = html;
+	}
+
+	// Цена двери (SUM_PRICE_FORMATED) у вендора рендерится отдельной <td> ("basket-items-list-item-price"),
+	// которая у нас идёт блоком уже ПОСЛЕ строки количества — визуально читается как "итог по карточке",
+	// хотя это сумма только за полотно (без допов, те входят в шапку группы). Переносим блок цены внутрь
+	// той же строки, что фото+название (.basket-items-list-item-descriptions-inner), справа — как в эталоне.
+	// CSS-ом (order) это сделать нельзя: цена и фото/название лежат в РАЗНЫХ <td> одного <tr>, order
+	// переставляет только прямых детей общего flex/grid-контейнера, а не потомков в разных ветках DOM.
+	// Саму табличную структуру (<td>) не трогаем — на ней завязан colspan вендора в состоянии
+	// SHOW_RESTORE ("товар удалён/восстановить").
+	function relocatePrice(itemId) {
+		var row = findRow(itemId);
+		if (!row) return;
+		var priceTd = row.querySelector('.basket-items-list-item-price');
+		if (!priceTd) return;
+		var priceBlock = priceTd.querySelector('.basket-item-block-price');
+		var descInner = row.querySelector('.basket-items-list-item-descriptions-inner');
+		if (priceBlock && descInner && priceBlock.parentElement !== descInner) {
+			priceBlock.classList.add('basket-item-price-inline');
+			descInner.appendChild(priceBlock);
+		}
+		if (priceTd.style.display !== 'none') priceTd.style.display = 'none';
 	}
 
 	function updateHeader(itemId) {
@@ -111,6 +137,7 @@
 		zones.forEach(function (zoneEl) {
 			var itemId = zoneEl.getAttribute('data-kit-item');
 			seenIds.push(itemId);
+			relocatePrice(itemId);
 			renderAddonZone(zoneEl);
 			updateHeader(itemId);
 		});

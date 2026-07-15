@@ -740,6 +740,10 @@ img { display: block; }
 #basket-root .basket-item-price-current-text { font: 800 17px var(--font); color: var(--dark); }
 #basket-root .basket-item-price-old-text { font: 500 11.5px var(--font); color: var(--text-hint); text-decoration: line-through; }
 
+/* Цена двери, перенесённая cart-kit.js рядом с фото/названием (см. relocatePrice) — эталон #cart
+   показывает её справа от строки фото+название, а не отдельной строкой внизу карточки. */
+#basket-root .basket-item-price-inline { flex: none; margin-left: auto; text-align: right; }
+
 /* Кнопка удаления у вендора — пустой <span>, крестик целиком рисуется через
    ::before/::after (2px×14px, повёрнуты ±45deg, красный фон). Раньше здесь
    просто подменялся content на "::before" — текст "Удалить" рендерился внутри
