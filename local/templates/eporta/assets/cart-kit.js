@@ -40,8 +40,16 @@
 		return document.getElementById('basket-item-' + itemId);
 	}
 
-	function getDoorUnitPrice(itemId) {
-		var byId = document.getElementById('basket-item-price-' + itemId) || document.getElementById('basket-item-sum-price-' + itemId);
+	// EPORTA: вендорский basket-item.php использует id="basket-item-price-{{ID}}" ДВАЖДЫ для двух разных
+	// элементов в зависимости от параметров компонента: (1) опциональная колонка цены за единицу
+	// (не рендерится у нас, PRICE_DISPLAY_MODE=N) и (2) подсказка рядом со степпером количества вида
+	// "1 шт = 25 900 ₽" (SHOW_PRICE_FOR) — она ВСЕГДА показывает цену ровно за одну штуку, не за
+	// выбранное количество. document.getElementById всегда находил ИМЕННО её (т.к. первый вариант не
+	// существует в DOM), из-за чего сумма группы в шапке карточки не реагировала на смену количества.
+	// Нужна именно строчная сумма (qty × цена) — она в отдельном id="basket-item-sum-price-{{ID}}",
+	// коллизий не имеет.
+	function getDoorLineTotal(itemId) {
+		var byId = document.getElementById('basket-item-sum-price-' + itemId);
 		if (byId) return parsePriceText(byId.textContent);
 		var row = findRow(itemId);
 		if (!row) return 0;
@@ -129,9 +137,9 @@
 
 	function updateHeader(itemId) {
 		var row = findRow(itemId);
-		if (!row) { window.__ekDebug && console.debug('[ek] updateHeader: no row', itemId); return; }
+		if (!row) return;
 		var header = row.querySelector('.basket-kit-header');
-		if (!header) { window.__ekDebug && console.debug('[ek] updateHeader: no header', itemId); return; }
+		if (!header) return;
 		var selection = state[itemId] || {};
 		var addonsTotal = KitModal.calcAddonTotal(selection);
 		var cnt = Object.keys(selection).filter(function (id) { return selection[id] > 0; }).length;
@@ -146,13 +154,10 @@
 				badge.classList.remove('bkh-badge-kit');
 			}
 		}
-		var newTotal = getDoorUnitPrice(itemId) + addonsTotal;
-		if (window.__ekDebug) console.debug('[ek] updateHeader', itemId, 'doorPrice=', getDoorUnitPrice(itemId), 'addonsTotal=', addonsTotal, 'total-el-found=', !!total, 'writing=', newTotal);
-		if (total) total.textContent = KitModal.fmtPrice(newTotal);
+		if (total) total.textContent = KitModal.fmtPrice(getDoorLineTotal(itemId) + addonsTotal);
 	}
 
 	function renderAll() {
-		if (window.__ekDebug) console.debug('[ek] renderAll called');
 		var zones = document.querySelectorAll('.basket-item-addons[data-kit-item]');
 		var seenIds = [];
 		zones.forEach(function (zoneEl) {
@@ -225,7 +230,7 @@
 		var doorFit = (zone && zone.getAttribute('data-kit-door-fit')) || 'eco';
 		KitModal.open({
 			key: itemId,
-			doorPrice: getDoorUnitPrice(itemId),
+			doorPrice: getDoorLineTotal(itemId),
 			doorFit: doorFit,
 			title: getDoorName(itemId),
 			priceLabel: '',
