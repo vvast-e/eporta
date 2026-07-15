@@ -249,16 +249,24 @@
 	var itemsObserver = null;
 	var totalObserver = null;
 
+	// EPORTA: вендор анимирует цену (component.js: priceAnimation) правкой ТЕКСТОВОГО УЗЛА напрямую
+	// (characterData), не заменой дочерних элементов — с конфигом {childList:true, subtree:true} такие
+	// мутации вообще не долетают до нашего observer'а. В итоге финальное (осевшее) значение цены,
+	// которое сам Bitrix прекрасно проставляет в DOM, никогда не триггерило переперерасчёт bkh-total —
+	// он замирал на значении, вычисленном при самой первой (childList) мутации. Добавляем
+	// attributes+characterData, чтобы ловить и это.
+	var OBSERVE_OPTIONS = { childList: true, subtree: true, attributes: true, characterData: true };
+
 	function attachObservers() {
 		var table = document.getElementById('basket-item-table');
 		if (table) {
 			itemsObserver = new MutationObserver(scheduleRenderAll);
-			itemsObserver.observe(table, { childList: true, subtree: true });
+			itemsObserver.observe(table, OBSERVE_OPTIONS);
 		}
 		var totalBlock = document.querySelector('[data-entity="basket-total-block"]');
 		if (totalBlock) {
 			totalObserver = new MutationObserver(scheduleRenderAll);
-			totalObserver.observe(totalBlock, { childList: true, subtree: true });
+			totalObserver.observe(totalBlock, OBSERVE_OPTIONS);
 		}
 	}
 
