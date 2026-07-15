@@ -925,3 +925,16 @@ img { display: block; }
 .cat-nav a:hover, .cat-nav .nav-item:hover { text-decoration: none; }
 .breadcrumb a:hover { text-decoration: none; color: inherit; }
 .site-footer nav a:hover { text-decoration: none; }
+
+/* Та же история, что и с :hover выше, но со второй частью вендорского правила —
+   `a:focus { outline: 5px auto -webkit-focus-ring-color; outline-offset: -2px; }` — рисует
+   прямоугольную рамку вокруг ссылок шапки/навигации при клике (клик отдаёт фокус <a>), чего нет
+   на других страницах (там bootstrap.css не подключается). */
+.logo-wrap:focus, .logo-wrap:focus-visible,
+.header-phone a:focus, .header-phone a:focus-visible,
+.header-actions a:focus, .header-actions a:focus-visible,
+.cat-nav a:focus, .cat-nav a:focus-visible, .cat-nav .nav-item:focus, .cat-nav .nav-item:focus-visible,
+.breadcrumb a:focus, .breadcrumb a:focus-visible,
+.site-footer nav a:focus, .site-footer nav a:focus-visible {
+  outline: none;
+}
