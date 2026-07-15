@@ -163,10 +163,12 @@
 		if (!state[itemId]) return;
 		delete state[itemId][addonId];
 		saveState(state);
-		var zone = document.querySelector('.basket-item-addons[data-kit-item="' + itemId + '"]');
-		if (zone) renderAddonZone(zone);
-		updateHeader(itemId);
-		updateTotalsInfo();
+		withPausedObservers(function () {
+			var zone = document.querySelector('.basket-item-addons[data-kit-item="' + itemId + '"]');
+			if (zone) renderAddonZone(zone);
+			updateHeader(itemId);
+			updateTotalsInfo();
+		});
 	}
 
 	function openFor(itemId) {
@@ -183,34 +185,56 @@
 			onSubmit: function (selection) {
 				state[itemId] = selection;
 				saveState(state);
-				if (zone) renderAddonZone(zone);
-				updateHeader(itemId);
-				updateTotalsInfo();
+				withPausedObservers(function () {
+					if (zone) renderAddonZone(zone);
+					updateHeader(itemId);
+					updateTotalsInfo();
+				});
 			}
 		});
+	}
+
+	// EPORTA: наш собственный рендер (renderAll/renderAddonZone/updateTotalsInfo) пишет innerHTML
+	// внутрь #basket-item-table и блока итога — тех же узлов, за которыми следят MutationObserver'ы
+	// ниже (чтобы пере-гидратироваться после AJAX-перерисовки родного компонента). Без паузы это
+	// зацикливалось: наша перерисовка триггерила observer → снова renderAll → снова мутация → снова
+	// observer, до бесконечности (и элементы под курсором постоянно "отваливались" от DOM). Поэтому
+	// на время СВОЕЙ мутации отключаем оба observer'а и переподключаем их уже после неё.
+	var itemsObserver = null;
+	var totalObserver = null;
+
+	function attachObservers() {
+		var table = document.getElementById('basket-item-table');
+		if (table) {
+			itemsObserver = new MutationObserver(scheduleRenderAll);
+			itemsObserver.observe(table, { childList: true, subtree: true });
+		}
+		var totalBlock = document.querySelector('[data-entity="basket-total-block"]');
+		if (totalBlock) {
+			totalObserver = new MutationObserver(scheduleRenderAll);
+			totalObserver.observe(totalBlock, { childList: true, subtree: true });
+		}
+	}
+
+	function withPausedObservers(fn) {
+		if (itemsObserver) itemsObserver.disconnect();
+		if (totalObserver) totalObserver.disconnect();
+		fn();
+		// Переподключаемся на следующем тике, а не сразу — чтобы не поймать в очереди
+		// MutationObserver записи о мутациях, вызванных самим fn().
+		setTimeout(attachObservers, 0);
 	}
 
 	var scheduled = false;
 	function scheduleRenderAll() {
 		if (scheduled) return;
 		scheduled = true;
-		setTimeout(function () { scheduled = false; renderAll(); }, 30);
-	}
-
-	function observe() {
-		var table = document.getElementById('basket-item-table');
-		if (table) {
-			new MutationObserver(scheduleRenderAll).observe(table, { childList: true, subtree: true });
-		}
-		var totalBlock = document.querySelector('[data-entity="basket-total-block"]');
-		if (totalBlock) {
-			new MutationObserver(scheduleRenderAll).observe(totalBlock, { childList: true, subtree: true });
-		}
+		setTimeout(function () { scheduled = false; withPausedObservers(renderAll); }, 30);
 	}
 
 	document.addEventListener('DOMContentLoaded', function () {
-		observe();
-		renderAll();
+		// withPausedObservers само подключит наблюдатели после первого рендера (через attachObservers).
+		withPausedObservers(renderAll);
 	});
 
 	window.EportaCartKit = { openFor: openFor, removeAddon: removeAddon };
