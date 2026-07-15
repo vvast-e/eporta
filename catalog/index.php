@@ -58,6 +58,122 @@ $APPLICATION->SetTitle("Каталог товаров");
 			}
 		}
 	}
+
+	// Сайдбар фильтров (сквозной для /catalog/ и всех коллекций): реальные свойства IBLOCK 19.
+	// STYLE ("Стиль"), COATING ("Покрытие"), MAIN_COLOR ("Оттенок" — используется как "Цвет" в
+	// сайдбаре, обычный чекбокс-список без свотчей: COATING_COLOR отпадает — 70+ конкретных
+	// оттенков отделки, не сводится к дизайн-кружкам; MAIN_COLOR даёт вменяемые ~32 значения).
+	// Цена — PRICE_CODE=BASE, CATALOG_GROUP_ID=1 (CATALOG_PRICE_1 в фильтре/сортировке CIBlockElement).
+	$eportaFilterGroups = [];
+	$eportaArrFilter = [];
+	$eportaActiveChips = [];
+	$eportaPriceMinBound = 0;
+	$eportaPriceMaxBound = 0;
+	$eportaPriceSelMin = null;
+	$eportaPriceSelMax = null;
+	$eportaFoundCount = 0;
+	if ($isEportaTemplate && !$isEportaProductDetail) {
+		\Bitrix\Main\Loader::includeModule("iblock");
+		\Bitrix\Main\Loader::includeModule("catalog");
+
+		$eportaFilterSectionId = $eportaCollectionSection ? (int)$eportaCollectionSection["ID"] : false;
+		$eportaScopeFilter = ["IBLOCK_ID" => 19, "ACTIVE" => "Y"];
+		if ($eportaFilterSectionId) {
+			$eportaScopeFilter["SECTION_ID"] = $eportaFilterSectionId;
+		}
+
+		// Свойства-чекбоксы: код свойства => [ query-параметр, подпись, ключ фильтра CIBlockElement ]
+		$eportaPropDefs = [
+			"style" => ["CODE" => "STYLE", "LABEL" => "Стиль", "FILTER_KEY" => "PROPERTY_STYLE"],
+			"coating" => ["CODE" => "COATING", "LABEL" => "Покрытие", "FILTER_KEY" => "PROPERTY_COATING"],
+			"color" => ["CODE" => "MAIN_COLOR", "LABEL" => "Цвет", "FILTER_KEY" => "PROPERTY_MAIN_COLOR"],
+		];
+
+		// Выбранные значения из GET, санитизация — только реально существующие ID вариантов свойства.
+		$eportaSelected = [];
+		foreach ($eportaPropDefs as $eportaKey => $eportaDef) {
+			$eportaEnumRes = \CIBlockPropertyEnum::GetList(
+				["SORT" => "ASC", "VALUE" => "ASC"],
+				["IBLOCK_ID" => 19, "CODE" => $eportaDef["CODE"]]
+			);
+			$eportaValues = [];
+			while ($eportaEnum = $eportaEnumRes->Fetch()) {
+				$eportaValues[(int)$eportaEnum["ID"]] = $eportaEnum["VALUE"];
+			}
+			$eportaPropDefs[$eportaKey]["VALUES"] = $eportaValues;
+
+			$eportaRawSel = array_map("intval", (array)($_GET[$eportaKey] ?? []));
+			$eportaSelected[$eportaKey] = array_values(array_intersect($eportaRawSel, array_keys($eportaValues)));
+		}
+
+		// Реальный диапазон цен в текущей области (раздел коллекции или весь каталог).
+		$eportaPriceBoundFilter = $eportaScopeFilter + [">CATALOG_PRICE_1" => 0];
+		$eportaPriceMinRow = \CIBlockElement::GetList(["CATALOG_PRICE_1" => "ASC"], $eportaPriceBoundFilter, false, ["nTopCount" => 1], ["ID", "CATALOG_PRICE_1"])->Fetch();
+		$eportaPriceMaxRow = \CIBlockElement::GetList(["CATALOG_PRICE_1" => "DESC"], $eportaPriceBoundFilter, false, ["nTopCount" => 1], ["ID", "CATALOG_PRICE_1"])->Fetch();
+		$eportaPriceMinBound = $eportaPriceMinRow ? (int)floor($eportaPriceMinRow["CATALOG_PRICE_1"]) : 0;
+		$eportaPriceMaxBound = $eportaPriceMaxRow ? (int)ceil($eportaPriceMaxRow["CATALOG_PRICE_1"]) : 0;
+
+		$eportaPriceSelMin = isset($_GET["price_min"]) && $_GET["price_min"] !== "" ? max($eportaPriceMinBound, (int)$_GET["price_min"]) : $eportaPriceMinBound;
+		$eportaPriceSelMax = isset($_GET["price_max"]) && $_GET["price_max"] !== "" ? min($eportaPriceMaxBound, (int)$_GET["price_max"]) : $eportaPriceMaxBound;
+		if ($eportaPriceSelMin > $eportaPriceSelMax) {
+			$eportaPriceSelMin = $eportaPriceMinBound;
+			$eportaPriceSelMax = $eportaPriceMaxBound;
+		}
+		$eportaPriceActive = ($eportaPriceSelMin > $eportaPriceMinBound || $eportaPriceSelMax < $eportaPriceMaxBound);
+
+		// Сборка фильтра CIBlockElement/CIBlockElement::GetList, исключая одну группу свойств —
+		// нужно для "умных" счётчиков: сколько товаров останется, если добавить конкретное значение
+		// к уже выбранным фильтрам ДРУГИХ групп.
+		$eportaBuildFilter = function ($excludeKey) use ($eportaScopeFilter, $eportaPropDefs, $eportaSelected, $eportaPriceActive, $eportaPriceSelMin, $eportaPriceSelMax) {
+			$filter = $eportaScopeFilter;
+			foreach ($eportaPropDefs as $key => $def) {
+				if ($key === $excludeKey || empty($eportaSelected[$key])) continue;
+				$filter[$def["FILTER_KEY"]] = $eportaSelected[$key];
+			}
+			if ($eportaPriceActive) {
+				$filter[">=CATALOG_PRICE_1"] = $eportaPriceSelMin;
+				$filter["<=CATALOG_PRICE_1"] = $eportaPriceSelMax;
+			}
+			return $filter;
+		};
+
+		// Счётчики по каждому значению чекбокса (учитывая уже применённые фильтры других групп).
+		foreach ($eportaPropDefs as $eportaKey => $eportaDef) {
+			$eportaCountFilter = $eportaBuildFilter($eportaKey);
+			$eportaItems = [];
+			foreach ($eportaDef["VALUES"] as $eportaEnumId => $eportaEnumValue) {
+				$eportaCnt = \CIBlockElement::GetList([], $eportaCountFilter + [$eportaDef["FILTER_KEY"] => $eportaEnumId], false, false, ["ID"])->SelectedRowsCount();
+				if ($eportaCnt < 1) continue;
+				$eportaItems[] = [
+					"ID" => $eportaEnumId,
+					"VALUE" => $eportaEnumValue,
+					"COUNT" => $eportaCnt,
+					"CHECKED" => in_array($eportaEnumId, $eportaSelected[$eportaKey], true),
+				];
+			}
+			$eportaFilterGroups[$eportaKey] = ["LABEL" => $eportaDef["LABEL"], "ITEMS" => $eportaItems];
+
+			if (!empty($eportaSelected[$eportaKey])) {
+				$eportaArrFilter[$eportaDef["FILTER_KEY"]] = $eportaSelected[$eportaKey];
+				foreach ($eportaDef["VALUES"] as $eportaEnumId => $eportaEnumValue) {
+					if (in_array($eportaEnumId, $eportaSelected[$eportaKey], true)) {
+						$eportaActiveChips[] = ["LABEL" => $eportaEnumValue, "REMOVE_KEY" => $eportaKey, "REMOVE_VALUE" => $eportaEnumId];
+					}
+				}
+			}
+		}
+
+		if ($eportaPriceActive) {
+			$eportaArrFilter[">=CATALOG_PRICE_1"] = $eportaPriceSelMin;
+			$eportaArrFilter["<=CATALOG_PRICE_1"] = $eportaPriceSelMax;
+			$eportaActiveChips[] = ["LABEL" => number_format($eportaPriceSelMin, 0, "", " ")." – ".number_format($eportaPriceSelMax, 0, "", " ")." ₽", "REMOVE_KEY" => "price", "REMOVE_VALUE" => null];
+		}
+
+		$eportaFoundCount = \CIBlockElement::GetList([], $eportaScopeFilter + $eportaArrFilter, false, false, ["ID"])->SelectedRowsCount();
+
+		// URL "Сбросить всё" — текущий путь без query-строки.
+		$eportaResetUrl = parse_url($_SERVER["REQUEST_URI"] ?? "", PHP_URL_PATH);
+	}
 ?>
 <?if ($isEportaProductDetail):?>
 
@@ -154,7 +270,7 @@ $APPLICATION->SetTitle("Каталог товаров");
 			<?else:?>
 			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Межкомнатные двери</h1>
 			<?endif;?>
-			<div style="font:500 13px;color:#8a857b;margin-top:5px">Найдено <?=$eportaCollectionSection ? $eportaCollectionSection["ELEMENT_CNT"] : "2 418"?> моделей</div>
+			<div style="font:500 13px;color:#8a857b;margin-top:5px">Найдено <?=$eportaFoundCount?> моделей</div>
 		</div>
 		<div style="display:flex;align-items:center;gap:10px">
 			<div style="display:flex;align-items:center;gap:9px;border:1.5px solid #e7e3db;border-radius:10px;padding:10px 14px;font:600 13px 'Manrope';color:#3a3631;cursor:pointer">Сначала популярные <span style="color:#a39e95">▾</span></div>
@@ -169,89 +285,61 @@ $APPLICATION->SetTitle("Каталог товаров");
 		</div>
 	</div>
 
-	<!-- Активные фильтры -->
+	<!-- Активные фильтры: реально применённые GET-параметры -->
+	<?if ($eportaActiveChips):?>
 	<div style="display:flex;align-items:center;gap:9px;padding:14px 56px 6px;flex-wrap:wrap">
-		<span style="display:inline-flex;align-items:center;gap:8px;font:600 12.5px 'Manrope';background:#f3f1ec;color:#3a3631;padding:8px 12px;border-radius:20px;cursor:pointer">Экошпон <span style="color:#a39e95">✕</span></span>
-		<span style="display:inline-flex;align-items:center;gap:8px;font:600 12.5px 'Manrope';background:#f3f1ec;color:#3a3631;padding:8px 12px;border-radius:20px;cursor:pointer">Белый <span style="color:#a39e95">✕</span></span>
-		<span style="display:inline-flex;align-items:center;gap:8px;font:600 12.5px 'Manrope';background:#f3f1ec;color:#3a3631;padding:8px 12px;border-radius:20px;cursor:pointer">до 10 000 ₽ <span style="color:#a39e95">✕</span></span>
-		<span style="font:700 12.5px 'Manrope';color:#c2670a;padding:8px 6px;cursor:pointer">Сбросить всё</span>
+		<?foreach ($eportaActiveChips as $eportaChip):
+			$eportaChipParams = [];
+			parse_str(parse_url($_SERVER["REQUEST_URI"] ?? "", PHP_URL_QUERY) ?: "", $eportaChipParams);
+			if ($eportaChip["REMOVE_VALUE"] === null) {
+				unset($eportaChipParams["price_min"], $eportaChipParams["price_max"]);
+			} else {
+				$eportaChipParams[$eportaChip["REMOVE_KEY"]] = array_values(array_diff((array)($eportaChipParams[$eportaChip["REMOVE_KEY"]] ?? []), [(string)$eportaChip["REMOVE_VALUE"]]));
+				if (empty($eportaChipParams[$eportaChip["REMOVE_KEY"]])) unset($eportaChipParams[$eportaChip["REMOVE_KEY"]]);
+			}
+			$eportaChipUrl = $eportaResetUrl.($eportaChipParams ? "?".http_build_query($eportaChipParams) : "");
+		?>
+		<a href="<?=htmlspecialcharsbx($eportaChipUrl)?>" style="display:inline-flex;align-items:center;gap:8px;font:600 12.5px 'Manrope';background:#f3f1ec;color:#3a3631;padding:8px 12px;border-radius:20px;cursor:pointer;text-decoration:none"><?=htmlspecialcharsbx($eportaChip["LABEL"])?> <span style="color:#a39e95">✕</span></a>
+		<?endforeach;?>
+		<a href="<?=htmlspecialcharsbx($eportaResetUrl)?>" style="font:700 12.5px 'Manrope';color:#c2670a;padding:8px 6px;cursor:pointer;text-decoration:none">Сбросить всё</a>
 	</div>
+	<?endif;?>
 
 	<!-- Фильтры + сетка -->
 	<div style="display:flex;gap:22px;padding:8px 56px 28px;align-items:flex-start">
 
-		<!-- Боковой фильтр -->
-		<div style="flex:none;width:248px">
-			<!-- Цена -->
+		<!-- Боковой фильтр: обычный GET-submit, реальные свойства IBLOCK 19 -->
+		<form method="get" action="" style="flex:none;width:248px">
+			<!-- Цена: реальный диапазон CATALOG_PRICE_1 (BASE) в текущей области -->
 			<div style="border-bottom:1px solid #efece6;padding:6px 0 18px">
 				<div style="font:800 14px 'Manrope';margin-bottom:14px">Цена, ₽</div>
-				<div style="position:relative;height:4px;background:#e7e3db;border-radius:3px;margin:20px 6px 16px">
-					<div style="position:absolute;left:12%;right:38%;top:0;height:4px;background:#e8820a;border-radius:3px"></div>
-					<span style="position:absolute;left:12%;top:-6px;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #e8820a;margin-left:-8px;cursor:pointer"></span>
-					<span style="position:absolute;right:38%;top:-6px;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #e8820a;margin-right:-8px;cursor:pointer"></span>
-				</div>
 				<div style="display:flex;gap:8px">
-					<div style="flex:1;border:1.5px solid #e7e3db;border-radius:9px;padding:9px 11px;font:600 12.5px 'Manrope'">4 000</div>
-					<div style="flex:1;border:1.5px solid #e7e3db;border-radius:9px;padding:9px 11px;font:600 12.5px 'Manrope'">40 000</div>
+					<input type="number" name="price_min" value="<?=(int)$eportaPriceSelMin?>" min="<?=(int)$eportaPriceMinBound?>" max="<?=(int)$eportaPriceMaxBound?>" style="flex:1;width:0;border:1.5px solid #e7e3db;border-radius:9px;padding:9px 11px;font:600 12.5px 'Manrope'">
+					<input type="number" name="price_max" value="<?=(int)$eportaPriceSelMax?>" min="<?=(int)$eportaPriceMinBound?>" max="<?=(int)$eportaPriceMaxBound?>" style="flex:1;width:0;border:1.5px solid #e7e3db;border-radius:9px;padding:9px 11px;font:600 12.5px 'Manrope'">
 				</div>
 			</div>
 
-			<!-- Стиль -->
+			<?foreach ($eportaFilterGroups as $eportaGroupKey => $eportaGroup):
+				if (!$eportaGroup["ITEMS"]) continue;
+			?>
+			<!-- <?=htmlspecialcharsbx($eportaGroup["LABEL"])?> -->
 			<div style="border-bottom:1px solid #efece6;padding:16px 0">
-				<div style="font:800 14px 'Manrope';margin-bottom:12px">Стиль</div>
-				<div style="display:flex;align-items:center;gap:10px;padding:5px 0;font:600 13px 'Manrope';cursor:pointer">
-					<span style="width:18px;height:18px;border-radius:5px;background:#e8820a;position:relative;flex:none"><span style="position:absolute;left:6px;top:3px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)"></span></span>
-					Модерн / хай-тек <span style="color:#c2bdb2;margin-left:auto;font-weight:600">862</span>
-				</div>
-				<div style="display:flex;align-items:center;gap:10px;padding:5px 0;font:600 13px 'Manrope';cursor:pointer">
-					<span style="width:18px;height:18px;border-radius:5px;border:1.5px solid #e0dbd4;flex:none"></span>
-					Классика <span style="color:#c2bdb2;margin-left:auto;font-weight:600">504</span>
-				</div>
-				<div style="display:flex;align-items:center;gap:10px;padding:5px 0;font:600 13px 'Manrope';cursor:pointer">
-					<span style="width:18px;height:18px;border-radius:5px;border:1.5px solid #e0dbd4;flex:none"></span>
-					Лофт <span style="color:#c2bdb2;margin-left:auto;font-weight:600">218</span>
-				</div>
-				<div style="display:flex;align-items:center;gap:10px;padding:5px 0;font:600 13px 'Manrope';cursor:pointer">
-					<span style="width:18px;height:18px;border-radius:5px;border:1.5px solid #e0dbd4;flex:none"></span>
-					Минимализм <span style="color:#c2bdb2;margin-left:auto;font-weight:600">312</span>
-				</div>
+				<div style="font:800 14px 'Manrope';margin-bottom:12px"><?=htmlspecialcharsbx($eportaGroup["LABEL"])?></div>
+				<?foreach ($eportaGroup["ITEMS"] as $eportaItem):?>
+				<label style="display:flex;align-items:center;gap:10px;padding:5px 0;font:600 13px 'Manrope';cursor:pointer">
+					<input type="checkbox" name="<?=htmlspecialcharsbx($eportaGroupKey)?>[]" value="<?=(int)$eportaItem["ID"]?>" <?=$eportaItem["CHECKED"] ? "checked" : ""?> style="width:18px;height:18px;accent-color:#e8820a;flex:none">
+					<?=htmlspecialcharsbx($eportaItem["VALUE"])?> <span style="color:#c2bdb2;margin-left:auto;font-weight:600"><?=$eportaItem["COUNT"]?></span>
+				</label>
+				<?endforeach;?>
 			</div>
+			<?endforeach;?>
 
-			<!-- Покрытие -->
-			<div style="border-bottom:1px solid #efece6;padding:16px 0">
-				<div style="font:800 14px 'Manrope';margin-bottom:12px">Покрытие</div>
-				<div style="display:flex;align-items:center;gap:10px;padding:5px 0;font:600 13px 'Manrope';cursor:pointer">
-					<span style="width:18px;height:18px;border-radius:5px;background:#e8820a;position:relative;flex:none"><span style="position:absolute;left:6px;top:3px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)"></span></span>
-					Экошпон <span style="color:#c2bdb2;margin-left:auto;font-weight:600">1 204</span>
-				</div>
-				<div style="display:flex;align-items:center;gap:10px;padding:5px 0;font:600 13px 'Manrope';cursor:pointer">
-					<span style="width:18px;height:18px;border-radius:5px;border:1.5px solid #e0dbd4;flex:none"></span>
-					Эмаль <span style="color:#c2bdb2;margin-left:auto;font-weight:600">386</span>
-				</div>
-				<div style="display:flex;align-items:center;gap:10px;padding:5px 0;font:600 13px 'Manrope';cursor:pointer">
-					<span style="width:18px;height:18px;border-radius:5px;border:1.5px solid #e0dbd4;flex:none"></span>
-					Шпон <span style="color:#c2bdb2;margin-left:auto;font-weight:600">228</span>
-				</div>
-			</div>
+			<button type="submit" style="width:100%;background:#e8820a;color:#fff;font:700 14px 'Manrope';padding:13px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 8px 20px rgba(232,130,10,.28)">Показать <?=$eportaFoundCount?> моделей</button>
+		</form>
 
-			<!-- Цвет -->
-			<div style="padding:16px 0">
-				<div style="font:800 14px 'Manrope';margin-bottom:12px">Цвет</div>
-				<div style="display:flex;flex-wrap:wrap;gap:8px">
-					<span title="Белый" style="width:30px;height:30px;border-radius:50%;background:#fff;border:2px solid #e8820a;cursor:pointer"></span>
-					<span title="Чёрный" style="width:30px;height:30px;border-radius:50%;background:#1b1a17;border:2px solid transparent;cursor:pointer"></span>
-					<span title="Серый" style="width:30px;height:30px;border-radius:50%;background:#9a9182;border:2px solid transparent;cursor:pointer"></span>
-					<span title="Дуб" style="width:30px;height:30px;border-radius:50%;background:#c8a96e;border:2px solid transparent;cursor:pointer"></span>
-					<span title="Орех" style="width:30px;height:30px;border-radius:50%;background:#7b4a2d;border:2px solid transparent;cursor:pointer"></span>
-					<span title="Бежевый" style="width:30px;height:30px;border-radius:50%;background:#e8dfc8;border:2px solid transparent;cursor:pointer"></span>
-				</div>
-			</div>
-
-			<button style="width:100%;background:#e8820a;color:#fff;font:700 14px 'Manrope';padding:13px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 8px 20px rgba(232,130,10,.28)">Показать 247 моделей</button>
-		</div>
-
-		<!-- Сетка товаров: реальные данные IBLOCK 19 (Этап 1, Фаза B) -->
+		<!-- Сетка товаров: реальные данные IBLOCK 19 (Этап 1, Фаза B), фильтр — этот этап -->
 		<div style="flex:1">
+			<?$arrFilter = $eportaArrFilter;?>
 			<?$APPLICATION->IncludeComponent(
 				"bitrix:catalog.section",
 				".default",
@@ -265,7 +353,7 @@ $APPLICATION->SetTitle("Каталог товаров");
 					"ELEMENT_SORT_ORDER" => "asc",
 					"ELEMENT_SORT_FIELD2" => "id",
 					"ELEMENT_SORT_ORDER2" => "desc",
-					"FILTER_NAME" => "",
+					"FILTER_NAME" => "arrFilter",
 					"HIDE_NOT_AVAILABLE" => "N",
 					"HIDE_NOT_AVAILABLE_OFFERS" => "N",
 					"PAGE_ELEMENT_COUNT" => "9",
@@ -294,7 +382,7 @@ $APPLICATION->SetTitle("Каталог товаров");
 					"CACHE_TYPE" => "A",
 					"CACHE_TIME" => "3600",
 					"CACHE_GROUPS" => "N",
-					"CACHE_FILTER" => "N",
+					"CACHE_FILTER" => "Y",
 					"DISPLAY_COMPARE" => "N",
 					"SET_TITLE" => "N",
 					"SET_STATUS_404" => "N",
