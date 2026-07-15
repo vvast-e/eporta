@@ -27,6 +27,37 @@ $APPLICATION->SetTitle("Каталог товаров");
 	// element => "#SECTION_CODE_PATH#/#ELEMENT_CODE#.html", section => "#SECTION_CODE_PATH#/".
 	// Деталь всегда заканчивается на ".html", список — нет.
 	$isEportaProductDetail = $isEportaTemplate && preg_match('~\.html(?:$|\?)~', $_SERVER["REQUEST_URI"] ?? "");
+
+	// Этап 5 — Коллекции: ровно 8 дверных коллекций, подразделы раздела 183 "Коллекции" в
+	// IBLOCK 19. URL приходит по штатному SEF-шаблону как /catalog/collections/<code>/
+	// (SECTION_PAGE_URL секции). Список ID зафиксирован явно (см. collection/index.php —
+	// фильтр CIBlockSection::GetList по IBLOCK_SECTION_ID не работает как ожидалось, возвращает
+	// вообще все секции инфоблока), поэтому матчим CODE только среди этих 8 ID — иначе обычный
+	// раздел каталога с тем же кодом сегмента URL мог бы случайно попасть под резолвер коллекции.
+	$eportaCollectionIds = [151, 152, 153, 154, 155, 156, 157, 158];
+	$eportaCollectionSection = null;
+	if ($isEportaTemplate && !$isEportaProductDetail) {
+		$eportaReqPath = parse_url($_SERVER["REQUEST_URI"] ?? "", PHP_URL_PATH);
+		// SECTION_CODE_PATH коллекции включает код родителя: /catalog/collections/<code>/
+		if (preg_match('~^/catalog/(?:[^/]+/)*([^/]+)/?$~', $eportaReqPath, $eportaCollMatch)) {
+			\Bitrix\Main\Loader::includeModule("iblock");
+			$eportaCollectionSection = \CIBlockSection::GetList(
+				[],
+				["IBLOCK_ID" => 19, "CODE" => $eportaCollMatch[1], "ID" => $eportaCollectionIds, "ACTIVE" => "Y"],
+				false,
+				["ID", "NAME", "DESCRIPTION", "PICTURE", "DETAIL_PICTURE", "UF_TOP_DESCRIPTION", "UF_DESC"]
+			)->Fetch();
+			if ($eportaCollectionSection) {
+				$APPLICATION->SetPageProperty("title", "Коллекция ".$eportaCollectionSection["NAME"]);
+				$APPLICATION->SetTitle("Коллекция ".$eportaCollectionSection["NAME"]);
+				$eportaCollectionSection["ELEMENT_CNT"] = \CIBlockElement::GetList(
+					[],
+					["IBLOCK_ID" => 19, "SECTION_ID" => $eportaCollectionSection["ID"], "ACTIVE" => "Y"],
+					["SECTION_ID"]
+				)->SelectedRowsCount();
+			}
+		}
+	}
 ?>
 <?if ($isEportaProductDetail):?>
 
@@ -90,13 +121,40 @@ $APPLICATION->SetTitle("Каталог товаров");
 <?elseif ($isEportaTemplate):?>
 
 	<!-- Хлебные крошки -->
+	<?if ($eportaCollectionSection):?>
+	<div class="breadcrumb" style="padding:12px 56px 0">Главная · <a href="/collection/" style="color:inherit">Коллекции</a> · <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></div>
+	<?else:?>
 	<div class="breadcrumb" style="padding:12px 56px 0">Главная · Каталог · Межкомнатные</div>
+	<?endif;?>
+
+	<?if ($eportaCollectionSection):
+		$eportaCollBannerSrc = \CFile::GetPath($eportaCollectionSection["DETAIL_PICTURE"] ?: $eportaCollectionSection["PICTURE"]);
+	?>
+	<!-- Баннер коллекции: DETAIL_PICTURE/PICTURE + DESCRIPTION секции IBLOCK 19 -->
+	<div style="position:relative;margin:18px 56px 0;border-radius:22px;overflow:hidden;min-height:220px;background:#e5e0d5<?=$eportaCollBannerSrc ? ";background-image:url('".htmlspecialcharsbx($eportaCollBannerSrc)."');background-size:cover;background-position:center" : ""?>">
+		<div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,17,12,.86) 0%,rgba(20,17,12,.5) 55%,rgba(20,17,12,.08) 100%)"></div>
+		<div style="position:relative;padding:36px 40px;max-width:560px">
+			<div style="font:700 12.5px 'Manrope';letter-spacing:.08em;color:#ffd7b0;text-transform:uppercase;margin-bottom:10px">Коллекция фабрики EPORTA</div>
+			<h1 style="margin:0;font:800 36px 'Manrope';color:#fff;letter-spacing:-0.01em"><?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></h1>
+			<?if ($eportaCollectionSection["DESCRIPTION"]):?>
+			<div style="font:700 14px 'Manrope';color:#ffd7b0;margin-top:8px"><?=htmlspecialcharsbx($eportaCollectionSection["DESCRIPTION"])?></div>
+			<?endif;?>
+			<?if ($eportaCollectionSection["UF_TOP_DESCRIPTION"] || $eportaCollectionSection["UF_DESC"]):?>
+			<p style="margin:14px 0 0;font:500 14px/1.6 'Manrope';color:rgba(255,255,255,.88)"><?=htmlspecialcharsbx($eportaCollectionSection["UF_TOP_DESCRIPTION"] ?: $eportaCollectionSection["UF_DESC"])?></p>
+			<?endif;?>
+		</div>
+	</div>
+	<?endif;?>
 
 	<!-- Заголовок + сортировка -->
 	<div style="display:flex;align-items:flex-end;justify-content:space-between;padding:8px 56px 4px">
 		<div>
+			<?if ($eportaCollectionSection):?>
+			<h2 style="margin:0;font:800 24px 'Manrope';letter-spacing:-0.01em">Товары коллекции <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></h2>
+			<?else:?>
 			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Межкомнатные двери</h1>
-			<div style="font:500 13px;color:#8a857b;margin-top:5px">Найдено 2 418 моделей</div>
+			<?endif;?>
+			<div style="font:500 13px;color:#8a857b;margin-top:5px">Найдено <?=$eportaCollectionSection ? $eportaCollectionSection["ELEMENT_CNT"] : "2 418"?> моделей</div>
 		</div>
 		<div style="display:flex;align-items:center;gap:10px">
 			<div style="display:flex;align-items:center;gap:9px;border:1.5px solid #e7e3db;border-radius:10px;padding:10px 14px;font:600 13px 'Manrope';color:#3a3631;cursor:pointer">Сначала популярные <span style="color:#a39e95">▾</span></div>
@@ -200,7 +258,7 @@ $APPLICATION->SetTitle("Каталог товаров");
 				[
 					"IBLOCK_TYPE" => "catalog",
 					"IBLOCK_ID" => "19",
-					"SECTION_ID" => false,
+					"SECTION_ID" => $eportaCollectionSection ? $eportaCollectionSection["ID"] : false,
 					"SECTION_CODE" => "",
 					"SECTION_USER_FIELDS" => [],
 					"ELEMENT_SORT_FIELD" => "sort",
