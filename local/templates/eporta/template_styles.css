@@ -650,8 +650,12 @@ img { display: block; }
    по умолчанию) в раскладке не участвует. */
 #basket-root { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }
 #basket-root > .row { margin: 0; }
-#basket-root > .row:has(.basket-items-list-wrapper) { flex: 1.62 1 560px; min-width: 0; }
-#basket-root > .row:has([data-entity="basket-total-block"]) { flex: 1 1 340px; min-width: 0; position: sticky; top: 20px; }
+/* flex-basis намеренно 0 (не px): жёсткий px-минимум (560+340+22 gap) оказался чуть шире реального
+   контейнера страницы (~913px) и колонки переносились на отдельные строки на всю ширину — при этом
+   sticky-карточка "Итого" визуально наезжала на карточки товаров. С basis:0 колонки всегда делят
+   ширину пропорционально 1.62:1, без переноса. */
+#basket-root > .row:has(.basket-items-list-wrapper) { flex: 1.62 1 0; min-width: 0; }
+#basket-root > .row:has([data-entity="basket-total-block"]) { flex: 1 1 0; min-width: 280px; position: sticky; top: 20px; }
 #basket-root > .row:not(:has(.basket-items-list-wrapper)):not(:has([data-entity="basket-total-block"])) { flex: 0 0 100%; }
 
 /* В эталоне нет строки поиска/фильтра по позициям корзины */
@@ -710,10 +714,17 @@ img { display: block; }
   display: inline-flex; align-items: center;
   border: 1.5px solid var(--border-soft); border-radius: 9px; overflow: hidden;
 }
+/* Кнопки −/+ у вендора — пустые <span>, глиф рисуется через вендорскую тему (themes/blue/style.css);
+   под нашими селекторами он не подхватывается (нет фонового спрайта/иконки в этом скоупе), поэтому
+   явно рисуем "−"/"+" через ::before — тот же приём, что уже применён для basket-item-actions-remove. */
 #basket-root .basket-item-amount-btn-minus, #basket-root .basket-item-amount-btn-plus {
   width: 32px; height: 34px; display: flex; align-items: center; justify-content: center;
-  font: 700 16px var(--font); color: var(--text-muted); cursor: pointer;
+  font: 700 16px var(--font); color: var(--text-muted); cursor: pointer; transition: background .15s;
 }
+#basket-root .basket-item-amount-btn-minus::before { content: "−"; }
+#basket-root .basket-item-amount-btn-plus::before { content: "+"; }
+#basket-root .basket-item-amount-btn-minus:hover,
+#basket-root .basket-item-amount-btn-plus:hover { background: var(--bg-warm); }
 #basket-root .basket-item-amount-btn-plus { color: var(--accent-dark); }
 #basket-root .basket-item-amount-filed-block { width: 34px; }
 #basket-root .basket-item-amount-filed {
