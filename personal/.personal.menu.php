@@ -8,14 +8,7 @@ $aMenuLinks = Array(
 		"" 
 	),
 	Array(
-		"Профили покупателя", 
-		"/personal/profile/", 
-		Array(), 
-		Array(), 
-		"" 
-	),
-	Array(
-		"История заказов", 
+		"История заказов",
 		"/personal/order/", 
 		Array(), 
 		Array(), 
