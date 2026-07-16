@@ -1017,6 +1017,9 @@ img { display: block; }
   position: fixed; inset: 0; background: rgba(27, 26, 23, .45); z-index: 200;
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }
+/* [hidden] в UA-стиле теряет против авторского `display:flex` той же специфичности —
+   без явного правила модалка рендерится (и блокирует клики) ещё до первого сабмита. */
+.lk-profile-modal[hidden] { display: none; }
 .lk-profile-modal-box {
   background: var(--bg); border-radius: 16px; padding: 28px; max-width: 360px; width: 100%;
   text-align: center; box-shadow: 0 24px 60px rgba(27, 26, 23, .25);
