@@ -1047,6 +1047,74 @@ img { display: block; }
 }
 .lk-order-cancel:hover { background: #a12b2b; color: #fff; }
 
+/* Личный счёт (sale.personal.account + sale.account.pay, Фаза C) — две отдельные
+   компоненты в общем flex-ряду, компоновка задаётся страницей (.lk-bill-row). */
+.lk-bill-row { display: flex; gap: 40px; padding: 28px 28px 40px; align-items: flex-start; flex-wrap: wrap; }
+
+.lk-bill-balance { flex: none; width: 360px; max-width: 100%; }
+.lk-bill-balance-card { border: 1px solid var(--border); border-radius: 16px; padding: 20px 22px; background: #faf8f4; }
+.lk-bill-balance-label { font: 700 11.5px var(--font); letter-spacing: .04em; text-transform: uppercase; color: var(--text-hint); margin-bottom: 10px; }
+.lk-bill-balance-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.lk-bill-balance-row + .lk-bill-balance-row { margin-top: 10px; }
+.lk-bill-balance-code { font: 800 16px var(--font); }
+.lk-bill-balance-name { font: 500 12px var(--font); color: var(--text-hint); }
+.lk-bill-balance-sum { font: 800 28px var(--font); white-space: nowrap; }
+
+.lk-bill-pay { flex: 1; min-width: 280px; max-width: 480px; }
+.lk-bill-confirm { font: 500 13.5px var(--font); color: var(--text-mid); }
+.lk-bill-confirm p { margin: 0 0 10px; }
+
+/* Классы ниже — обязательный контракт вендорского script.js (sale.account.pay/.default),
+   скопированного без изменений: переименовывать нельзя, JS ищет их по getElementsByClassName. */
+.sale-acountpay-block { margin-bottom: 18px; }
+.sale-acountpay-title { font: 700 12.5px var(--font); color: #3a3631; margin: 0 0 10px; }
+.sale-acountpay-fixedpay-list { list-style: none; margin: 0; padding: 0; display: flex; gap: 9px; flex-wrap: wrap; }
+.sale-acountpay-fixedpay-item {
+  display: inline-block; cursor: pointer; font: 700 13px var(--font);
+  border: 1.5px solid var(--border-soft); border-radius: 9px; padding: 10px 16px;
+  transition: border-color .15s ease;
+}
+.sale-acountpay-fixedpay-item:hover { border-color: var(--accent); }
+.sale-acountpay-input { text-align: left; margin-top: 0; }
+.sale-acountpay-pp { display: flex; gap: 12px; flex-wrap: wrap; }
+.sale-acountpay-pp-company {
+  display: flex; align-items: center; gap: 10px; cursor: pointer; width: fit-content;
+  border: 2px solid var(--border-soft); border-radius: 10px; padding: 11px 14px;
+  transition: border-color .15s ease, background .15s ease;
+}
+.sale-acountpay-pp-company.bx-selected { border-color: var(--accent); background: #fff8f0; }
+.sale-acountpay-pp-company-graf-container {
+  position: relative; flex: none; width: 34px; height: 22px; border-radius: 4px;
+  background: #fff; border: 1px solid var(--border-soft); overflow: hidden;
+}
+.sale-acountpay-pp-company-image { position: absolute; inset: 0; background-size: contain; background-repeat: no-repeat; background-position: center; }
+.sale-acountpay-pp-company-checkbox { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.sale-acountpay-pp-company-smalltitle { font: 600 13px var(--font); color: var(--text-mid); }
+.sale-acountpay-pp-company.bx-selected .sale-acountpay-pp-company-smalltitle { color: var(--accent-dark); }
+.sale-account-pay-button.btn { margin-top: 6px; }
+#loading_screen img { display: block; }
+
+/* Подписка на рассылку (subscribe.edit, Фаза C). */
+.lk-subscribe-banner {
+  border: 1px solid var(--border); border-radius: 14px; padding: 16px 20px; margin: 0 0 26px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  background: #faf8f4;
+}
+.lk-subscribe-banner-text { font: 600 13px var(--font); color: #3a3631; }
+.lk-subscribe-logout { font: 600 12.5px var(--font); color: var(--text-hint); text-decoration: underline; }
+.lk-subscribe-heading { font: 800 15.5px var(--font); margin: 0 0 16px; }
+.lk-subscribe-form { max-width: 440px; }
+.lk-subscribe-rubrics { margin: 10px 0 20px; display: flex; flex-direction: column; gap: 8px; }
+.lk-subscribe-radio-row { display: flex; gap: 22px; margin: 0 0 22px; }
+.lk-subscribe-radio { display: flex; align-items: center; gap: 8px; font: 600 13px var(--font); cursor: pointer; }
+.lk-subscribe-radio input[type="radio"] { width: 17px; height: 17px; accent-color: var(--accent); }
+.lk-subscribe-note { font: 500 12px var(--font); color: var(--text-hint); margin: 0 0 20px; }
+.lk-subscribe-legacy table.data-table { width: 100%; border-collapse: collapse; margin: 0 0 20px; font: 500 13px var(--font); }
+.lk-subscribe-legacy table.data-table thead td { font: 800 14px var(--font); padding: 0 0 12px; }
+.lk-subscribe-legacy table.data-table td { padding: 6px 0; vertical-align: top; }
+.lk-subscribe-legacy input[type="text"], .lk-subscribe-legacy input[type="password"] { width: 100%; max-width: 260px; }
+.lk-subscribe-legacy .starrequired { color: #a12b2b; }
+
 /* ========== Авторизация / Регистрация (/auth/) ==========
    Оверрайд .default для bitrix:system.auth.authorize и bitrix:system.auth.registration —
    те же компоненты, что и штатный NEED_AUTH-рендер ядра, просто своя вёрстка вместо
