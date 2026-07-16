@@ -20,7 +20,7 @@ function addCompare(e, id) {
 		.then(function () {
 			eportaCompareBadge(eportaCompareCount() + 1);
 			var orig = btn.textContent;
-			btn.textContent = '✓ В сравнении';
+			btn.textContent = '✓';
 			btn.classList.add('added');
 			setTimeout(function () { btn.textContent = orig; btn.classList.remove('added'); }, 1500);
 		})
