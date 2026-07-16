@@ -34,17 +34,19 @@ else
 					?>
 					<div class="sale-acountpay-block">
 						<div class="sale-acountpay-title"><?= Loc::getMessage("SAP_FIXED_PAYMENT") ?></div>
-						<div class="sale-acountpay-fixedpay-list">
-							<?
-							foreach ($arParams["SELL_TOTAL"] as $valueChanging)
-							{
-								?>
-								<div class="sale-acountpay-fixedpay-item">
-									<?=CUtil::JSEscape(htmlspecialcharsbx($valueChanging))?>
-								</div>
+						<div class="sale-acountpay-fixedpay-container">
+							<div class="sale-acountpay-fixedpay-list">
 								<?
-							}
-							?>
+								foreach ($arParams["SELL_TOTAL"] as $valueChanging)
+								{
+									?>
+									<div class="sale-acountpay-fixedpay-item">
+										<?=CUtil::JSEscape(htmlspecialcharsbx($valueChanging))?>
+									</div>
+									<?
+								}
+								?>
+							</div>
 						</div>
 					</div>
 					<?
@@ -111,7 +113,7 @@ else
 					?>
 				</div>
 			</div>
-			<a href="" class="lk-btn-primary sale-account-pay-button"><?=Loc::getMessage("SAP_BUTTON")?></a>
+			<a href="" class="btn lk-btn-primary sale-account-pay-button"><?=Loc::getMessage("SAP_BUTTON")?></a>
 		</div>
 		<?
 		$javascriptParams = array(
