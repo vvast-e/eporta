@@ -2,9 +2,15 @@
 <!-- EPORTA: оверрайд dresscode:personal.info — поля формы (name-атрибуты) байт-в-байт
      как у вендорского .default (FIO/EMAIL/USER_MOBILE/USER_CITY/USER_ZIP/USER_STREET/
      USER_PASSWORD/USER_PASSWORD_CONFIRM), иначе сломается ajax.php (CUser::Update).
-     Значения полей не экранируем дополнительно (как и вендор) — CUser::GetByID отдаёт уже
-     сохранённые htmlspecialchars()-значения из ajax.php, повторное экранирование задвоило бы &. -->
-<form method="GET" action="" id="lkProfileForm" novalidate>
+     Значения полей НЕ экранируем повторно (как и вендор) — ajax.php уже сохраняет их
+     htmlspecialchars()-экранированными; повторный htmlspecialcharsbx() задвоил бы & в
+     "&amp;" и показал бы пользователю буквальные "&amp;" вместо "&" в его данных
+     (проверено на Фазе A на том же паттерне в системных auth-компонентах — false positive
+     секьюрити-сканера, см. память feedback_bitrix_override_gotchas). Настоящая уязвимость,
+     которую сканер нашёл верно — GET+без sessid у вендорского ajax.php — здесь закрыта:
+     форма шлёт POST с sessid, ajax.php проверяет check_bitrix_sessid(). -->
+<form method="POST" action="" id="lkProfileForm" novalidate>
+	<input type="hidden" name="sessid" value="<?=bitrix_sessid()?>">
 	<div class="lk-body">
 		<div class="lk-col">
 			<div class="lk-field-label" style="margin-top:0">Фамилия Имя Отчество</div>
@@ -50,8 +56,11 @@
 
 	form.addEventListener("submit", function (event) {
 		event.preventDefault();
-		var params = new URLSearchParams(new FormData(form));
-		fetch(ajaxDir + "/ajax.php?" + params.toString(), {credentials: "same-origin"})
+		fetch(ajaxDir + "/ajax.php", {
+			method: "POST",
+			credentials: "same-origin",
+			body: new FormData(form)
+		})
 			.then(function (response) { return response.json(); })
 			.then(function (data) {
 				heading.textContent = data.heading || "";

@@ -4,26 +4,41 @@
 	\Bitrix\Main\Localization\Loc::loadMessages(dirname(__FILE__)."/ajax.php");
 ?>
 <?
-	if(isset($_GET["USER_PASSWORD"]) &&
-	   isset($_GET["USER_PASSWORD_CONFIRM"]) &&
-	   isset($_GET["USER_STREET"]) &&
-	   isset($_GET["USER_MOBILE"]) &&
-	   isset($_GET["USER_CITY"]) &&
-	   isset($_GET["USER_ZIP"]) &&
-	   isset($_GET["EMAIL"]) &&
-	   isset($_GET["FIO"])
+	// EPORTA: в отличие от вендорского .default (который читает $_GET и не
+	// проверяет sessid — пароль меняется по обычной кликабельной ссылке,
+	// CSRF/раскрытие пароля в URL), наша форма шлёт POST + sessid — сама
+	// логика CUser::Update и имена полей ниже не менялись.
+	if (
+		$_SERVER["REQUEST_METHOD"] !== "POST"
+		|| !check_bitrix_sessid()
+	){
+		echo \Bitrix\Main\Web\Json::encode(array(
+			"message" => GetMessage("PERSONAL_SEND_ERROR"),
+			"heading" => GetMessage("PERSONAL_ERROR"),
+			"reload" => false
+		));
+		die();
+	}
+	if(isset($_POST["USER_PASSWORD"]) &&
+	   isset($_POST["USER_PASSWORD_CONFIRM"]) &&
+	   isset($_POST["USER_STREET"]) &&
+	   isset($_POST["USER_MOBILE"]) &&
+	   isset($_POST["USER_CITY"]) &&
+	   isset($_POST["USER_ZIP"]) &&
+	   isset($_POST["EMAIL"]) &&
+	   isset($_POST["FIO"])
 	){
 		global $USER;
 		$userID = $USER->GetID();
 		if($userID){
-			$NAME            = explode(" ", htmlspecialchars($_GET["FIO"]));
-			$EMAIL           = htmlspecialchars($_GET["EMAIL"]);
-			$PASSWORD        = addslashes($_GET["USER_PASSWORD"]);
-			$REPASSWORD      = addslashes($_GET["USER_PASSWORD_CONFIRM"]);
-			$PERSONAL_STREET = htmlspecialchars($_GET["USER_STREET"]);
-			$PERSONAL_MOBILE = htmlspecialchars($_GET["USER_MOBILE"]);
-			$PERSONAL_CITY   = htmlspecialchars($_GET["USER_CITY"]);
-			$PERSONAL_ZIP    = htmlspecialchars($_GET["USER_ZIP"]);
+			$NAME            = explode(" ", htmlspecialchars($_POST["FIO"]));
+			$EMAIL           = htmlspecialchars($_POST["EMAIL"]);
+			$PASSWORD        = addslashes($_POST["USER_PASSWORD"]);
+			$REPASSWORD      = addslashes($_POST["USER_PASSWORD_CONFIRM"]);
+			$PERSONAL_STREET = htmlspecialchars($_POST["USER_STREET"]);
+			$PERSONAL_MOBILE = htmlspecialchars($_POST["USER_MOBILE"]);
+			$PERSONAL_CITY   = htmlspecialchars($_POST["USER_CITY"]);
+			$PERSONAL_ZIP    = htmlspecialchars($_POST["USER_ZIP"]);
 
 			$user = new CUser;
 			$fields = Array(
