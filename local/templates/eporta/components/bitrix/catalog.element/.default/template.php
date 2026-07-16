@@ -329,6 +329,7 @@ function addMainToCart(e) {
 		.then(function(data) {
 			btn.style.pointerEvents = '';
 			if (data.STATUS !== 'OK') throw new Error(data.MESSAGE || 'add failed');
+			eportaCartBadge(eportaCartCount() + 1);
 			showToast('Дверь добавлена в корзину · ' + document.getElementById('ctaPrice').textContent, true);
 		})
 		.catch(function(err) {
@@ -349,6 +350,7 @@ function addKitToCart(selection, addonsTotal, total) {
 		.then(function(resp) { return resp.json(); })
 		.then(function(data) {
 			if (data.STATUS !== 'OK') throw new Error(data.MESSAGE || 'add failed');
+			eportaCartBadge(eportaCartCount() + 1);
 			showToast('Комплект добавлен в корзину · ' + fmtPrice(total), true);
 		})
 		.catch(function(err) {

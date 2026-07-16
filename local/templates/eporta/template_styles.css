@@ -93,6 +93,7 @@ img { display: block; }
 
 /* Поиск */
 .header-search {
+  position: relative;
   flex: 1;
   display: flex;
   align-items: center;
@@ -102,10 +103,57 @@ img { display: block; }
   color: var(--text-hint);
   font-size: 14px;
   gap: 10px;
-  cursor: pointer;
 }
-.header-search:hover { border-color: var(--accent); }
-.header-search .ico { color: #c2bdb2; }
+.header-search:hover, .header-search:focus-within { border-color: var(--accent); }
+.header-search .ico { color: #c2bdb2; flex: none; }
+.header-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  color: var(--dark);
+}
+.header-search input::placeholder { color: var(--text-hint); }
+
+.header-search-suggest {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 8px);
+  background: #fff;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(27, 26, 23, .14);
+  z-index: 260;
+  max-height: 380px;
+  overflow-y: auto;
+  padding: 6px;
+}
+.header-search-suggest.open { display: block; }
+.header-search-suggest .hs-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--dark);
+}
+.header-search-suggest .hs-item:hover { background: #f6f4f0; }
+.header-search-suggest .hs-item img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex: none;
+  background: #f2efe9;
+}
+.header-search-suggest .hs-name { font: 600 13px var(--font); flex: 1; min-width: 0; }
+.header-search-suggest .hs-price { font: 700 13px var(--font); color: var(--accent); flex: none; }
+.header-search-suggest .hs-empty { padding: 14px; text-align: center; color: var(--text-hint); font-size: 13px; }
 
 /* Телефон */
 .header-phone { text-align: right; flex: none; }

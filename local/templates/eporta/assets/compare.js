@@ -49,6 +49,7 @@ function addCartFromCompare(e, id) {
 		.then(function (data) {
 			btn.style.pointerEvents = '';
 			if (!data || data.status !== true) throw new Error();
+			if (typeof eportaCartBadge === 'function') eportaCartBadge(eportaCartCount() + 1);
 			btn.textContent = '✓ Добавлено';
 			setTimeout(function () { btn.textContent = orig; }, 1500);
 		})

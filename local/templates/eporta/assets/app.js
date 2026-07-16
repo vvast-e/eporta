@@ -1,14 +1,17 @@
 // EPORTA — общий JS шаблона
 
 // ---- Счётчик корзины ----
-(function(){
-	var count = sessionStorage.getItem('eporta_cart') || '0';
-	document.querySelectorAll('.cart-btn .badge').forEach(function(b){ b.textContent = count; });
-})();
+// Источник истины при загрузке страницы — реальный подсчёт на сервере (header.php,
+// CSaleBasket по текущему FUSER). Эти функции только обновляют бейдж мгновенно между
+// AJAX-добавлением и следующей перезагрузкой (см. addMainToCart/addKitToCart в
+// catalog.element/.default/template.php, addCartFromCompare в assets/compare.js).
+function eportaCartBadge(n) {
+	document.querySelectorAll('.cart-btn .badge').forEach(function (b) { b.textContent = n; });
+}
 
-function updateCartBadge(n){
-	sessionStorage.setItem('eporta_cart', n);
-	document.querySelectorAll('.cart-btn .badge').forEach(function(b){ b.textContent = n; });
+function eportaCartCount() {
+	var badge = document.querySelector('.cart-btn .badge');
+	return badge ? (parseInt(badge.textContent, 10) || 0) : 0;
 }
 
 // ---- Мегаменю каталога ----
@@ -105,15 +108,82 @@ function updateCartBadge(n){
 	menu.addEventListener('mouseleave', closeMenu);
 })();
 
-// ---- Добавление в корзину (используется в onclick карточек товара) ----
-function addToCart(e){
-	e.preventDefault();
-	e.stopPropagation();
-	var count = parseInt(sessionStorage.getItem('eporta_cart') || '0', 10) + 1;
-	updateCartBadge(count);
-	var btn = e.currentTarget;
-	var orig = btn.textContent;
-	btn.textContent = '✓ Добавлено';
-	btn.style.background = '#1f8a4c';
-	setTimeout(function(){ btn.textContent = orig; btn.style.background = '#e8820a'; }, 1500);
-}
+// ---- Поиск в шапке (подсказки через существующий AJAX dw.deluxe, act=search) ----
+(function () {
+	var form = document.querySelector('.header-search');
+	if (!form) return;
+	var input = document.getElementById('headerSearchInput');
+	var box = document.getElementById('headerSearchSuggest');
+	var iblockId = form.getAttribute('data-iblock') || '';
+	if (!input || !box || !iblockId) return;
+
+	var debounceTimer = null;
+	var currentController = null;
+
+	function closeSuggest() {
+		box.classList.remove('open');
+		box.textContent = '';
+	}
+
+	function renderItems(items) {
+		box.textContent = '';
+		if (!items.length) {
+			var empty = document.createElement('div');
+			empty.className = 'hs-empty';
+			empty.textContent = 'Ничего не найдено';
+			box.appendChild(empty);
+			box.classList.add('open');
+			return;
+		}
+		items.forEach(function (item) {
+			var a = document.createElement('a');
+			a.className = 'hs-item';
+			a.href = item.DETAIL_PAGE_URL || '#';
+
+			var img = document.createElement('img');
+			img.src = item.DETAIL_PICTURE || '';
+			img.alt = '';
+			a.appendChild(img);
+
+			var name = document.createElement('span');
+			name.className = 'hs-name';
+			name.textContent = item.NAME || '';
+			a.appendChild(name);
+
+			if (item.PRICE) {
+				var price = document.createElement('span');
+				price.className = 'hs-price';
+				price.textContent = item.PRICE;
+				a.appendChild(price);
+			}
+
+			box.appendChild(a);
+		});
+		box.classList.add('open');
+	}
+
+	function fetchSuggest(q) {
+		if (currentController) currentController.abort();
+		var controller = new AbortController();
+		currentController = controller;
+		fetch('/ajax.php?act=search&name=' + encodeURIComponent(q) + '&iblock_id=' + encodeURIComponent(iblockId), { credentials: 'same-origin', signal: controller.signal })
+			.then(function (r) { return r.json(); })
+			.then(function (data) { renderItems(Array.isArray(data) ? data : []); })
+			.catch(function () {});
+	}
+
+	input.addEventListener('input', function () {
+		var q = input.value.trim();
+		clearTimeout(debounceTimer);
+		if (q.length < 2) { closeSuggest(); return; }
+		debounceTimer = setTimeout(function () { fetchSuggest(q); }, 300);
+	});
+
+	document.addEventListener('click', function (e) {
+		if (!form.contains(e.target)) closeSuggest();
+	});
+
+	input.addEventListener('keydown', function (e) {
+		if (e.key === 'Escape') closeSuggest();
+	});
+})();
