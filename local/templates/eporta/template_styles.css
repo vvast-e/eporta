@@ -1007,6 +1007,43 @@ img { display: block; }
 .lk-empty-desc { font: 500 13.5px var(--font); color: var(--text-muted); max-width: 340px; margin-bottom: 24px; }
 .lk-empty-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 
+/* Общая обёртка страниц ЛК (тот же паддинг, что у /auth/) — Фаза B. */
+.lk-page-wrap { padding: 46px var(--pad-x) 80px; }
+.lk-subheading { font: 800 15px var(--font); color: var(--accent-dark); margin: 22px 0 12px; }
+
+/* Профиль (dresscode:personal.info/eporta) — модалка результата сохранения вместо
+   вендорского #elementError, тот же контракт ajax.php (heading/message/reload). */
+.lk-profile-modal {
+  position: fixed; inset: 0; background: rgba(27, 26, 23, .45); z-index: 200;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.lk-profile-modal-box {
+  background: var(--bg); border-radius: 16px; padding: 28px; max-width: 360px; width: 100%;
+  text-align: center; box-shadow: 0 24px 60px rgba(27, 26, 23, .25);
+}
+.lk-profile-modal-heading { font: 800 18px var(--font); margin-bottom: 10px; }
+.lk-profile-modal-message { font: 500 13.5px var(--font); color: var(--text-mid); margin: 0 0 22px; }
+
+/* История заказов (sale.personal.order.list/eporta) — карточки, по аналогии с корзиной. */
+.lk-orders-list { display: flex; flex-direction: column; gap: 16px; }
+.lk-order-card { border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; }
+.lk-order-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.lk-order-number { font: 800 15.5px var(--font); }
+.lk-order-date { font: 500 12.5px var(--font); color: var(--text-hint); margin-top: 4px; }
+.lk-order-status {
+  font: 700 12px var(--font); color: var(--accent-dark); background: var(--bg-warm);
+  border-radius: 8px; padding: 6px 12px; white-space: nowrap;
+}
+.lk-order-status.is-paid { color: #2e7d32; background: #eaf5ea; }
+.lk-order-sum { font: 800 18px var(--font); margin-top: 14px; }
+.lk-order-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.lk-order-actions .lk-btn-ghost { padding: 10px 18px; font-size: 13px; }
+.lk-order-cancel {
+  font: 700 13px var(--font); color: #a12b2b; text-decoration: none;
+  padding: 10px 18px; border: 1.6px solid #a12b2b; border-radius: 12px;
+}
+.lk-order-cancel:hover { background: #a12b2b; color: #fff; }
+
 /* ========== Авторизация / Регистрация (/auth/) ==========
    Оверрайд .default для bitrix:system.auth.authorize и bitrix:system.auth.registration —
    те же компоненты, что и штатный NEED_AUTH-рендер ядра, просто своя вёрстка вместо

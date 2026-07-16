@@ -1,7 +1,51 @@
 <?
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 $APPLICATION->SetTitle("Заказы");
-?><h1>История заказов</h1>
+
+// Дев-превью нового шаблона eporta: реальная история заказов (Этап 6, Фаза B).
+// Боевой bitrix:sale.personal.order (шаблон .default) не трогаем.
+$isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH) === "eporta";
+?>
+<?if ($isEportaTemplate):?>
+	<div class="lk-page-wrap">
+	<div class="lk-card">
+		<div class="lk-breadcrumb"><a href="/">Главная</a> · <a href="/personal/">Личный кабинет</a> · История заказов</div>
+		<div class="lk-title"><h1>История заказов</h1></div>
+		<?php $active = 'orders'; require $_SERVER["DOCUMENT_ROOT"] . SITE_TEMPLATE_PATH . '/include/lk-tabs.php'; ?>
+		<div style="padding:0 28px 40px">
+		<?$APPLICATION->IncludeComponent(
+			"bitrix:sale.personal.order",
+			"eporta",
+			array(
+				"SEF_MODE" => "Y",
+				"SEF_FOLDER" => "/personal/order/",
+				"ORDERS_PER_PAGE" => "10",
+				"PATH_TO_PAYMENT" => "/personal/order/payment/",
+				"PATH_TO_BASKET" => "/personal/cart/",
+				"SET_TITLE" => "Y",
+				"SAVE_IN_SESSION" => "N",
+				"NAV_TEMPLATE" => "round",
+				"SHOW_ACCOUNT_NUMBER" => "Y",
+				"ACTIVE_DATE_FORMAT" => "d.m.Y",
+				"CACHE_TYPE" => "A",
+				"CACHE_TIME" => "3600",
+				"CACHE_GROUPS" => "Y",
+				"HISTORIC_STATUSES" => array(
+					0 => "F",
+				),
+				"SEF_URL_TEMPLATES" => array(
+					"list" => "index.php",
+					"detail" => "detail/#ID#/",
+					"cancel" => "cancel/#ID#/",
+				)
+			),
+			false
+		);?>
+		</div>
+	</div>
+	</div>
+<?else:?>
+<h1>История заказов</h1>
 <?$APPLICATION->IncludeComponent("bitrix:menu", "personal", Array(
 	"COMPONENT_TEMPLATE" => ".default",
 		"ROOT_MENU_TYPE" => "personal",	// Тип меню для первого уровня
@@ -50,4 +94,4 @@ $APPLICATION->SetTitle("Заказы");
 		)
 	),
 	false
-);?><?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>
+);?><?endif;?><?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>
