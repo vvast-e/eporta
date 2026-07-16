@@ -15,7 +15,10 @@ function eportaCartCount() {
 }
 
 // ---- Мегаменю каталога ----
-(function(){
+// EPORTA: скрипт подключается в <head> (Asset::addJs без defer, см. header.php) и выполняется
+// ДО парсинга <body> — обёртка в DOMContentLoaded обязательна для любого блока, читающего DOM
+// на верхнем уровне (без неё document.querySelector(...) вернёт null тихо, без единой ошибки).
+document.addEventListener('DOMContentLoaded', function(){
 	var nav = document.querySelector('.cat-nav');
 	if (!nav) return;
 
@@ -106,10 +109,10 @@ function eportaCartCount() {
 	nav.addEventListener('mouseleave', closeMenu);
 	menu.addEventListener('mouseenter', function(){ clearTimeout(closeTimer); });
 	menu.addEventListener('mouseleave', closeMenu);
-})();
+});
 
 // ---- Поиск в шапке (подсказки через существующий AJAX dw.deluxe, act=search) ----
-(function () {
+document.addEventListener('DOMContentLoaded', function () {
 	var form = document.querySelector('.header-search');
 	if (!form) return;
 	var input = document.getElementById('headerSearchInput');
@@ -186,4 +189,4 @@ function eportaCartCount() {
 	input.addEventListener('keydown', function (e) {
 		if (e.key === 'Escape') closeSuggest();
 	});
-})();
+});
