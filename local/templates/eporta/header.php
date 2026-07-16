@@ -24,6 +24,13 @@ $asset->addString('<link href="https://fonts.googleapis.com/css2?family=Manrope:
 $jsPath = SITE_TEMPLATE_PATH."/assets/app.js";
 $jsVer = @filemtime($_SERVER["DOCUMENT_ROOT"].$jsPath) ?: time();
 $asset->addJs($jsPath."?v=".$jsVer);
+$compareJsPath = SITE_TEMPLATE_PATH."/assets/compare.js";
+$compareJsVer = @filemtime($_SERVER["DOCUMENT_ROOT"].$compareJsPath) ?: time();
+$asset->addJs($compareJsPath."?v=".$compareJsVer);
+
+// Счётчик сравнения — реальные данные сессии (не мок, в отличие от счётчика корзины),
+// пересчитывается на каждой загрузке страницы из $_SESSION["COMPARE_LIST"]["ITEMS"].
+$eportaCompareCount = !empty($_SESSION["COMPARE_LIST"]["ITEMS"]) ? count($_SESSION["COMPARE_LIST"]["ITEMS"]) : 0;
 
 // Телефон/почта: параметры шаблона (.parameters.php), с фолбэком на dw.deluxe
 $templatePhone = $arParams["TEMPLATE_TELEPHONE_1"] ?? "+7 (495) 120-11-38";
@@ -68,6 +75,12 @@ if (empty($arParams["TEMPLATE_TELEPHONE_1"]) && \Bitrix\Main\Loader::includeModu
 	<div class="header-actions">
 		<a href="/auth/" class="btn-account" aria-label="Личный кабинет">
 			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"></path></svg>
+		</a>
+		<a href="/compare/" class="compare-btn" aria-label="Сравнение">
+			<span class="icon">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v14a2 2 0 0 0 2 2h9"></path><path d="M3 8h9a2 2 0 0 1 2 2v11"></path></svg>
+			</span>
+			<span class="badge"><?= $eportaCompareCount ?></span>
 		</a>
 		<a href="/personal/cart/" class="cart-btn" aria-label="Корзина">
 			<span class="icon">

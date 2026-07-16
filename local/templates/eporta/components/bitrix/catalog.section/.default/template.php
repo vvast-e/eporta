@@ -37,7 +37,10 @@ $eportaCols = (int)($arParams["LINE_ELEMENT_COUNT"] ?? 3) ?: 3;
 				<?php else: ?>
 					<div class="price">по запросу</div>
 				<?php endif; ?>
-				<button class="btn-cart" onclick="event.preventDefault()">В корзину</button>
+				<div class="price-row-tools">
+					<button class="btn-compare" onclick="addCompare(event, <?= (int)$arItem["ID"] ?>)" title="Сравнить">⇄</button>
+					<button class="btn-cart" onclick="event.preventDefault()">В корзину</button>
+				</div>
 			</div>
 		</div>
 	</a>

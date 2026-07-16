@@ -155,6 +155,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 		<div style="display:flex;gap:10px;margin-top:10px">
 			<div style="flex:1;background:#fff;color:#1b1a17;font-weight:700;font-size:14px;text-align:center;padding:13px;border-radius:12px;border:1.6px solid #1b1a17;cursor:pointer">Купить в 1 клик</div>
 			<div id="favBtn" onclick="toggleFav()" style="flex:none;width:50px;background:#fff;border:1.6px solid #e7e3db;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#a39e95;cursor:pointer">♡</div>
+			<button onclick="addCompare(event, <?= (int)$arResult["ID"] ?>); this.blur()" title="Сравнить" style="flex:none;width:50px;background:#fff;border:1.6px solid #e7e3db;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#a39e95;cursor:pointer">⇄</button>
 		</div>
 
 		<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:14px;font:600 12.5px 'Manrope';color:#5f5a51">
