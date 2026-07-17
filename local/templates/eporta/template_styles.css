@@ -1253,55 +1253,53 @@ img { display: block; }
    поверх без !important — просто повторяем структуру селекторов core-CSS под палитру eporta. */
 .bx-pagination { margin: 28px 0 0; }
 .bx-pagination .bx-pagination-container ul li { margin: 0 3px 10px; }
-.bx-pagination .bx-pagination-container ul li span,
-.bx-pagination .bx-pagination-container ul li a {
+/* Коробка (рамка/фон/скругление) — только на внешнем элементе (<a> у ссылок, голый <span> у
+   активной/недоступной страницы). Вложенный <span> внутри <a> (маркап core-шаблона:
+   <a href="..."><span>1</span></a>) сведён к display:contents — иначе получалась двойная рамка
+   и число не по центру: и <a>, и вложенный <span> одновременно рисовали свою рамку/паддинг. */
+.bx-pagination .bx-pagination-container ul li > a,
+.bx-pagination .bx-pagination-container ul li > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
   background: #fff;
   border: 1.5px solid var(--border-soft);
   border-radius: 10px;
   height: 40px;
   min-width: 40px;
-  line-height: 37px;
   padding: 0 14px;
   font: 600 13px var(--font);
+  line-height: normal;
   color: var(--dark);
 }
-.bx-pagination .bx-pagination-container ul li a:hover span {
+.bx-pagination .bx-pagination-container ul li > a > span { display: contents; }
+.bx-pagination .bx-pagination-container ul li > a:hover {
   background: var(--bg-warm);
   border-color: var(--accent);
   color: var(--accent-dark);
 }
-.bx-pagination .bx-pagination-container ul li.bx-active span,
-.bx-pagination.bx-blue .bx-pagination-container ul li.bx-active span,
-.bx-pagination.bx-green .bx-pagination-container ul li.bx-active span,
-.bx-pagination.bx-yellow .bx-pagination-container ul li.bx-active span,
-.bx-pagination.bx-red .bx-pagination-container ul li.bx-active span {
+.bx-pagination .bx-pagination-container ul li.bx-active > span,
+.bx-pagination.bx-blue .bx-pagination-container ul li.bx-active > span,
+.bx-pagination.bx-green .bx-pagination-container ul li.bx-active > span,
+.bx-pagination.bx-yellow .bx-pagination-container ul li.bx-active > span,
+.bx-pagination.bx-red .bx-pagination-container ul li.bx-active > span {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
   font-weight: 700;
 }
-.bx-pagination .bx-pagination-container ul li.bx-pag-all a span,
-.bx-pagination .bx-pagination-container ul li.bx-pag-prev a span,
-.bx-pagination .bx-pagination-container ul li.bx-pag-next a span {
-  background: #fff;
-  border: 1.5px solid var(--border-soft);
-  line-height: 37px;
+.bx-pagination .bx-pagination-container ul li.bx-pag-all > a,
+.bx-pagination .bx-pagination-container ul li.bx-pag-prev > a,
+.bx-pagination .bx-pagination-container ul li.bx-pag-next > a,
+.bx-pagination .bx-pagination-container ul li.bx-pag-all > span,
+.bx-pagination .bx-pagination-container ul li.bx-pag-prev > span,
+.bx-pagination .bx-pagination-container ul li.bx-pag-next > span {
   padding: 0 16px;
-  color: var(--text-mid);
+  font-weight: 700;
 }
-.bx-pagination .bx-pagination-container ul li.bx-pag-all span,
-.bx-pagination .bx-pagination-container ul li.bx-pag-prev span,
-.bx-pagination .bx-pagination-container ul li.bx-pag-next span {
-  background: #fff;
-  border: 1.5px solid var(--border-soft);
-  line-height: 37px;
-  padding: 0 16px;
+.bx-pagination .bx-pagination-container ul li.bx-pag-all > span,
+.bx-pagination .bx-pagination-container ul li.bx-pag-prev > span,
+.bx-pagination .bx-pagination-container ul li.bx-pag-next > span {
   color: var(--text-hint);
-}
-.bx-pagination .bx-pagination-container ul li.bx-pag-all a:hover span,
-.bx-pagination .bx-pagination-container ul li.bx-pag-prev a:hover span,
-.bx-pagination .bx-pagination-container ul li.bx-pag-next a:hover span {
-  background: var(--bg-warm);
-  border-color: var(--accent);
-  color: var(--accent-dark);
 }
