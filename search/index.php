@@ -17,9 +17,133 @@ $APPLICATION->SetTitle("Страница поиска");
 		$arPriceCodes = explode(", ", $arTemplateSettings["TEMPLATE_PRICE_CODES"]);
 	}
 ?>
+<?
+	// Этап «Поиск»: под шаблоном eporta вендорский dresscode:search обходится целиком —
+	// его .default-шаблон крашится 500-й на пустых результатах (несуществующий ключ
+	// $arResult["SECTIONS"], всегда вызывает bitrix:menu/emptyMenu, которого нет в eporta),
+	// не экранирует $_REQUEST["q"] в заголовках (reflected XSS) и рендерит сетку на jQuery,
+	// которой в eporta нет. Вместо этого — CSearch (та же морфология/раскладка, что у вендора,
+	// см. component.php) + переопределённая карточка bitrix:catalog.section. Вендорская ветка
+	// ниже (dverimarket.ru и любой другой шаблон) не изменена.
+	$isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH) === "eporta";
+?>
+<?if ($isEportaTemplate):
+	\Bitrix\Main\Loader::includeModule("iblock");
+	\Bitrix\Main\Loader::includeModule("search");
+	\Bitrix\Main\Loader::includeModule("catalog");
+
+	$eportaQuery = trim((string)\Bitrix\Main\Context::getCurrent()->getRequest()->get("q"));
+	$eportaFoundIds = [];
+
+	if ($eportaQuery !== "" && mb_strlen($eportaQuery) > 1) {
+		$obSearch = new CSearch;
+		$obSearch->Search(
+			[
+				"QUERY" => $eportaQuery,
+				"SITE_ID" => SITE_ID,
+				"MODULE_ID" => "iblock",
+				"PARAM2" => $catalogIblockId,
+			],
+			[],
+			["STEMMING" => "N"]
+		);
+		while ($searchItem = $obSearch->fetch()) {
+			if (is_numeric($searchItem["ITEM_ID"])) {
+				$eportaFoundIds[(int)$searchItem["ITEM_ID"]] = (int)$searchItem["ITEM_ID"];
+			}
+		}
+	}
+
+	$APPLICATION->SetTitle("Результаты поиска — «".htmlspecialcharsbx($eportaQuery)."»");
+?>
+	<?if (empty($eportaFoundIds)):?>
+	<div class="lk-page-wrap">
+	<div class="lk-card">
+		<div class="lk-empty">
+			<div class="lk-empty-icon">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+			</div>
+			<div class="lk-empty-title">Ничего не найдено по запросу «<?=htmlspecialcharsbx($eportaQuery)?>»</div>
+			<div class="lk-empty-actions">
+				<a href="/catalog/" class="lk-btn-primary">В каталог</a>
+			</div>
+		</div>
+	</div>
+	</div>
+	<?else:?>
+	<div style="padding:8px 56px 4px">
+		<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Найдено <?=count($eportaFoundIds)?> по запросу «<?=htmlspecialcharsbx($eportaQuery)?>»</h1>
+	</div>
+	<div style="padding:8px 56px 28px">
+		<?
+			$arrFilter = ["ID" => $eportaFoundIds, "ACTIVE" => "Y"];
+			$APPLICATION->IncludeComponent(
+				"bitrix:catalog.section",
+				".default",
+				[
+					"IBLOCK_TYPE" => "catalog",
+					"IBLOCK_ID" => "19",
+					"SECTION_ID" => false,
+					"SECTION_CODE" => "",
+					"SECTION_USER_FIELDS" => [],
+					"ELEMENT_SORT_FIELD" => "sort",
+					"ELEMENT_SORT_ORDER" => "asc",
+					"ELEMENT_SORT_FIELD2" => "id",
+					"ELEMENT_SORT_ORDER2" => "desc",
+					"FILTER_NAME" => "arrFilter",
+					"HIDE_NOT_AVAILABLE" => "N",
+					"HIDE_NOT_AVAILABLE_OFFERS" => "N",
+					"PAGE_ELEMENT_COUNT" => "9",
+					"LINE_ELEMENT_COUNT" => "3",
+					"PROPERTY_CODE" => ["STYLE", "COATING_COLOR", "GLAZING", "MAIN_COLOR", "PRODUCT_DAY", "RATING", "VOTE_COUNT", "CML2_ARTICLE"],
+					"OFFERS_FIELD_CODE" => [],
+					"OFFERS_PROPERTY_CODE" => [],
+					"BACKGROUND_IMAGE" => "-",
+					"LABEL_PROP" => "-",
+					"PRODUCT_SUBSCRIPTION" => "N",
+					"SHOW_DISCOUNT_PERCENT" => "Y",
+					"SHOW_OLD_PRICE" => "Y",
+					"PRICE_CODE" => ["BASE"],
+					"USE_PRICE_COUNT" => "N",
+					"SHOW_PRICE_COUNT" => "1",
+					"PRICE_VAT_INCLUDE" => "Y",
+					"CONVERT_CURRENCY" => "N",
+					"BASKET_URL" => "/personal/cart/",
+					"ACTION_VARIABLE" => "action",
+					"PRODUCT_ID_VARIABLE" => "id",
+					"PRODUCT_QUANTITY_VARIABLE" => "quantity",
+					"ADD_PROPERTIES_TO_BASKET" => "Y",
+					"PRODUCT_PROPS_VARIABLE" => "prop",
+					"PARTIAL_PRODUCT_PROPERTIES" => "N",
+					"USE_PRODUCT_QUANTITY" => "N",
+					"CACHE_TYPE" => "A",
+					"CACHE_TIME" => "3600",
+					"CACHE_GROUPS" => "N",
+					"CACHE_FILTER" => "Y",
+					"DISPLAY_COMPARE" => "N",
+					"SET_TITLE" => "N",
+					"SET_STATUS_404" => "N",
+					"SEF_MODE" => "N",
+					"PAGER_TEMPLATE" => "round",
+					"DISPLAY_TOP_PAGER" => "N",
+					"DISPLAY_BOTTOM_PAGER" => "Y",
+					"PAGER_TITLE" => "Товары",
+					"PAGER_SHOW_ALWAYS" => "N",
+					"PAGER_SHOW_ALL" => "N",
+					"ADD_SECTIONS_CHAIN" => "N",
+					"COMPATIBLE_MODE" => "Y",
+					"AJAX_MODE" => "N",
+					"TEMPLATE_THEME" => "site",
+				],
+				false
+			);
+		?>
+	</div>
+	<?endif;?>
+<?else:?>
 <?$APPLICATION->IncludeComponent(
-	"dresscode:search", 
-	".default", 
+	"dresscode:search",
+	".default",
 	array(
 		"IBLOCK_TYPE" => "catalog",
 		"IBLOCK_ID" => $catalogIblockId,
@@ -170,4 +294,6 @@ $APPLICATION->SetTitle("Страница поиска");
 		)
 	),
 	false
-);?><?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>
+);?>
+<?endif;?>
+<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>
