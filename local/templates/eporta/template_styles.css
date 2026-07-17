@@ -1244,3 +1244,64 @@ img { display: block; }
 }
 .bx-auth-serv-icons a { opacity: .55; transition: opacity .15s; }
 .bx-auth-serv-icons a:hover { opacity: 1; }
+
+/* ========== Пагинация каталога/поиска (bitrix:system.pagenavigation, шаблон "round") ==========
+   Компонент рендерится через core-шаблон bitrix/components/bitrix/system.pagenavigation/
+   templates/round (eporta его не переопределяет — только разметку .bx-pagination/.bx-pag-prev/
+   .bx-active/.bx-pag-next, общую для /catalog/ и /search/). Ядро грузит свой синий style.css
+   раньше этого файла (Asset::addCss в header.php всегда последний), поэтому переопределяем
+   поверх без !important — просто повторяем структуру селекторов core-CSS под палитру eporta. */
+.bx-pagination { margin: 28px 0 0; }
+.bx-pagination .bx-pagination-container ul li { margin: 0 3px 10px; }
+.bx-pagination .bx-pagination-container ul li span,
+.bx-pagination .bx-pagination-container ul li a {
+  background: #fff;
+  border: 1.5px solid var(--border-soft);
+  border-radius: 10px;
+  height: 40px;
+  min-width: 40px;
+  line-height: 37px;
+  padding: 0 14px;
+  font: 600 13px var(--font);
+  color: var(--dark);
+}
+.bx-pagination .bx-pagination-container ul li a:hover span {
+  background: var(--bg-warm);
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+.bx-pagination .bx-pagination-container ul li.bx-active span,
+.bx-pagination.bx-blue .bx-pagination-container ul li.bx-active span,
+.bx-pagination.bx-green .bx-pagination-container ul li.bx-active span,
+.bx-pagination.bx-yellow .bx-pagination-container ul li.bx-active span,
+.bx-pagination.bx-red .bx-pagination-container ul li.bx-active span {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+.bx-pagination .bx-pagination-container ul li.bx-pag-all a span,
+.bx-pagination .bx-pagination-container ul li.bx-pag-prev a span,
+.bx-pagination .bx-pagination-container ul li.bx-pag-next a span {
+  background: #fff;
+  border: 1.5px solid var(--border-soft);
+  line-height: 37px;
+  padding: 0 16px;
+  color: var(--text-mid);
+}
+.bx-pagination .bx-pagination-container ul li.bx-pag-all span,
+.bx-pagination .bx-pagination-container ul li.bx-pag-prev span,
+.bx-pagination .bx-pagination-container ul li.bx-pag-next span {
+  background: #fff;
+  border: 1.5px solid var(--border-soft);
+  line-height: 37px;
+  padding: 0 16px;
+  color: var(--text-hint);
+}
+.bx-pagination .bx-pagination-container ul li.bx-pag-all a:hover span,
+.bx-pagination .bx-pagination-container ul li.bx-pag-prev a:hover span,
+.bx-pagination .bx-pagination-container ul li.bx-pag-next a:hover span {
+  background: var(--bg-warm);
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
