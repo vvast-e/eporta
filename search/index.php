@@ -214,28 +214,71 @@ $APPLICATION->SetTitle("Страница поиска");
 		</div>
 	</div>
 
-	<?if (array_filter($eportaChipGroups, fn($g) => $g["ITEMS"])):?>
-	<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 8px;padding:14px 56px 4px">
-		<?foreach ($eportaChipGroups as $eportaGroupKey => $eportaGroup):
-			if (!$eportaGroup["ITEMS"]) continue;
-		?>
-			<span style="font:700 12px 'Manrope';color:#a39e95;text-transform:uppercase;letter-spacing:.04em;margin-right:2px"><?=htmlspecialcharsbx($eportaGroup["LABEL"])?>:</span>
-			<?foreach ($eportaGroup["ITEMS"] as $eportaItem):
-				$eportaChecked = $eportaItem["CHECKED"];
-			?>
-			<a href="<?=htmlspecialcharsbx($eportaChipUrl($eportaGroupKey, $eportaItem["ID"], $eportaChecked))?>"
-			   style="display:inline-flex;align-items:center;gap:6px;font:600 12.5px 'Manrope';padding:8px 13px;border-radius:20px;text-decoration:none;cursor:pointer;<?=$eportaChecked
-					? "background:#e8820a;color:#fff;"
-					: "background:#f3f1ec;color:#3a3631;"?>">
-				<?=htmlspecialcharsbx($eportaItem["VALUE"])?>
-				<?if ($eportaChecked):?><span>✕</span><?else:?><span style="color:<?=$eportaChecked ? "#fff" : "#c2bdb2"?>;font-weight:600"><?=$eportaItem["COUNT"]?></span><?endif;?>
-			</a>
-			<?endforeach;?>
-		<?endforeach;?>
-		<?if ($eportaHasActiveChips):?>
-			<a href="<?=htmlspecialcharsbx($eportaResetChipsUrl)?>" style="font:700 12.5px 'Manrope';color:#c2670a;padding:8px 6px;cursor:pointer;text-decoration:none;margin-left:4px">Сбросить фильтры</a>
-		<?endif;?>
+	<?
+		// Вариант C (по решению пользователя): чипы дублируются в компактную плавающую
+		// панель, которая появляется, только когда исходный блок (#eportaChipRow) уходит
+		// за пределы экрана при скролле — не занимает место, пока пользователь наверху.
+		// HTML самих чипов рендерим ОДИН раз через буфер и переиспользуем в обоих местах
+		// (обычный блок + компактный sticky-бар), чтобы не дублировать PHP-цикл.
+		$eportaHasChips = (bool)array_filter($eportaChipGroups, fn($g) => $g["ITEMS"]);
+		$eportaChipsMarkup = "";
+		if ($eportaHasChips):
+			ob_start();
+			foreach ($eportaChipGroups as $eportaGroupKey => $eportaGroup):
+				if (!$eportaGroup["ITEMS"]) continue;
+	?>
+				<span style="font:700 12px 'Manrope';color:#a39e95;text-transform:uppercase;letter-spacing:.04em;margin-right:2px;flex:none"><?=htmlspecialcharsbx($eportaGroup["LABEL"])?>:</span>
+				<?foreach ($eportaGroup["ITEMS"] as $eportaItem):
+					$eportaChecked = $eportaItem["CHECKED"];
+				?>
+				<a href="<?=htmlspecialcharsbx($eportaChipUrl($eportaGroupKey, $eportaItem["ID"], $eportaChecked))?>"
+				   style="display:inline-flex;align-items:center;gap:6px;font:600 12.5px 'Manrope';padding:8px 13px;border-radius:20px;text-decoration:none;cursor:pointer;flex:none;<?=$eportaChecked
+						? "background:#e8820a;color:#fff;"
+						: "background:#f3f1ec;color:#3a3631;"?>">
+					<?=htmlspecialcharsbx($eportaItem["VALUE"])?>
+					<?if ($eportaChecked):?><span>✕</span><?else:?><span style="color:<?=$eportaChecked ? "#fff" : "#c2bdb2"?>;font-weight:600"><?=$eportaItem["COUNT"]?></span><?endif;?>
+				</a>
+				<?php endforeach;
+			endforeach;
+			if ($eportaHasActiveChips):
+	?>
+				<a href="<?=htmlspecialcharsbx($eportaResetChipsUrl)?>" style="font:700 12.5px 'Manrope';color:#c2670a;padding:8px 6px;cursor:pointer;text-decoration:none;margin-left:4px;flex:none">Сбросить фильтры</a>
+	<?php
+			endif;
+			$eportaChipsMarkup = ob_get_clean();
+		endif;
+	?>
+	<?if ($eportaHasChips):?>
+	<div id="eportaChipRow" style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 8px;padding:14px 56px 4px">
+		<?=$eportaChipsMarkup?>
 	</div>
+
+	<!-- Плавающая компактная панель — скрыта по умолчанию (opacity/translateY через CSS
+	     класса .eporta-sticky-chips), показывается JS-обсёрвером ниже при скролле мимо
+	     #eportaChipRow. Однострочная, с горизонтальным скроллом вместо переноса — иначе
+	     заняла бы 3 строки высоты, торча над сеткой постоянно. -->
+	<div id="eportaStickyChips" class="eporta-sticky-chips">
+		<div style="display:flex;align-items:center;gap:8px;overflow-x:auto;flex:1">
+			<?=$eportaChipsMarkup?>
+		</div>
+		<a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;" style="flex:none;display:flex;align-items:center;gap:5px;font:700 12.5px 'Manrope';color:#726c62;text-decoration:none;padding:8px 12px;white-space:nowrap">↑ Наверх</a>
+	</div>
+	<script>
+	(function(){
+		var chipRow = document.getElementById('eportaChipRow');
+		var stickyBar = document.getElementById('eportaStickyChips');
+		if (!chipRow || !stickyBar || typeof IntersectionObserver === 'undefined') return;
+		new IntersectionObserver(function(entries){
+			entries.forEach(function(entry){
+				if (entry.isIntersecting) {
+					stickyBar.classList.remove('visible');
+				} else if (entry.boundingClientRect.top < 0) {
+					stickyBar.classList.add('visible');
+				}
+			});
+		}, {threshold: 0}).observe(chipRow);
+	})();
+	</script>
 	<?endif;?>
 
 	<?if ($eportaFilteredCount < 1):?>

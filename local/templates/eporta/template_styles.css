@@ -1317,3 +1317,32 @@ img { display: block; }
 .bx-pagination .bx-pagination-container ul li.bx-pag-next > span {
   color: var(--text-hint);
 }
+
+/* ========== Плавающая панель чипов /search/ (вариант C) ==========
+   Скрыта по умолчанию (translateY + opacity), показывается JS-классом .visible, когда
+   исходный блок чипов (#eportaChipRow) уходит за пределы экрана — см. IntersectionObserver
+   в search/index.php. pointer-events отключены в скрытом состоянии, чтобы невидимая панель
+   не перехватывала клики по контенту под ней во время transition. */
+.eporta-sticky-chips {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border-bottom: 1px solid var(--border-soft);
+  box-shadow: 0 6px 18px rgba(20, 17, 12, .08);
+  padding: 10px 56px;
+  z-index: 150;
+  transform: translateY(-100%);
+  opacity: 0;
+  transition: transform .2s ease, opacity .2s ease;
+  pointer-events: none;
+}
+.eporta-sticky-chips.visible {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.eporta-sticky-chips > div::-webkit-scrollbar { display: none; }
+.eporta-sticky-chips > div { scrollbar-width: none; }
