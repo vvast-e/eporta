@@ -1245,14 +1245,28 @@ img { display: block; }
 .bx-auth-serv-icons a { opacity: .55; transition: opacity .15s; }
 .bx-auth-serv-icons a:hover { opacity: 1; }
 
-/* ========== Пагинация каталога/поиска (bitrix:system.pagenavigation, шаблон "round") ==========
-   Компонент рендерится через core-шаблон bitrix/components/bitrix/system.pagenavigation/
-   templates/round (eporta его не переопределяет — только разметку .bx-pagination/.bx-pag-prev/
-   .bx-active/.bx-pag-next, общую для /catalog/ и /search/). Ядро грузит свой синий style.css
-   раньше этого файла (Asset::addCss в header.php всегда последний), поэтому переопределяем
-   поверх без !important — просто повторяем структуру селекторов core-CSS под палитру eporta. */
+/* ========== Пагинация каталога/поиска (маркап .bx-pagination/.bx-pag-prev/.bx-active/
+   .bx-pag-next) ==========
+   На /catalog/ эту разметку по-прежнему рендерит core-компонент bitrix:system.pagenavigation
+   (шаблон "round", bitrix/components/bitrix/system.pagenavigation/templates/round) — его
+   собственный style.css (синий #0083d1) подключается САМИМ компонентом при вызове. На
+   /search/ с этапа "релевантность CSearch" (2026-07-17) пагинация рендерится вручную в
+   search/index.php (той же разметкой, для визуального единства) — без вызова компонента,
+   а значит БЕЗ его CSS вообще. Поэтому здесь заданы полные базовые layout-свойства
+   (display/list-style на ul и li), а не только цвета/рамки поверх core — иначе на /search/
+   разметка разваливается (ul/li падают на display:block/list-item браузера по умолчанию).
+   На /catalog/ эти базовые правила просто дублируют то, что уже задаёт core-CSS. */
 .bx-pagination { margin: 28px 0 0; }
-.bx-pagination .bx-pagination-container ul li { margin: 0 3px 10px; }
+.bx-pagination .bx-pagination-container { text-align: center; }
+.bx-pagination .bx-pagination-container ul {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.bx-pagination .bx-pagination-container ul li { display: flex; margin: 0 3px 10px; }
 /* Коробка (рамка/фон/скругление) — только на внешнем элементе (<a> у ссылок, голый <span> у
    активной/недоступной страницы). Вложенный <span> внутри <a> (маркап core-шаблона:
    <a href="..."><span>1</span></a>) сведён к display:contents — иначе получалась двойная рамка
