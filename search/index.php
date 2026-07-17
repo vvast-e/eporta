@@ -70,13 +70,141 @@ $APPLICATION->SetTitle("Страница поиска");
 		</div>
 	</div>
 	</div>
-	<?else:?>
-	<div style="padding:8px 56px 4px">
-		<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Найдено <?=count($eportaFoundIds)?> по запросу «<?=htmlspecialcharsbx($eportaQuery)?>»</h1>
+	<?else:
+		// Уточняющие чипы: не сайдбар каталога (это страница поиска, не каталог) — лёгкая
+		// строка тегов, посчитанная ТОЛЬКО среди уже найденных CSearch ID. Та же тройка
+		// свойств IBLOCK 19, что в сайдбаре catalog/index.php (см. feedback_bitrix_property_
+		// naming_gotcha: MAIN_COLOR это "Цвет", не COATING_COLOR), "умные" счётчики по тому
+		// же паттерну (исключаем свою группу при подсчёте, чтобы не занулять сами себя).
+		$eportaPropDefs = [
+			"style" => ["CODE" => "STYLE", "LABEL" => "Стиль", "FILTER_KEY" => "PROPERTY_STYLE"],
+			"coating" => ["CODE" => "COATING", "LABEL" => "Покрытие", "FILTER_KEY" => "PROPERTY_COATING"],
+			"color" => ["CODE" => "MAIN_COLOR", "LABEL" => "Цвет", "FILTER_KEY" => "PROPERTY_MAIN_COLOR"],
+		];
+		$eportaSelected = [];
+		foreach ($eportaPropDefs as $eportaKey => $eportaDef) {
+			$eportaEnumRes = \CIBlockPropertyEnum::GetList(
+				["SORT" => "ASC", "VALUE" => "ASC"],
+				["IBLOCK_ID" => 19, "CODE" => $eportaDef["CODE"]]
+			);
+			$eportaValues = [];
+			while ($eportaEnum = $eportaEnumRes->Fetch()) {
+				$eportaValues[(int)$eportaEnum["ID"]] = $eportaEnum["VALUE"];
+			}
+			$eportaPropDefs[$eportaKey]["VALUES"] = $eportaValues;
+			$eportaRawSel = array_map("intval", (array)($_GET[$eportaKey] ?? []));
+			$eportaSelected[$eportaKey] = array_values(array_intersect($eportaRawSel, array_keys($eportaValues)));
+		}
+
+		$eportaScopeFilter = ["ID" => $eportaFoundIds, "ACTIVE" => "Y"];
+		$eportaBuildFilter = function ($excludeKey) use ($eportaScopeFilter, $eportaPropDefs, $eportaSelected) {
+			$filter = $eportaScopeFilter;
+			foreach ($eportaPropDefs as $key => $def) {
+				if ($key === $excludeKey || empty($eportaSelected[$key])) continue;
+				$filter[$def["FILTER_KEY"]] = $eportaSelected[$key];
+			}
+			return $filter;
+		};
+
+		$eportaChipGroups = [];
+		$eportaArrFilter = $eportaScopeFilter;
+		foreach ($eportaPropDefs as $eportaKey => $eportaDef) {
+			$eportaCountFilter = $eportaBuildFilter($eportaKey);
+			$eportaItems = [];
+			foreach ($eportaDef["VALUES"] as $eportaEnumId => $eportaEnumValue) {
+				$eportaCnt = \CIBlockElement::GetList([], $eportaCountFilter + [$eportaDef["FILTER_KEY"] => $eportaEnumId], false, false, ["ID"])->SelectedRowsCount();
+				if ($eportaCnt < 1) continue;
+				$eportaItems[] = [
+					"ID" => $eportaEnumId,
+					"VALUE" => $eportaEnumValue,
+					"COUNT" => $eportaCnt,
+					"CHECKED" => in_array($eportaEnumId, $eportaSelected[$eportaKey], true),
+				];
+			}
+			usort($eportaItems, fn($a, $b) => $b["COUNT"] <=> $a["COUNT"]);
+			// Строка чипов лёгкая по дизайну — не более 8 значений на группу, не полный список,
+			// как в сайдбаре каталога.
+			$eportaChipGroups[$eportaKey] = ["LABEL" => $eportaDef["LABEL"], "ITEMS" => array_slice($eportaItems, 0, 8)];
+
+			if (!empty($eportaSelected[$eportaKey])) {
+				$eportaArrFilter[$eportaDef["FILTER_KEY"]] = $eportaSelected[$eportaKey];
+			}
+		}
+
+		$eportaFilteredCount = \CIBlockElement::GetList([], $eportaArrFilter, false, false, ["ID"])->SelectedRowsCount();
+		$eportaHasActiveChips = array_filter($eportaSelected);
+		$eportaBasePath = parse_url($_SERVER["REQUEST_URI"] ?? "", PHP_URL_PATH);
+
+		// Toggle-ссылка на чип: добавляет/убирает конкретное значение в query-массиве
+		// своей группы, сохраняя остальные GET-параметры (включая q и другие группы),
+		// сбрасывает номер страницы при смене фильтра.
+		$eportaChipUrl = function ($key, $valueId, $checked) use ($eportaBasePath) {
+			$params = $_GET;
+			unset($params["PAGEN_1"]);
+			$current = array_map("intval", (array)($params[$key] ?? []));
+			$current = $checked
+				? array_values(array_diff($current, [$valueId]))
+				: array_merge($current, [$valueId]);
+			if ($current) {
+				$params[$key] = $current;
+			} else {
+				unset($params[$key]);
+			}
+			return $eportaBasePath.($params ? "?".http_build_query($params) : "");
+		};
+		$eportaResetChipsUrl = $eportaBasePath."?q=".urlencode($eportaQuery);
+	?>
+	<div style="padding:20px 56px 4px">
+		<form method="get" action="/search/" style="display:flex;align-items:center;gap:12px;max-width:640px;border:1.5px solid var(--border-soft, #e7e3db);border-radius:14px;padding:6px 6px 6px 18px;margin-bottom:16px">
+			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a39e95" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+			<input type="text" name="q" value="<?=htmlspecialcharsbx($eportaQuery)?>" style="flex:1;border:none;outline:none;font:600 15px 'Manrope';background:transparent">
+			<button type="submit" style="background:#e8820a;color:#fff;font:700 13px 'Manrope';padding:11px 20px;border-radius:10px;border:none;cursor:pointer">Найти</button>
+		</form>
+		<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Найдено <?=$eportaFilteredCount?> по запросу «<?=htmlspecialcharsbx($eportaQuery)?>»</h1>
 	</div>
+
+	<?if (array_filter($eportaChipGroups, fn($g) => $g["ITEMS"])):?>
+	<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 8px;padding:14px 56px 4px">
+		<?foreach ($eportaChipGroups as $eportaGroupKey => $eportaGroup):
+			if (!$eportaGroup["ITEMS"]) continue;
+		?>
+			<span style="font:700 12px 'Manrope';color:#a39e95;text-transform:uppercase;letter-spacing:.04em;margin-right:2px"><?=htmlspecialcharsbx($eportaGroup["LABEL"])?>:</span>
+			<?foreach ($eportaGroup["ITEMS"] as $eportaItem):
+				$eportaChecked = $eportaItem["CHECKED"];
+			?>
+			<a href="<?=htmlspecialcharsbx($eportaChipUrl($eportaGroupKey, $eportaItem["ID"], $eportaChecked))?>"
+			   style="display:inline-flex;align-items:center;gap:6px;font:600 12.5px 'Manrope';padding:8px 13px;border-radius:20px;text-decoration:none;cursor:pointer;<?=$eportaChecked
+					? "background:#e8820a;color:#fff;"
+					: "background:#f3f1ec;color:#3a3631;"?>">
+				<?=htmlspecialcharsbx($eportaItem["VALUE"])?>
+				<?if ($eportaChecked):?><span>✕</span><?else:?><span style="color:<?=$eportaChecked ? "#fff" : "#c2bdb2"?>;font-weight:600"><?=$eportaItem["COUNT"]?></span><?endif;?>
+			</a>
+			<?endforeach;?>
+		<?endforeach;?>
+		<?if ($eportaHasActiveChips):?>
+			<a href="<?=htmlspecialcharsbx($eportaResetChipsUrl)?>" style="font:700 12.5px 'Manrope';color:#c2670a;padding:8px 6px;cursor:pointer;text-decoration:none;margin-left:4px">Сбросить фильтры</a>
+		<?endif;?>
+	</div>
+	<?endif;?>
+
+	<?if ($eportaFilteredCount < 1):?>
+	<div class="lk-page-wrap">
+	<div class="lk-card">
+		<div class="lk-empty">
+			<div class="lk-empty-icon">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
+			</div>
+			<div class="lk-empty-title">По этим фильтрам ничего не нашлось</div>
+			<div class="lk-empty-actions">
+				<a href="<?=htmlspecialcharsbx($eportaResetChipsUrl)?>" class="lk-btn-primary">Сбросить фильтры</a>
+			</div>
+		</div>
+	</div>
+	</div>
+	<?else:?>
 	<div style="padding:8px 56px 28px">
 		<?
-			$arrFilter = ["ID" => $eportaFoundIds, "ACTIVE" => "Y"];
+			$arrFilter = $eportaArrFilter;
 			$APPLICATION->IncludeComponent(
 				"bitrix:catalog.section",
 				".default",
@@ -93,8 +221,8 @@ $APPLICATION->SetTitle("Страница поиска");
 					"FILTER_NAME" => "arrFilter",
 					"HIDE_NOT_AVAILABLE" => "N",
 					"HIDE_NOT_AVAILABLE_OFFERS" => "N",
-					"PAGE_ELEMENT_COUNT" => "9",
-					"LINE_ELEMENT_COUNT" => "3",
+					"PAGE_ELEMENT_COUNT" => "12",
+					"LINE_ELEMENT_COUNT" => "4",
 					"PROPERTY_CODE" => ["STYLE", "COATING_COLOR", "GLAZING", "MAIN_COLOR", "PRODUCT_DAY", "RATING", "VOTE_COUNT", "CML2_ARTICLE"],
 					"OFFERS_FIELD_CODE" => [],
 					"OFFERS_PROPERTY_CODE" => [],
@@ -139,6 +267,7 @@ $APPLICATION->SetTitle("Страница поиска");
 			);
 		?>
 	</div>
+	<?endif;?>
 	<?endif;?>
 <?else:?>
 <?$APPLICATION->IncludeComponent(
