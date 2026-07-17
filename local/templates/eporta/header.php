@@ -124,10 +124,19 @@ if (\Bitrix\Main\Loader::includeModule("dw.deluxe")) {
 	</div>
 </div>
 
+<?php
+// Активный пункт навигации по текущему URL (раньше "active" был захардкожен на "Каталог" —
+// подсвечивался всегда, даже на страницах коллекций). Коллекции живут и на /collection/ (хаб),
+// и на /catalog/collections/<code>/ (SEF-страница конкретной коллекции внутри того же каталога,
+// см. project_phase_b_data_map, ЭТАП 5) — это самый специфичный префикс, проверяем его первым.
+$eportaCurPath = parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);
+$eportaNavCollections = str_starts_with($eportaCurPath, "/collection/") || str_starts_with($eportaCurPath, "/catalog/collections/");
+$eportaNavCatalog = !$eportaNavCollections && str_starts_with($eportaCurPath, "/catalog/");
+?>
 <!-- Навигация -->
 <div class="cat-nav">
-	<a href="/catalog/" class="active">Каталог</a>
-	<a href="/collection/">Коллекции</a>
+	<a href="/catalog/" class="<?= $eportaNavCatalog ? "active" : "" ?>">Каталог</a>
+	<a href="/collection/" class="<?= $eportaNavCollections ? "active" : "" ?>">Коллекции</a>
 	<span class="nav-item nav-sale"><span class="dot-red"></span>Распродажа</span>
 	<span class="nav-item nav-new">Новинки<span class="badge-new">NEW</span></span>
 	<span class="spacer"></span>
