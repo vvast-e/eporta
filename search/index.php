@@ -174,6 +174,25 @@ $APPLICATION->SetTitle("Страница поиска");
 			return $eportaBasePath.($params ? "?".http_build_query($params) : "");
 		};
 		$eportaResetChipsUrl = $eportaBasePath."?q=".urlencode($eportaQuery);
+
+		// Количество на странице — теперь выбирается пользователем (по умолчанию 24, было
+		// зашито 12). Санитизация против фиксированного списка значений, не произвольное
+		// число из GET.
+		$eportaAllowedPerPage = [12, 24, 48];
+		$eportaPerPage = (int)($_GET["per_page"] ?? 24);
+		if (!in_array($eportaPerPage, $eportaAllowedPerPage, true)) {
+			$eportaPerPage = 24;
+		}
+		$eportaPerPageUrl = function ($size) use ($eportaBasePath) {
+			$params = $_GET;
+			unset($params["PAGEN_1"]);
+			if ($size === 24) {
+				unset($params["per_page"]);
+			} else {
+				$params["per_page"] = $size;
+			}
+			return $eportaBasePath.($params ? "?".http_build_query($params) : "");
+		};
 	?>
 	<div style="padding:20px 56px 4px">
 		<form method="get" action="/search/" style="display:flex;align-items:center;gap:12px;max-width:640px;border:1.5px solid var(--border-soft, #e7e3db);border-radius:14px;padding:6px 6px 6px 18px;margin-bottom:16px">
@@ -181,7 +200,18 @@ $APPLICATION->SetTitle("Страница поиска");
 			<input type="text" name="q" value="<?=htmlspecialcharsbx($eportaQuery)?>" style="flex:1;border:none;outline:none;font:600 15px 'Manrope';background:transparent">
 			<button type="submit" style="background:#e8820a;color:#fff;font:700 13px 'Manrope';padding:11px 20px;border-radius:10px;border:none;cursor:pointer">Найти</button>
 		</form>
-		<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Найдено <?=$eportaFilteredCount?> по запросу «<?=htmlspecialcharsbx($eportaQuery)?>»</h1>
+		<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Найдено <?=$eportaFilteredCount?> по запросу «<?=htmlspecialcharsbx($eportaQuery)?>»</h1>
+			<div style="display:flex;align-items:center;gap:7px">
+				<span style="font:600 12.5px 'Manrope';color:#a39e95">Показывать:</span>
+				<?foreach ($eportaAllowedPerPage as $eportaSize):?>
+				<a href="<?=htmlspecialcharsbx($eportaPerPageUrl($eportaSize))?>"
+				   style="font:700 12.5px 'Manrope';padding:7px 12px;border-radius:8px;text-decoration:none;<?=$eportaSize === $eportaPerPage
+						? "background:#e8820a;color:#fff;"
+						: "background:#f3f1ec;color:#3a3631;"?>"><?=$eportaSize?></a>
+				<?endforeach;?>
+			</div>
+		</div>
 	</div>
 
 	<?if (array_filter($eportaChipGroups, fn($g) => $g["ITEMS"])):?>
@@ -228,7 +258,6 @@ $APPLICATION->SetTitle("Страница поиска");
 		// "Сортировка" каталога (см. комментарий выше, где строится $eportaOrderedIds).
 		// Полные данные (цена/картинка/свойства) тянем только для текущей страницы —
 		// не для всей найденной выборки, чтобы не терять эффективность.
-		$eportaPerPage = 12;
 		$eportaLineCount = 4;
 		$eportaTotalPages = max(1, (int)ceil($eportaFilteredCount / $eportaPerPage));
 		$eportaCurPage = max(1, min($eportaTotalPages, (int)($_GET["PAGEN_1"] ?? 1)));
