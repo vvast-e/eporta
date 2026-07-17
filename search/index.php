@@ -131,7 +131,28 @@ $APPLICATION->SetTitle("Страница поиска");
 			}
 		}
 
-		$eportaFilteredCount = \CIBlockElement::GetList([], $eportaArrFilter, false, false, ["ID"])->SelectedRowsCount();
+		// КРИТИЧНО: bitrix:catalog.section/CIBlockElement::GetList всегда пересортировывает
+		// выборку по ELEMENT_SORT_FIELD (в каталоге — поле "Сортировка" из админки,
+		// мерчендайзинговое, никак не связанное с поиском) — порядок релевантности,
+		// который вернул CSearch выше ($eportaFoundIds), полностью терялся. Именно из-за
+		// этого по запросу "Входная дверь" на первых местах оказывались "Ручки дверные"
+		// (у них SORT~78 против SORT=500 у настоящих входных дверей — ручки просто выше
+		// приоритетом в каталоге, вообще не про релевантность). Фикс: получаем набор
+		# подходящих ID (с учётом фильтров-чипов) ОТДЕЛЬНЫМ лёгким запросом, затем
+		// восстанавливаем порядок вручную в PHP по $eportaFoundIds (который уже в порядке
+		// релевантности CSearch) — SQL-сортировке эту выборку больше не доверяем.
+		$eportaMatchedRes = \CIBlockElement::GetList([], $eportaArrFilter, false, false, ["ID"]);
+		$eportaMatchedIdSet = [];
+		while ($eportaMatchedRow = $eportaMatchedRes->Fetch()) {
+			$eportaMatchedIdSet[(int)$eportaMatchedRow["ID"]] = true;
+		}
+		$eportaOrderedIds = [];
+		foreach ($eportaFoundIds as $eportaId) {
+			if (isset($eportaMatchedIdSet[$eportaId])) {
+				$eportaOrderedIds[] = $eportaId;
+			}
+		}
+		$eportaFilteredCount = count($eportaOrderedIds);
 		$eportaHasActiveChips = array_filter($eportaSelected);
 		$eportaBasePath = parse_url($_SERVER["REQUEST_URI"] ?? "", PHP_URL_PATH);
 
@@ -201,72 +222,125 @@ $APPLICATION->SetTitle("Страница поиска");
 		</div>
 	</div>
 	</div>
-	<?else:?>
-	<div style="padding:8px 56px 28px">
-		<?
-			$arrFilter = $eportaArrFilter;
-			$APPLICATION->IncludeComponent(
-				"bitrix:catalog.section",
-				".default",
-				[
-					"IBLOCK_TYPE" => "catalog",
-					"IBLOCK_ID" => "19",
-					"SECTION_ID" => false,
-					"SECTION_CODE" => "",
-					"SECTION_USER_FIELDS" => [],
-					"ELEMENT_SORT_FIELD" => "sort",
-					"ELEMENT_SORT_ORDER" => "asc",
-					"ELEMENT_SORT_FIELD2" => "id",
-					"ELEMENT_SORT_ORDER2" => "desc",
-					"FILTER_NAME" => "arrFilter",
-					"HIDE_NOT_AVAILABLE" => "N",
-					"HIDE_NOT_AVAILABLE_OFFERS" => "N",
-					"PAGE_ELEMENT_COUNT" => "12",
-					"LINE_ELEMENT_COUNT" => "4",
-					"PROPERTY_CODE" => ["STYLE", "COATING_COLOR", "GLAZING", "MAIN_COLOR", "PRODUCT_DAY", "RATING", "VOTE_COUNT", "CML2_ARTICLE"],
-					"OFFERS_FIELD_CODE" => [],
-					"OFFERS_PROPERTY_CODE" => [],
-					"BACKGROUND_IMAGE" => "-",
-					"LABEL_PROP" => "-",
-					"PRODUCT_SUBSCRIPTION" => "N",
-					"SHOW_DISCOUNT_PERCENT" => "Y",
-					"SHOW_OLD_PRICE" => "Y",
-					"PRICE_CODE" => ["BASE"],
-					"USE_PRICE_COUNT" => "N",
-					"SHOW_PRICE_COUNT" => "1",
-					"PRICE_VAT_INCLUDE" => "Y",
-					"CONVERT_CURRENCY" => "N",
-					"BASKET_URL" => "/personal/cart/",
-					"ACTION_VARIABLE" => "action",
-					"PRODUCT_ID_VARIABLE" => "id",
-					"PRODUCT_QUANTITY_VARIABLE" => "quantity",
-					"ADD_PROPERTIES_TO_BASKET" => "Y",
-					"PRODUCT_PROPS_VARIABLE" => "prop",
-					"PARTIAL_PRODUCT_PROPERTIES" => "N",
-					"USE_PRODUCT_QUANTITY" => "N",
-					"CACHE_TYPE" => "A",
-					"CACHE_TIME" => "3600",
-					"CACHE_GROUPS" => "N",
-					"CACHE_FILTER" => "Y",
-					"DISPLAY_COMPARE" => "N",
-					"SET_TITLE" => "N",
-					"SET_STATUS_404" => "N",
-					"SEF_MODE" => "N",
-					"PAGER_TEMPLATE" => "round",
-					"DISPLAY_TOP_PAGER" => "N",
-					"DISPLAY_BOTTOM_PAGER" => "Y",
-					"PAGER_TITLE" => "Товары",
-					"PAGER_SHOW_ALWAYS" => "N",
-					"PAGER_SHOW_ALL" => "N",
-					"ADD_SECTIONS_CHAIN" => "N",
-					"COMPATIBLE_MODE" => "Y",
-					"AJAX_MODE" => "N",
-					"TEMPLATE_THEME" => "site",
-				],
-				false
-			);
-		?>
+	<?else:
+		// Рендерим сетку САМИ (не через bitrix:catalog.section) — единственный способ
+		// показать товары в порядке релевантности $eportaOrderedIds, а не в порядке поля
+		// "Сортировка" каталога (см. комментарий выше, где строится $eportaOrderedIds).
+		// Полные данные (цена/картинка/свойства) тянем только для текущей страницы —
+		// не для всей найденной выборки, чтобы не терять эффективность.
+		$eportaPerPage = 12;
+		$eportaLineCount = 4;
+		$eportaTotalPages = max(1, (int)ceil($eportaFilteredCount / $eportaPerPage));
+		$eportaCurPage = max(1, min($eportaTotalPages, (int)($_GET["PAGEN_1"] ?? 1)));
+		$eportaPageIds = array_slice($eportaOrderedIds, ($eportaCurPage - 1) * $eportaPerPage, $eportaPerPage);
+
+		$eportaPageUrl = function ($page) use ($eportaBasePath) {
+			$params = $_GET;
+			if ($page > 1) {
+				$params["PAGEN_1"] = $page;
+			} else {
+				unset($params["PAGEN_1"]);
+			}
+			return $eportaBasePath.($params ? "?".http_build_query($params) : "");
+		};
+
+		$eportaPageRes = \CIBlockElement::GetList(
+			[],
+			["ID" => $eportaPageIds, "ACTIVE" => "Y"],
+			false,
+			false,
+			["ID", "NAME", "DETAIL_PAGE_URL", "PREVIEW_PICTURE", "DETAIL_PICTURE", "CATALOG_PRICE_1", "PROPERTY_RATING", "PROPERTY_VOTE_COUNT", "PROPERTY_PRODUCT_DAY"]
+		);
+		$eportaPageDataById = [];
+		while ($eportaRow = $eportaPageRes->GetNext()) {
+			$eportaPageDataById[(int)$eportaRow["ID"]] = $eportaRow;
+		}
+		// Порядок — из $eportaPageIds (уже релевантный), НЕ из результата запроса:
+		// CIBlockElement::GetList не гарантирует порядок ID IN(...) в порядке массива.
+		$eportaPageItems = [];
+		foreach ($eportaPageIds as $eportaPid) {
+			if (isset($eportaPageDataById[$eportaPid])) {
+				$eportaPageItems[] = $eportaPageDataById[$eportaPid];
+			}
+		}
+		\Bitrix\Main\Loader::includeModule("currency");
+		$eportaPlaceholderImg = SITE_TEMPLATE_PATH."/assets/img/hit-1.jpg";
+	?>
+	<div style="padding:8px 56px 4px">
+		<div style="display:grid;grid-template-columns:repeat(<?=$eportaLineCount?>,1fr);gap:16px">
+			<?foreach ($eportaPageItems as $eportaItem):
+				$eportaRating = (int)($eportaItem["PROPERTY_RATING_VALUE"] ?? 0);
+				$eportaVoteCount = (int)($eportaItem["PROPERTY_VOTE_COUNT_VALUE"] ?? 0);
+				$eportaStars = str_repeat("★", max(0, min(5, round($eportaRating)))).str_repeat("☆", 5 - max(0, min(5, round($eportaRating))));
+				$eportaIsHit = !empty($eportaItem["PROPERTY_PRODUCT_DAY_VALUE"]);
+				$eportaPriceVal = $eportaItem["CATALOG_PRICE_1"] ?? null;
+				$eportaImgId = $eportaItem["PREVIEW_PICTURE"] ?: $eportaItem["DETAIL_PICTURE"];
+				$eportaImgSrc = $eportaImgId ? \CFile::GetPath($eportaImgId) : $eportaPlaceholderImg;
+			?>
+			<a href="<?=htmlspecialcharsbx($eportaItem["DETAIL_PAGE_URL"])?>" class="product-card">
+				<div class="img-wrap">
+					<img src="<?=htmlspecialcharsbx($eportaImgSrc)?>" alt="<?=htmlspecialcharsbx($eportaItem["NAME"])?>">
+					<?if ($eportaIsHit):?><span class="badge hit">ХИТ</span><?endif;?>
+				</div>
+				<div class="info">
+					<div class="stars"><?=$eportaStars?> <span><?=$eportaVoteCount?></span></div>
+					<div class="name"><?=htmlspecialcharsbx($eportaItem["NAME"])?></div>
+					<div class="price-row">
+						<?if ($eportaPriceVal !== null && $eportaPriceVal !== ""):?>
+							<div class="price"><?=\CCurrencyLang::CurrencyFormat((float)$eportaPriceVal, "RUB", true)?></div>
+						<?else:?>
+							<div class="price">по запросу</div>
+						<?endif;?>
+						<div class="price-row-tools">
+							<button class="btn-compare" onclick="addCompare(event, <?=(int)$eportaItem["ID"]?>)" title="Сравнить">⇄</button>
+							<button class="btn-cart" onclick="event.preventDefault()">В корзину</button>
+						</div>
+					</div>
+				</div>
+			</a>
+			<?endforeach;?>
+		</div>
 	</div>
+
+	<?if ($eportaTotalPages > 1):
+		$eportaPagerWindow = 2;
+		$eportaPagerFrom = max(1, $eportaCurPage - $eportaPagerWindow);
+		$eportaPagerTo = min($eportaTotalPages, $eportaCurPage + $eportaPagerWindow);
+	?>
+	<div class="bx-pagination">
+		<div class="bx-pagination-container">
+			<ul>
+				<?if ($eportaCurPage > 1):?>
+				<li class="bx-pag-prev"><a href="<?=htmlspecialcharsbx($eportaPageUrl($eportaCurPage - 1))?>"><span>Назад</span></a></li>
+				<?else:?>
+				<li class="bx-pag-prev"><span>Назад</span></li>
+				<?endif;?>
+
+				<?if ($eportaPagerFrom > 1):?>
+				<li><a href="<?=htmlspecialcharsbx($eportaPageUrl(1))?>"><span>1</span></a></li>
+				<?endif;?>
+
+				<?for ($eportaP = $eportaPagerFrom; $eportaP <= $eportaPagerTo; $eportaP++):?>
+					<?if ($eportaP == $eportaCurPage):?>
+					<li class="bx-active"><span><?=$eportaP?></span></li>
+					<?else:?>
+					<li><a href="<?=htmlspecialcharsbx($eportaPageUrl($eportaP))?>"><span><?=$eportaP?></span></a></li>
+					<?endif;?>
+				<?endfor;?>
+
+				<?if ($eportaPagerTo < $eportaTotalPages):?>
+				<li><a href="<?=htmlspecialcharsbx($eportaPageUrl($eportaTotalPages))?>"><span><?=$eportaTotalPages?></span></a></li>
+				<?endif;?>
+
+				<?if ($eportaCurPage < $eportaTotalPages):?>
+				<li class="bx-pag-next"><a href="<?=htmlspecialcharsbx($eportaPageUrl($eportaCurPage + 1))?>"><span>Вперед</span></a></li>
+				<?else:?>
+				<li class="bx-pag-next"><span>Вперед</span></li>
+				<?endif;?>
+			</ul>
+		</div>
+	</div>
+	<?endif;?>
 	<?endif;?>
 	<?endif;?>
 <?else:?>
