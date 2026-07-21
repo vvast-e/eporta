@@ -40,7 +40,10 @@ $isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH
 			"eporta",
 			[
 				"HIDE_COUPON" => "N",
-				"PATH_TO_ORDER" => "/personal/order/make/",
+				// Реальная точка входа оформления заказа — редизайненная /personal/cart/order/
+				// (см. Этап 4, чекаут). /personal/order/make/ раньше был целью здесь, но нигде
+				// больше не переиспользуется — оставлен нередизайненным, недостижим из UI.
+				"PATH_TO_ORDER" => "/personal/cart/order/",
 				"PATH_TO_BASKET" => "/personal/cart/",
 				"PATH_TO_PERSONAL" => "/personal/",
 				"BASKET_WITH_ORDER_INTEGRATION" => "N",

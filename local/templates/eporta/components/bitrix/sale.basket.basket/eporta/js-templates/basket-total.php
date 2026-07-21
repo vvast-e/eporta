@@ -99,7 +99,6 @@ use Bitrix\Main\Localization\Loc;
 				data-entity="basket-checkout-button">
 				<?=Loc::getMessage('SBB_ORDER')?>
 			</button>
-			<div class="basket-btn-one-click" data-entity="basket-one-click-mock">Купить в 1 клик</div>
 		</div>
 
 		<div class="basket-checkout-guarantees">

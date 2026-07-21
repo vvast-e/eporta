@@ -1046,12 +1046,6 @@ img { display: block; }
   box-shadow: 0 10px 24px rgba(232,130,10,.32); margin-top: 14px;
 }
 #basket-root .basket-btn-checkout.disabled { opacity: .5; pointer-events: none; }
-#basket-root .basket-btn-one-click {
-  display: block; text-align: center; font: 600 13px var(--font); color: var(--dark);
-  border: 1.6px solid var(--dark); border-radius: 12px; padding: 13px; margin-top: 10px; cursor: pointer;
-  transition: background .15s, color .15s;
-}
-#basket-root .basket-btn-one-click:hover { background: var(--dark); color: #fff; }
 #basket-root .basket-checkout-guarantees { margin-top: 18px; display: flex; flex-direction: column; gap: 11px; }
 #basket-root .basket-checkout-guarantee-row { display: flex; align-items: center; gap: 10px; font: 600 12.5px var(--font); color: #3a3631; }
 #basket-root .bcg-check {
