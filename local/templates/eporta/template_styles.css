@@ -1451,8 +1451,9 @@ img { display: block; }
   background: #fff;
   border: 1.5px solid var(--border-soft) !important;
   border-radius: 14px;
-  padding: 20px 22px !important;
-  margin-bottom: 16px;
+  padding: 22px 24px !important;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 10px rgba(20, 17, 12, .04);
 }
 .bx-soa-section.bx-selected { border-color: var(--accent) !important; }
 .bx-soa-section.bx-step-completed { border-color: var(--border-soft) !important; }
@@ -1470,6 +1471,7 @@ img { display: block; }
   border-color: var(--border-soft) !important;
   color: var(--text-mid) !important;
   font-weight: 700 !important;
+  border-radius: 50% !important;
 }
 .bx-soa-section.bx-step-completed .bx-soa-section-title-count,
 .bx-soa-section.bx-selected .bx-soa-section-title-count {
@@ -1482,9 +1484,17 @@ img { display: block; }
   border-bottom-color: var(--accent) !important;
 }
 
-/* Поля ввода (адрес/ФИО/телефон/промокод) — тот же стиль, что фильтры каталога/поиска */
+/* Поля ввода (адрес/ФИО/телефон/промокод) — тот же стиль, что фильтры каталога/поиска.
+   Поля-локейшн-виджета (sale.location.selector.search, класс "Местоположение" в адресе)
+   ИСКЛЮЧЕНЫ из общего правила через :not() — вендор сам рисует единственную рамку/фон на
+   родителе .dropdown-block, а сам <input class="dropdown-field"> намеренно безрамочный
+   (то же самое для служебных оверлей-инпутов .bx-ui-sls-fake/.bx-ui-sls-route). Раньше эти
+   классы попадали под общий "input[type=text]" и получали ВТОРУЮ рамку внутри уже
+   обрамлённого .dropdown-block — визуально "коробка в коробке" (тот же класс бага, что чинили
+   в пагинации: родитель и вложенный элемент красились одинаково). Единственная коробка теперь
+   рисуется на .dropdown-block отдельным правилом ниже. */
 #bx-soa-order .form-control,
-#bx-soa-order input[type="text"],
+#bx-soa-order input[type="text"]:not(.dropdown-field):not(.bx-ui-sls-fake):not(.bx-ui-sls-route),
 #bx-soa-order input[type="tel"],
 #bx-soa-order input[type="email"],
 #bx-soa-order textarea,
@@ -1496,7 +1506,7 @@ img { display: block; }
   padding: 9px 12px !important;
 }
 #bx-soa-order .form-control:focus,
-#bx-soa-order input:focus,
+#bx-soa-order input:not(.dropdown-field):not(.bx-ui-sls-fake):not(.bx-ui-sls-route):focus,
 #bx-soa-order textarea:focus,
 #bx-soa-order select:focus {
   border-color: var(--accent) !important;
@@ -1506,6 +1516,42 @@ img { display: block; }
 #bx-soa-order input[type="checkbox"] {
   accent-color: var(--accent);
 }
+#bx-soa-order .radio,
+#bx-soa-order .checkbox {
+  margin: 9px 0;
+}
+#bx-soa-order .radio label,
+#bx-soa-order .checkbox label {
+  font: 600 13.5px var(--font);
+  padding-left: 4px;
+  cursor: pointer;
+}
+
+/* Местоположение (bitrix:sale.location.selector.search, класс .bx-sls) — единственная коробка
+   на родителе .dropdown-block вместо вендорского серого 2px-радиуса, тот же язык, что у
+   остальных полей выше. Сам <input class="dropdown-field"> внутри остаётся безрамочным
+   (см. исключение выше) — это НЕ баг, а как вендор его и задумывал: контейнер красит рамку,
+   инпут просто заполняет её текстом. */
+.bx-sls .dropdown-block {
+  border: 1.5px solid var(--border-soft) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  background: #fff !important;
+}
+.bx-sls .dropdown-block:focus-within { border-color: var(--accent) !important; }
+.bx-sls .dropdown-field { font: 600 14px var(--font) !important; }
+.bx-ui-sls-pane {
+  border: 1.5px solid var(--border-soft) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 10px 28px rgba(20, 17, 12, .1) !important;
+  font-family: var(--font);
+  overflow: hidden;
+}
+.dropdown-item.bx-ui-sls-variant {
+  font: 600 13.5px var(--font);
+  padding: 9px 14px;
+}
+.dropdown-item.bx-ui-sls-variant:hover { background: var(--bg-warm); }
 
 /* Кнопки — основная CTA "Оформить заказ"/"Продолжить" в акцентном оранжевом */
 #bx-soa-order .btn,
@@ -1516,7 +1562,7 @@ img { display: block; }
   border-color: var(--accent) !important;
   color: #fff !important;
   border-radius: 10px !important;
-  box-shadow: none !important;
+  box-shadow: 0 10px 24px rgba(232, 130, 10, .28) !important;
   text-shadow: none !important;
 }
 #bx-soa-order .btn:hover,
@@ -1549,10 +1595,14 @@ img { display: block; }
 /* Способы доставки/оплаты — карточки-компании и пункты выдачи */
 .bx-soa-pp-company {
   border: 1.5px solid var(--border-soft) !important;
-  border-radius: 12px !important;
+  border-radius: 14px !important;
+  transition: border-color .15s, box-shadow .15s;
 }
-.bx-soa-pp-company-selected,
-.bx-soa-pp-company:hover { border-color: var(--accent) !important; }
+.bx-soa-pp-company:hover { border-color: var(--accent) !important; box-shadow: 0 4px 14px rgba(20, 17, 12, .06); }
+.bx-soa-pp-company-selected {
+  border-color: var(--accent) !important;
+  box-shadow: 0 4px 14px rgba(232, 130, 10, .12);
+}
 .bx-soa-pp-company-title { font: 700 14px var(--font) !important; color: var(--dark); }
 .bx-soa-pickup-l-item-btn,
 .bx-soa-more { color: var(--accent-dark) !important; }
@@ -1566,4 +1616,3 @@ img { display: block; }
 #bx-soa-order .alert-danger { background: #fdecea; color: #a12b2b; border-color: #f3c6c2; }
 #bx-soa-order .alert-warning { background: #fff6e5; color: #8a6100; border-color: #f0dba8; }
 #bx-soa-order .alert-success { background: #eaf7ee; color: #1f8a4c; border-color: #bfe6cc; }
-.eporta-sticky-chips > div { scrollbar-width: none; }
