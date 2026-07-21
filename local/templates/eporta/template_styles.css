@@ -1438,3 +1438,138 @@ img { display: block; }
 }
 .eporta-sticky-chips > div::-webkit-scrollbar { display: none; }
 .eporta-sticky-chips > div { scrollbar-width: none; }
+
+/* ========== Оформление заказа (bitrix:sale.order.ajax, шаблон "eporta") ==========
+   ВАЖНО: template.php/script.js/order_ajax.js в local/templates/eporta/components/bitrix/
+   sale.order.ajax/eporta/ — байт-в-байт копия вендорского .default, НЕ изменены. Основной
+   контент шагов (доставка/оплата/адрес) рендерится JS из компилированного order_ajax.min.js —
+   markup внутри него не редактируется (риск для бизнес-логики), поэтому здесь ТОЛЬКО CSS
+   поверх классов, которые генерирует сам вендорский JS (та же схема, что и фикс пагинации
+   bitrix:system.pagenavigation — переопределение без вмешательства в разметку/поведение).
+   Обёртка .lk-page-wrap/.lk-card — на стороне вызывающей personal/cart/order/index.php,
+   не здесь. */
+#bx-soa-order, #bx-soa-order * { font-family: var(--font) !important; }
+#bx-soa-order { color: var(--dark); }
+#bx-soa-order a { color: var(--accent-dark); }
+
+/* Карточка шага (доставка/оплата/адрес/корзина) */
+.bx-soa-section {
+  background: #fff;
+  border: 1.5px solid var(--border-soft) !important;
+  border-radius: 14px;
+  padding: 20px 22px !important;
+  margin-bottom: 16px;
+}
+.bx-soa-section.bx-selected { border-color: var(--accent) !important; }
+.bx-soa-section.bx-step-completed { border-color: var(--border-soft) !important; }
+.bx-soa-section.bx-step-warning { border-color: #f0b429 !important; }
+.bx-soa-section.bx-step-error { border-color: var(--sale) !important; }
+.bx-soa-section-title-container { padding: 0 0 4px !important; border: none !important; }
+.bx-soa-section-title {
+  font: 800 18px var(--font) !important;
+  color: var(--dark);
+  letter-spacing: -0.01em;
+}
+.bx-soa-section.bx-selected .bx-soa-section-title { font-size: 20px !important; }
+.bx-soa-section-title-count {
+  background: var(--bg-warm) !important;
+  border-color: var(--border-soft) !important;
+  color: var(--text-mid) !important;
+  font-weight: 700 !important;
+}
+.bx-soa-section.bx-step-completed .bx-soa-section-title-count,
+.bx-soa-section.bx-selected .bx-soa-section-title-count {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+.bx-soa-editstep {
+  font: 700 12.5px var(--font);
+  color: var(--accent-dark);
+  border-bottom-color: var(--accent) !important;
+}
+
+/* Поля ввода (адрес/ФИО/телефон/промокод) — тот же стиль, что фильтры каталога/поиска */
+#bx-soa-order .form-control,
+#bx-soa-order input[type="text"],
+#bx-soa-order input[type="tel"],
+#bx-soa-order input[type="email"],
+#bx-soa-order textarea,
+#bx-soa-order select {
+  font-family: var(--font) !important;
+  border: 1.5px solid var(--border-soft) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  padding: 9px 12px !important;
+}
+#bx-soa-order .form-control:focus,
+#bx-soa-order input:focus,
+#bx-soa-order textarea:focus,
+#bx-soa-order select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: none !important;
+}
+#bx-soa-order input[type="radio"],
+#bx-soa-order input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
+/* Кнопки — основная CTA "Оформить заказ"/"Продолжить" в акцентном оранжевом */
+#bx-soa-order .btn,
+#bx-soa-order .btn-default,
+#bx-soa-order [data-save-button] {
+  font: 700 14px var(--font) !important;
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+#bx-soa-order .btn:hover,
+#bx-soa-order .btn-default:hover,
+#bx-soa-order [data-save-button]:hover {
+  background: var(--accent-dark) !important;
+  border-color: var(--accent-dark) !important;
+}
+#bx-soa-order .btn-link { background: none !important; color: var(--accent-dark) !important; }
+
+/* Купон */
+.bx-soa-coupon-input input[type="text"].form-control { border-radius: 10px 0 0 10px !important; }
+.bx-soa-coupon-item {
+  background: var(--bg-warm);
+  border-radius: 20px;
+  font: 600 12.5px var(--font);
+}
+
+/* Сайдбар итогов заказа */
+.bx-soa-sidebar { }
+.bx-soa-cart-total {
+  background: #fff;
+  border: 1.5px solid var(--border-soft);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+.bx-soa-cart-total-line { font: 600 13.5px var(--font); }
+.bx-soa-changeCostSign { color: var(--accent-dark); font-weight: 800; }
+
+/* Способы доставки/оплаты — карточки-компании и пункты выдачи */
+.bx-soa-pp-company {
+  border: 1.5px solid var(--border-soft) !important;
+  border-radius: 12px !important;
+}
+.bx-soa-pp-company-selected,
+.bx-soa-pp-company:hover { border-color: var(--accent) !important; }
+.bx-soa-pp-company-title { font: 700 14px var(--font) !important; color: var(--dark); }
+.bx-soa-pickup-l-item-btn,
+.bx-soa-more { color: var(--accent-dark) !important; }
+
+/* Информационные плашки — тот же стиль, что .auth-error на /auth/ */
+#bx-soa-order .alert {
+  border-radius: 10px;
+  font: 600 13px var(--font);
+  border: 1px solid transparent;
+}
+#bx-soa-order .alert-danger { background: #fdecea; color: #a12b2b; border-color: #f3c6c2; }
+#bx-soa-order .alert-warning { background: #fff6e5; color: #8a6100; border-color: #f0dba8; }
+#bx-soa-order .alert-success { background: #eaf7ee; color: #1f8a4c; border-color: #bfe6cc; }
+.eporta-sticky-chips > div { scrollbar-width: none; }
