@@ -1616,3 +1616,35 @@ img { display: block; }
 #bx-soa-order .alert-danger { background: #fdecea; color: #a12b2b; border-color: #f3c6c2; }
 #bx-soa-order .alert-warning { background: #fff6e5; color: #8a6100; border-color: #f0dba8; }
 #bx-soa-order .alert-success { background: #eaf7ee; color: #1f8a4c; border-color: #bfe6cc; }
+
+/* Подтверждение заказа (confirm.php — отдельный, не JS-завязанный шаблон sale.order.ajax,
+   показывается после отправки формы и на прямых визитах ?ORDER_ID=N). В отличие от
+   template.php здесь нет вендорской JS-инициализации на конкретных id/классах — поэтому
+   разметка confirm.php сама приведена к паттерну .lk-empty (как на /auth/), не только CSS
+   поверх исходных <table>/<td>. Успех/ошибка используют одну и ту же .lk-empty — визуально
+   различаются только иконкой/текстом. */
+.lk-order-pay-block {
+  margin-top: 20px;
+  padding: 20px 22px;
+  border: 1.5px solid var(--border-soft);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.lk-order-pay-header { display: flex; align-items: center; gap: 14px; }
+.lk-order-pay-logo { border-radius: 10px; object-fit: contain; }
+.lk-order-pay-label { font: 600 12px var(--font); color: var(--text-hint); text-transform: uppercase; letter-spacing: .04em; }
+.lk-order-pay-name { font: 700 15px var(--font); color: var(--dark); }
+.lk-order-pay-action { margin-left: auto; font: 600 13.5px var(--font); }
+.lk-order-pay-action a { color: var(--accent-dark); }
+.lk-order-pay-error {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: #fdecea;
+  color: #a12b2b;
+  border: 1px solid #f3c6c2;
+  border-radius: 10px;
+  font: 600 13px var(--font);
+}
