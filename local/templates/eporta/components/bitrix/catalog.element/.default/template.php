@@ -72,9 +72,71 @@ if (!empty($arResult["MORE_PHOTO"]) && is_array($arResult["MORE_PHOTO"])) {
 	}
 }
 
-// SKU-офферы (цвет/остекление): IBLOCK 54 на проде пока пуст — блок опционален,
-// показывается только если у товара реально есть офферы.
-$hasOffers = !empty($arResult["OFFERS"]);
+// Варианты модели (цвет покрытия/остекление): группировка по свойству MODEL — задел под
+// будущую выгрузку из 1С (project_import_table_v2, колонка "Модель"), сейчас MODEL заполнен
+// вручную демо-затравкой на Dorsum 1 (см. план "transient-swimming-ullman"). Каждый вариант —
+// отдельный элемент IBLOCK 19 со своей ценой/фото/артикулом, свотч — обычная ссылка на него.
+$eportaModel = eportaPropText($arResult, "MODEL");
+$eportaCurrentColor = eportaPropText($arResult, "COATING_COLOR");
+$eportaCurrentGlazing = eportaPropText($arResult, "GLAZING");
+$eportaColorOptions = [];
+$eportaGlazingOptions = [];
+
+if ($eportaModel !== "") {
+	$eportaVariantsRes = CIBlockElement::GetList(
+		[],
+		["IBLOCK_ID" => 19, "PROPERTY_MODEL" => $eportaModel, "ACTIVE" => "Y"],
+		false,
+		false,
+		["ID", "PROPERTY_COATING_COLOR", "PROPERTY_GLAZING", "DETAIL_PAGE_URL", "PREVIEW_PICTURE"]
+	);
+	$eportaVariants = [];
+	while ($v = $eportaVariantsRes->GetNext()) {
+		$eportaVariants[] = [
+			"id" => (int)$v["ID"],
+				"color" => (string)($v["PROPERTY_COATING_COLOR_VALUE"] ?? ""),
+			"glazing" => (string)($v["PROPERTY_GLAZING_VALUE"] ?? ""),
+			"url" => $v["DETAIL_PAGE_URL"],
+			"photo" => $v["PREVIEW_PICTURE"] ? CFile::GetPath($v["PREVIEW_PICTURE"]) : "",
+		];
+	}
+	$eportaCurrentId = (int)$arResult["ID"];
+	// Для каждого значения оси — сам текущий товар (если это и есть этот вариант), иначе
+	// вариант с текущим значением второй оси, иначе первый попавшийся с этим значением.
+	foreach ($eportaVariants as $v) {
+		if ($v["color"] === "") continue;
+		$existing = $eportaColorOptions[$v["color"]] ?? null;
+		$better = !$existing
+			|| $v["id"] === $eportaCurrentId
+			|| ($existing["id"] !== $eportaCurrentId && $v["glazing"] === $eportaCurrentGlazing && $existing["glazing"] !== $eportaCurrentGlazing);
+		if ($better) $eportaColorOptions[$v["color"]] = $v;
+	}
+	foreach ($eportaVariants as $v) {
+		if ($v["glazing"] === "") continue;
+		$existing = $eportaGlazingOptions[$v["glazing"]] ?? null;
+		$better = !$existing
+			|| $v["id"] === $eportaCurrentId
+			|| ($existing["id"] !== $eportaCurrentId && $v["color"] === $eportaCurrentColor && $existing["color"] !== $eportaCurrentColor);
+		if ($better) $eportaGlazingOptions[$v["glazing"]] = $v;
+	}
+}
+$eportaShowVariantSelectors = count($eportaColorOptions) > 1 || count($eportaGlazingOptions) > 1;
+
+// Размеры (свойство SIZES, многозначное): значение "ШxВ" или "ШxВ:надбавка" — формат-задел
+// под будущую выгрузку, надбавка пока в основном 0 (демо-данные без пересчёта).
+$eportaSizeOptions = [];
+$eportaSizesRaw = $arResult["DISPLAY_PROPERTIES"]["SIZES"]["DISPLAY_VALUE"]
+	?? ($arResult["PROPERTIES"]["SIZES"]["VALUE"] ?? []);
+if (!is_array($eportaSizesRaw)) {
+	$eportaSizesRaw = $eportaSizesRaw !== "" ? [$eportaSizesRaw] : [];
+}
+foreach ($eportaSizesRaw as $sizeRaw) {
+	$sizeParts = explode(":", (string)$sizeRaw, 2);
+	$eportaSizeOptions[] = [
+		"label" => $sizeParts[0],
+		"markup" => isset($sizeParts[1]) ? (int)$sizeParts[1] : 0,
+	];
+}
 
 // Похожие двери — по тому же разделу, что и товар, исключая сам товар.
 $eportaSectionId = $arResult["IBLOCK_SECTION_ID"] ?? ($arResult["SECTION"]["ID"] ?? false);
@@ -126,16 +188,56 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 		</div>
 		<div style="font:500 13px;color:#8a857b;margin-bottom:16px">цена от фабрики · без розничной наценки</div>
 
-		<?php if ($hasOffers): ?>
-		<!-- Цвет и остекление: реальные SKU-офферы -->
+		<?php if ($eportaShowVariantSelectors): ?>
+		<!-- Цвет и остекление: реальные варианты модели (склейка по PROPERTY_MODEL) -->
 		<div style="border-top:1px solid #efece6;border-bottom:1px solid #efece6;padding:14px 0;margin-bottom:14px;display:flex;flex-direction:column;gap:14px">
+			<?php if (count($eportaColorOptions) > 1):
+				$eportaColorCarousel = count($eportaColorOptions) > 5;
+			?>
 			<div>
-				<div class="swatch-label"><span class="sl-name">Цвет покрытия:</span><span class="sl-val" id="colorLabel"></span></div>
-				<div class="swatch-wrap" id="colorSwatches"></div>
+				<div class="swatch-label"><span class="sl-name">Цвет покрытия:</span><span class="sl-val"><?= htmlspecialcharsbx($eportaCurrentColor) ?></span></div>
+				<div class="eporta-variant-row">
+					<?php if ($eportaColorCarousel): ?><button type="button" class="eporta-variant-nav" onclick="eportaScrollVariants(this,-1)" aria-label="Назад">‹</button><?php endif; ?>
+					<div class="eporta-variant-scroll"<?= $eportaColorCarousel ? ' style="width:246px"' : '' ?>>
+						<?php foreach ($eportaColorOptions as $colorName => $variant): ?>
+							<a href="<?= htmlspecialcharsbx($variant["url"]) ?>" class="eporta-variant-item<?= $colorName === $eportaCurrentColor ? " active" : "" ?>" title="<?= htmlspecialcharsbx($colorName) ?>">
+								<?php if ($variant["photo"]): ?><img src="<?= htmlspecialcharsbx($variant["photo"]) ?>" alt="<?= htmlspecialcharsbx($colorName) ?>"><?php else: ?><span class="eporta-variant-noimg"><?= htmlspecialcharsbx(mb_substr($colorName, 0, 1)) ?></span><?php endif; ?>
+							</a>
+						<?php endforeach; ?>
+					</div>
+					<?php if ($eportaColorCarousel): ?><button type="button" class="eporta-variant-nav" onclick="eportaScrollVariants(this,1)" aria-label="Вперёд">›</button><?php endif; ?>
+				</div>
 			</div>
+			<?php endif; ?>
+			<?php if (count($eportaGlazingOptions) > 1):
+				$eportaGlazingCarousel = count($eportaGlazingOptions) > 5;
+			?>
 			<div>
-				<div class="swatch-label"><span class="sl-name">Остекление:</span><span class="sl-val" id="glazingLabel"></span></div>
-				<div class="swatch-wrap" id="glazingSwatches"></div>
+				<div class="swatch-label"><span class="sl-name">Остекление:</span><span class="sl-val"><?= htmlspecialcharsbx($eportaCurrentGlazing) ?></span></div>
+				<div class="eporta-variant-row">
+					<?php if ($eportaGlazingCarousel): ?><button type="button" class="eporta-variant-nav" onclick="eportaScrollVariants(this,-1)" aria-label="Назад">‹</button><?php endif; ?>
+					<div class="eporta-variant-scroll"<?= $eportaGlazingCarousel ? ' style="width:246px"' : '' ?>>
+						<?php foreach ($eportaGlazingOptions as $glazingName => $variant): ?>
+							<a href="<?= htmlspecialcharsbx($variant["url"]) ?>" class="eporta-variant-item<?= $glazingName === $eportaCurrentGlazing ? " active" : "" ?>" title="<?= htmlspecialcharsbx($glazingName) ?>">
+								<?php if ($variant["photo"]): ?><img src="<?= htmlspecialcharsbx($variant["photo"]) ?>" alt="<?= htmlspecialcharsbx($glazingName) ?>"><?php else: ?><span class="eporta-variant-noimg"><?= htmlspecialcharsbx(mb_substr($glazingName, 0, 1)) ?></span><?php endif; ?>
+							</a>
+						<?php endforeach; ?>
+					</div>
+					<?php if ($eportaGlazingCarousel): ?><button type="button" class="eporta-variant-nav" onclick="eportaScrollVariants(this,1)" aria-label="Вперёд">›</button><?php endif; ?>
+				</div>
+			</div>
+			<?php endif; ?>
+		</div>
+		<?php endif; ?>
+
+		<?php if (count($eportaSizeOptions) > 1): ?>
+		<!-- Размер: атрибут текущего товара (PROPERTY_SIZES), переключение без перехода — меняется только надбавка к цене -->
+		<div style="margin-bottom:18px">
+			<div class="swatch-label"><span class="sl-name">Размер:</span><span class="sl-val" id="sizeLabel"><?= htmlspecialcharsbx($eportaSizeOptions[0]["label"]) ?></span></div>
+			<div class="eporta-size-wrap" id="sizeOptions">
+				<?php foreach ($eportaSizeOptions as $i => $sizeOpt): ?>
+					<button type="button" class="eporta-size-btn<?= $i === 0 ? " active" : "" ?>" data-markup="<?= (int)$sizeOpt["markup"] ?>" data-label="<?= htmlspecialcharsbx($sizeOpt["label"]) ?>" onclick="selectSize(this)"><?= htmlspecialcharsbx($sizeOpt["label"]) ?></button>
+				<?php endforeach; ?>
 			</div>
 		</div>
 		<?php endif; ?>
@@ -178,10 +280,13 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 		<div style="flex:1">
 			<h2 style="margin:0 0 12px;font:800 20px 'Manrope';letter-spacing:-0.01em">Характеристики</h2>
 			<?php
+				// Цвет/остекление дублировать в характеристиках не нужно, когда они уже вынесены
+				// в переключаемые селекторы выше (count > 1) — там они хорошо видны и так.
 				$specs = [
 					"Стиль" => eportaPropText($arResult, "STYLE"),
-					"Цвет покрытия" => eportaPropText($arResult, "COATING_COLOR"),
-					"Остекление" => eportaPropText($arResult, "GLAZING"),
+					"Покрытие" => eportaPropText($arResult, "COATING"),
+					"Цвет покрытия" => count($eportaColorOptions) > 1 ? "" : eportaPropText($arResult, "COATING_COLOR"),
+					"Остекление" => count($eportaGlazingOptions) > 1 ? "" : eportaPropText($arResult, "GLAZING"),
 					"Основной цвет" => eportaPropText($arResult, "MAIN_COLOR"),
 				];
 			?>
@@ -252,12 +357,49 @@ $eportaKitJsPath = $_SERVER["DOCUMENT_ROOT"] . SITE_TEMPLATE_PATH . "/assets/kit
 var DOOR_PRICE = <?= (int)$priceValue ?>;
 var DOOR_FIT = 'eco'; // мок: реальный подбор комплектующих по типу двери (SKU) на проде пока не заполнен
 var addonTotal = 0;
+var sizeMarkup = <?= (int)($eportaSizeOptions[0]["markup"] ?? 0) ?>; // надбавка выбранного размера (PROPERTY_SIZES "ШxВ:надбавка")
+var DOOR_ID = <?= (int)$arResult["ID"] ?>;
+var HAS_SIZE_OPTIONS = <?= count($eportaSizeOptions) > 1 ? "true" : "false" ?>; // есть ли реальный выбор размера (не единственный вариант)
+var selectedSizeLabel = <?= json_encode($eportaSizeOptions[0]["label"] ?? "", JSON_UNESCAPED_UNICODE) ?>;
 var ADD_TO_BASKET_URL = <?= $addToBasketUrl ? json_encode($addToBasketUrl, JSON_UNESCAPED_SLASHES) : "null" ?>;
 var DOOR_NAME = <?= json_encode($arResult["NAME"], JSON_UNESCAPED_UNICODE) ?>;
 var DOOR_PRICE_LABEL = <?= json_encode($price ? ($price["PRINT_DISCOUNT_VALUE"] ?? $price["PRINT_VALUE"]) : "", JSON_UNESCAPED_UNICODE) ?>;
 var productKitSelection = {}; // сохраняем выбор допов между открытиями модалки на этой странице
 
 function fmtPrice(n) { return KitModal.fmtPrice(n); }
+
+// Карусель фото-свотчей (цвет/остекление) при >5 вариантов — стрелки листают на ширину ~3 превью.
+function eportaScrollVariants(btn, dir) {
+	var row = btn.closest('.eporta-variant-row');
+	var scroller = row && row.querySelector('.eporta-variant-scroll');
+	if (scroller) scroller.scrollBy({ left: dir * 150, behavior: 'smooth' });
+}
+
+// Размер (SIZES) — тот же товар, меняется только надбавка к отображаемой цене покупки.
+function updateCtaPrice() {
+	document.getElementById('ctaPrice').textContent = fmtPrice(DOOR_PRICE + sizeMarkup + addonTotal);
+}
+function selectSize(btn) {
+	document.querySelectorAll('.eporta-size-btn').forEach(function(b){ b.classList.remove('active'); });
+	btn.classList.add('active');
+	sizeMarkup = parseInt(btn.dataset.markup, 10) || 0;
+	selectedSizeLabel = btn.dataset.label;
+	document.getElementById('sizeLabel').textContent = btn.dataset.label;
+	updateCtaPrice();
+}
+
+// Патчим PROPS только что добавленной строки корзины выбранным размером — отдельным
+// изолированным эндпоинтом (см. catalog/basket-set-size.php), без глобального фиче-флага
+// на свойстве SIZES. Не блокирует основной тост добавления, ошибка тут не критична.
+function eportaSyncBasketSize() {
+	if (!HAS_SIZE_OPTIONS || !selectedSizeLabel) return;
+	fetch('/catalog/basket-set-size.php', {
+		method: 'POST',
+		credentials: 'same-origin',
+		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+		body: 'product_id=' + encodeURIComponent(DOOR_ID) + '&size=' + encodeURIComponent(selectedSizeLabel)
+	}).catch(function(err) { console.warn('basket-set-size failed', err); });
+}
 
 function changePhoto(img) {
 	document.getElementById('mainPhoto').src = img.src;
@@ -302,7 +444,7 @@ function onProductKitChange(selection, addonsTotal, total) {
 function openKit() {
 	KitModal.open({
 		key: 'main',
-		doorPrice: DOOR_PRICE,
+		doorPrice: DOOR_PRICE + sizeMarkup,
 		doorFit: DOOR_FIT,
 		title: DOOR_NAME,
 		priceLabel: DOOR_PRICE_LABEL,
@@ -330,6 +472,7 @@ function addMainToCart(e) {
 			btn.style.pointerEvents = '';
 			if (data.STATUS !== 'OK') throw new Error(data.MESSAGE || 'add failed');
 			eportaCartBadge(eportaCartCount() + 1);
+			eportaSyncBasketSize();
 			showToast('Дверь добавлена в корзину · ' + document.getElementById('ctaPrice').textContent, true);
 		})
 		.catch(function(err) {
@@ -351,6 +494,7 @@ function addKitToCart(selection, addonsTotal, total) {
 		.then(function(data) {
 			if (data.STATUS !== 'OK') throw new Error(data.MESSAGE || 'add failed');
 			eportaCartBadge(eportaCartCount() + 1);
+			eportaSyncBasketSize();
 			showToast('Комплект добавлен в корзину · ' + fmtPrice(total), true);
 		})
 		.catch(function(err) {

@@ -48,6 +48,10 @@ $isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH
 				"DISPLAY_MODE" => "extended",
 				"PRICE_DISPLAY_MODE" => "N",
 				"PRODUCT_BLOCKS_ORDER" => "props,sku,columns",
+				// Дефолт компонента (PREVIEW_PICTURE,DISCOUNT,DELETE,DELAY,TYPE,SUM) не включает
+				// PROPS — без явного добавления блок "props" в PRODUCT_BLOCKS_ORDER просто не
+				// рендерится, свойства позиции (напр. "Размер") нигде не показываются.
+				"COLUMNS_LIST" => ["PREVIEW_PICTURE", "DISCOUNT", "DELETE", "DELAY", "TYPE", "SUM", "PROPS"],
 				"USE_GIFTS" => "N",
 				"USE_DYNAMIC_SCROLL" => "N",
 				"SHOW_FILTER" => "N",

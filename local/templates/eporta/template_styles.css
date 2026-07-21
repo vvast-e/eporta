@@ -253,6 +253,7 @@ img { display: block; }
   padding: 2px 5px;
   border-radius: 4px;
   letter-spacing: .06em;
+  margin-left: 6px;
 }
 .cat-nav .spacer { flex: 1; }
 .cat-nav .sale-badge {
@@ -687,6 +688,90 @@ img { display: block; }
 .swatch-label .sl-name { font: 700 13px var(--font); }
 .swatch-label .sl-val { font: 700 13px var(--font); color: var(--accent-dark); }
 
+/* Фото-свотчи цвета/остекления — вариант "1a" из Claude Design ("Варианты - Цвет и
+   остекление.dc.html"): 42x42 превью реального фото товара-варианта (PREVIEW_PICTURE),
+   активный — оранжевая рамка. Отличие от прототипа: >5 вариантов не обрезаются пунктиром
+   переноса, а едут в горизонтальную карусель со стрелками (см. .eporta-variant-row). */
+.eporta-variant-row { display: flex; align-items: center; gap: 6px; }
+.eporta-variant-scroll {
+  display: flex;
+  gap: 9px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.eporta-variant-scroll::-webkit-scrollbar { display: none; }
+.eporta-variant-item {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  box-sizing: border-box;
+  border-radius: 9px;
+  padding: 2px;
+  border: 2px solid transparent;
+  display: block;
+  transition: border-color .13s;
+}
+.eporta-variant-item:hover { border-color: #e7e3db; }
+.eporta-variant-item.active { border-color: var(--accent); }
+.eporta-variant-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+  display: block;
+  background: #f6f4ef;
+}
+.eporta-variant-item .eporta-variant-noimg {
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  background: #f6f4ef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 13px var(--font);
+  color: #a39e95;
+}
+.eporta-variant-nav {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid var(--border-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font: 700 14px var(--font);
+  color: #3a3631;
+  padding: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,.1);
+}
+.eporta-variant-nav:hover { border-color: var(--accent); color: var(--accent-dark); }
+
+/* Кнопки размера (SIZES): тот же товар, меняется только надбавка к цене — не ссылка, а JS-переключатель. */
+.eporta-size-wrap { display: flex; gap: 8px; flex-wrap: wrap; }
+.eporta-size-btn {
+  padding: 8px 13px;
+  border-radius: 10px;
+  border: 1.6px solid var(--border-soft);
+  font: 600 12.5px var(--font);
+  color: #3a3631;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color .13s, background .13s;
+}
+.eporta-size-btn:hover { border-color: var(--accent); }
+.eporta-size-btn.active {
+  border-color: var(--accent);
+  background: #fff8f0;
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
 /* ========== Тост-уведомление ========== */
 .toast {
   position: fixed;
@@ -841,8 +926,15 @@ img { display: block; }
 #basket-root .basket-item-price-inline { flex: none; margin-left: auto; text-align: right; }
 
 /* Степпер количества, перенесённый cart-kit.js под свойства товара (см. relocateAmount) —
-   в исходной табличной вёрстке шёл отдельным блоком в самом низу карточки. */
+   в исходной табличной вёрстке шёл отдельным блоком в самом низу карточки. Доп. правый
+   паддинг — иначе текст "N шт = ЦЕНА" (.basket-item-amount-field-description) упирается
+   прямо в правую рамку блока (overflow:hidden без внутренних отступов). */
 #basket-root .basket-item-amount-inline { margin-top: 12px; }
+#basket-root .basket-item-block-amount.basket-item-amount-inline { padding-right: 10px; }
+#basket-root .basket-item-amount-inline .basket-item-amount-field-description {
+  padding: 0 2px 0 8px;
+  white-space: nowrap;
+}
 
 /* Кнопка удаления у вендора — пустой <span>, крестик целиком рисуется через
    ::before/::after (2px×14px, повёрнуты ±45deg, красный фон). Раньше здесь
