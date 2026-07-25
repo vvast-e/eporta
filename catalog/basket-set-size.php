@@ -26,6 +26,12 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 	eportaBasketSetSizeFail("Method not allowed");
 }
 
+// CSRF: эндпоинт меняет содержимое корзины по POST — обязательна проверка сессионного
+// токена Bitrix (тот же механизм, что bitrix_sessid_post() вставляет в формы компонентов).
+if (!check_bitrix_sessid()) {
+	eportaBasketSetSizeFail("Bad sessid");
+}
+
 $productId = (int)($_POST["product_id"] ?? 0);
 $size = trim((string)($_POST["size"] ?? ""));
 
@@ -33,8 +39,31 @@ if ($productId <= 0 || $size === "") {
 	eportaBasketSetSizeFail("Bad request");
 }
 
-if (!\Bitrix\Main\Loader::includeModule("sale")) {
-	eportaBasketSetSizeFail("Sale module unavailable");
+if (!\Bitrix\Main\Loader::includeModule("iblock") || !\Bitrix\Main\Loader::includeModule("sale")) {
+	eportaBasketSetSizeFail("Module unavailable");
+}
+
+// $size обязан быть одним из реальных значений PROPERTY_SIZES этого товара, а не
+// произвольной строкой из запроса — иначе в PROPS корзины можно записать что угодно.
+$eportaValidSizes = [];
+$eportaSizeRes = \CIBlockElement::GetList(
+	[],
+	["ID" => $productId, "IBLOCK_ID" => 19, "ACTIVE" => "Y"],
+	false,
+	false,
+	["ID", "PROPERTY_SIZES"]
+);
+if ($eportaSizeRow = $eportaSizeRes->GetNext()) {
+	$eportaSizesRaw = $eportaSizeRow["PROPERTY_SIZES_VALUE"] ?? [];
+	if (!is_array($eportaSizesRaw)) {
+		$eportaSizesRaw = $eportaSizesRaw !== "" ? [$eportaSizesRaw] : [];
+	}
+	foreach ($eportaSizesRaw as $eportaSizeRaw) {
+		$eportaValidSizes[] = explode(":", (string)$eportaSizeRaw, 2)[0];
+	}
+}
+if (!in_array($size, $eportaValidSizes, true)) {
+	eportaBasketSetSizeFail("Unknown size for this product");
 }
 
 try {

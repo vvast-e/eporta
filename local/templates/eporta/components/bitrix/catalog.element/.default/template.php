@@ -359,6 +359,7 @@ var DOOR_FIT = 'eco'; // мок: реальный подбор комплект�
 var addonTotal = 0;
 var sizeMarkup = <?= (int)($eportaSizeOptions[0]["markup"] ?? 0) ?>; // надбавка выбранного размера (PROPERTY_SIZES "ШxВ:надбавка")
 var DOOR_ID = <?= (int)$arResult["ID"] ?>;
+var BX_SESSID = <?= json_encode(bitrix_sessid(), JSON_UNESCAPED_SLASHES) ?>; // CSRF-токен для basket-set-size.php
 var HAS_SIZE_OPTIONS = <?= count($eportaSizeOptions) > 1 ? "true" : "false" ?>; // есть ли реальный выбор размера (не единственный вариант)
 var selectedSizeLabel = <?= json_encode($eportaSizeOptions[0]["label"] ?? "", JSON_UNESCAPED_UNICODE) ?>;
 var ADD_TO_BASKET_URL = <?= $addToBasketUrl ? json_encode($addToBasketUrl, JSON_UNESCAPED_SLASHES) : "null" ?>;
@@ -397,7 +398,7 @@ function eportaSyncBasketSize() {
 		method: 'POST',
 		credentials: 'same-origin',
 		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-		body: 'product_id=' + encodeURIComponent(DOOR_ID) + '&size=' + encodeURIComponent(selectedSizeLabel)
+		body: 'product_id=' + encodeURIComponent(DOOR_ID) + '&size=' + encodeURIComponent(selectedSizeLabel) + '&sessid=' + encodeURIComponent(BX_SESSID)
 	}).catch(function(err) { console.warn('basket-set-size failed', err); });
 }
 

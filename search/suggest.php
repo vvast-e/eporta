@@ -1,0 +1,86 @@
+<?php
+// Подсказки поиска в шапке — раньше дёргали вендорский dw.deluxe act=search (общий модуль
+// с dverimarket.ru, substring/LIKE по name) — движок расходился с самой страницей /search/
+// (CSearch, полнотекстовый индекс с морфологией/раскладкой): один и тот же запрос мог дать
+// разные результаты в подсказке и на странице. Этот эндпоинт — свой, использует ТОТ ЖЕ
+// CSearch с теми же параметрами, что search/index.php, просто без пагинации/чипов и с
+// лимитом на 5 штук (выпадающий список). Контракт ответа (JSON-массив объектов
+// {NAME, DETAIL_PAGE_URL, DETAIL_PICTURE, PRICE}) идентичен старому эндпоинту — JS в
+// assets/app.js менять не пришлось, только URL запроса.
+define("NO_KEEP_STATISTIC", true);
+require($_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/main/include/prolog_before.php");
+
+header("Content-Type: application/json; charset=UTF-8");
+
+\Bitrix\Main\Loader::includeModule("iblock");
+\Bitrix\Main\Loader::includeModule("search");
+\Bitrix\Main\Loader::includeModule("catalog");
+\Bitrix\Main\Loader::includeModule("currency");
+\Bitrix\Main\Loader::includeModule("dw.deluxe");
+
+$catalogIblockId = null;
+$arTemplateSettings = DwSettings::getInstance()->getCurrentSettings();
+if (!empty($arTemplateSettings)) {
+	$catalogIblockId = $arTemplateSettings["TEMPLATE_PRODUCT_IBLOCK_ID"];
+}
+
+$query = trim((string)\Bitrix\Main\Context::getCurrent()->getRequest()->get("name"));
+$items = [];
+
+if ($catalogIblockId && $query !== "" && mb_strlen($query) > 1) {
+	$obSearch = new CSearch;
+	$obSearch->Search(
+		[
+			"QUERY" => $query,
+			"SITE_ID" => SITE_ID,
+			"MODULE_ID" => "iblock",
+			"PARAM2" => $catalogIblockId,
+		],
+		[],
+		["STEMMING" => "N"]
+	);
+	$foundIds = [];
+	while ($searchItem = $obSearch->fetch()) {
+		if (is_numeric($searchItem["ITEM_ID"])) {
+			$foundIds[] = (int)$searchItem["ITEM_ID"];
+		}
+		// Подсказка — только топ-5, дальше не имеет смысла тянуть данные по всем найденным.
+		if (count($foundIds) >= 5) {
+			break;
+		}
+	}
+
+	if ($foundIds) {
+		$res = \CIBlockElement::GetList(
+			[],
+			["ID" => $foundIds, "ACTIVE" => "Y", "IBLOCK_ID" => (int)$catalogIblockId],
+			false,
+			false,
+			["ID", "NAME", "DETAIL_PAGE_URL", "PREVIEW_PICTURE", "DETAIL_PICTURE", "CATALOG_PRICE_1"]
+		);
+		$dataById = [];
+		while ($row = $res->GetNext()) {
+			$dataById[(int)$row["ID"]] = $row;
+		}
+		// Порядок — из $foundIds (порядок релевантности CSearch), не из результата запроса.
+		foreach ($foundIds as $id) {
+			if (!isset($dataById[$id])) {
+				continue;
+			}
+			$row = $dataById[$id];
+			$imgId = $row["PREVIEW_PICTURE"] ?: $row["DETAIL_PICTURE"];
+			$priceVal = $row["CATALOG_PRICE_1"] ?? null;
+			$items[] = [
+				"ID" => $id,
+				"NAME" => $row["NAME"],
+				"DETAIL_PAGE_URL" => $row["DETAIL_PAGE_URL"],
+				"DETAIL_PICTURE" => $imgId ? \CFile::GetPath($imgId) : "",
+				"PRICE" => ($priceVal !== null && $priceVal !== "")
+					? \CCurrencyLang::CurrencyFormat((float)$priceVal, "RUB", true)
+					: "",
+			];
+		}
+	}
+}
+
+echo json_encode($items, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

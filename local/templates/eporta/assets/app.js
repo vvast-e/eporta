@@ -111,7 +111,10 @@ document.addEventListener('DOMContentLoaded', function(){
 	menu.addEventListener('mouseleave', closeMenu);
 });
 
-// ---- Поиск в шапке (подсказки через существующий AJAX dw.deluxe, act=search) ----
+// ---- Поиск в шапке (подсказки через search/suggest.php — тот же CSearch, что у страницы
+// /search/, вместо вендорского dw.deluxe act=search (substring/LIKE) — движки больше не
+// расходятся, один и тот же запрос теперь даёт одинаковый набор результатов подсказке
+// и странице поиска). Контракт ответа не менялся, поэтому renderItems() ниже — без правок. ----
 document.addEventListener('DOMContentLoaded', function () {
 	var form = document.querySelector('.header-search');
 	if (!form) return;
@@ -169,7 +172,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		if (currentController) currentController.abort();
 		var controller = new AbortController();
 		currentController = controller;
-		fetch('/ajax.php?act=search&name=' + encodeURIComponent(q) + '&iblock_id=' + encodeURIComponent(iblockId), { credentials: 'same-origin', signal: controller.signal })
+		fetch('/search/suggest.php?name=' + encodeURIComponent(q) + '&iblock_id=' + encodeURIComponent(iblockId), { credentials: 'same-origin', signal: controller.signal })
 			.then(function (r) { return r.json(); })
 			.then(function (data) { renderItems(Array.isArray(data) ? data : []); })
 			.catch(function () {});
