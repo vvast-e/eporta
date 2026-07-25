@@ -281,6 +281,21 @@ img { display: block; }
 }
 .breadcrumb a { color: inherit; }
 
+/* ========== Меню "personal" (bitrix:menu, страницы simple.offers) ========== */
+#personalMenuWrap { padding: 20px 56px 0; }
+#personalMenu { display: flex; gap: 8px; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
+#personalMenu li { margin: 0; }
+#personalMenu a {
+  display: inline-block;
+  font: 600 13px var(--font);
+  color: var(--text, #3a3631);
+  background: #f3f1ec;
+  padding: 9px 16px;
+  border-radius: 20px;
+  text-decoration: none;
+}
+#personalMenu a.selected { background: var(--dark); color: #fff; }
+
 /* ========== Карточка товара ========== */
 .product-card {
   border: 1px solid var(--border);

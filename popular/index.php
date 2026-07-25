@@ -1,5 +1,5 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
-$APPLICATION->SetTitle("Новинки");?><h1>Популярные товары</h1>
+$APPLICATION->SetTitle("Популярные товары");?><div style="padding:24px 56px 4px"><h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Популярные товары</h1></div>
 <?
 	//include module
 	\Bitrix\Main\Loader::includeModule("dw.deluxe");
