@@ -19,10 +19,13 @@ $eportaCols = (int)($arParams["LINE_ELEMENT_COUNT"] ?? 3) ?: 3;
 
 	$imgSrc = $arItem["PREVIEW_PICTURE"]["SRC"] ?? ($arItem["DETAIL_PICTURE"]["SRC"] ?? $placeholderImg);
 ?>
-	<a href="<?= htmlspecialcharsbx($arItem["DETAIL_PAGE_URL"]) ?>" class="product-card">
+	<a href="<?= htmlspecialcharsbx($arItem["DETAIL_PAGE_URL"]) ?>" class="product-card" data-id="<?= (int)$arItem["ID"] ?>">
 		<div class="img-wrap">
 			<img src="<?= htmlspecialcharsbx($imgSrc) ?>" alt="<?= htmlspecialcharsbx($arItem["NAME"]) ?>">
 			<?php if ($isHit): ?><span class="badge hit">ХИТ</span><?php endif; ?>
+			<?php if (($arParams["SHOW_WISHLIST_REMOVE"] ?? "N") === "Y"): ?>
+				<button type="button" class="wishlist-remove-btn" data-id="<?= (int)$arItem["ID"] ?>" onclick="event.preventDefault();event.stopPropagation();removeFromWishlistCard(this)" title="Удалить из избранного">×</button>
+			<?php endif; ?>
 		</div>
 		<div class="info">
 			<div class="stars"><?= $stars ?> <span><?= $voteCount ?></span></div>

@@ -1,5 +1,5 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
-$APPLICATION->SetTitle("Избранное");?><h1>Избранное</h1>
+$APPLICATION->SetTitle("Избранное");?><div style="padding:24px 56px 4px"><h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Избранное</h1></div>
 <?
 	//include module
 	\Bitrix\Main\Loader::includeModule("dw.deluxe");

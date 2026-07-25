@@ -320,6 +320,23 @@ img { display: block; }
 }
 .product-card .badge.hit { background: var(--accent); }
 .product-card .badge.sale { background: var(--success); }
+.wishlist-remove-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  color: #a39e95;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(27,26,23,.12);
+}
+.wishlist-remove-btn:hover { color: #e8820a; }
+.wishlist-remove-btn:disabled { opacity: .5; cursor: default; }
 .product-card .info { padding: 12px 13px 14px; }
 .product-card .stars { color: var(--accent); font-size: 11px; letter-spacing: 1px; }
 .product-card .stars span { color: var(--text-hint); }
