@@ -281,7 +281,7 @@ img { display: block; }
   width: 100%;
   height: clamp(280px, 42vh, 480px);
   overflow: hidden;
-  background: var(--bg-warm);
+  border-radius: 16px;
 }
 .hbc-track {
   display: flex;
@@ -306,7 +306,7 @@ img { display: block; }
 }
 .hbc-slide-content {
   position: absolute;
-  left: var(--pad-x);
+  left: 32px;
   bottom: 32px;
   max-width: 460px;
 }

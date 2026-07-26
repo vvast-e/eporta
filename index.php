@@ -27,6 +27,7 @@ $APPLICATION->SetTitle("Eporta");?> <?
 	     виден край мозаики "Каталог по категориям" — пользователь сразу видит, что дальше
 	     есть категории, без скролла. Картинки-плейсхолдеры (hit-*.jpg) — заменить на баннеры
 	     заказчика того же соотношения сторон (~4.5:1, см. рекомендацию по размеру ниже). -->
+	<div style="padding:28px 56px 8px">
 	<div class="home-banner-carousel" id="homeBannerCarousel">
 		<div class="hbc-track">
 			<a href="/catalog/" class="hbc-slide" style="background-image:url(<?= SITE_TEMPLATE_PATH ?>/assets/img/hit-1.jpg)">
@@ -57,6 +58,7 @@ $APPLICATION->SetTitle("Eporta");?> <?
 		<button type="button" class="hbc-arrow hbc-prev" aria-label="Предыдущий баннер">‹</button>
 		<button type="button" class="hbc-arrow hbc-next" aria-label="Следующий баннер">›</button>
 		<div class="hbc-dots"></div>
+	</div>
 	</div>
 
 	<!-- Каталог по категориям -->
