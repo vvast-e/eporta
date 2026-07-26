@@ -23,6 +23,42 @@ $APPLICATION->SetTitle("Eporta");?> <?
 ?>
 <?if ($isEportaTemplate):?>
 
+	<!-- Карусель баннеров: высота подобрана так, чтобы над сгибом (viewport) оставался
+	     виден край мозаики "Каталог по категориям" — пользователь сразу видит, что дальше
+	     есть категории, без скролла. Картинки-плейсхолдеры (hit-*.jpg) — заменить на баннеры
+	     заказчика того же соотношения сторон (~4.5:1, см. рекомендацию по размеру ниже). -->
+	<div class="home-banner-carousel" id="homeBannerCarousel">
+		<div class="hbc-track">
+			<a href="/catalog/" class="hbc-slide" style="background-image:url(<?= SITE_TEMPLATE_PATH ?>/assets/img/hit-1.jpg)">
+				<div class="hbc-slide-overlay"></div>
+				<div class="hbc-slide-content">
+					<div class="hbc-title">Новая коллекция Dorsum</div>
+					<div class="hbc-subtitle">Модерн · экошпон · рассрочка 0%</div>
+					<span class="hbc-cta">Смотреть коллекцию →</span>
+				</div>
+			</a>
+			<a href="/catalog/" class="hbc-slide" style="background-image:url(<?= SITE_TEMPLATE_PATH ?>/assets/img/hit-5.jpg)">
+				<div class="hbc-slide-overlay"></div>
+				<div class="hbc-slide-content">
+					<div class="hbc-title">Двери со скидкой до 30%</div>
+					<div class="hbc-subtitle">Акция действует до конца месяца</div>
+					<span class="hbc-cta">Перейти к акции →</span>
+				</div>
+			</a>
+			<a href="/catalog/" class="hbc-slide" style="background-image:url(<?= SITE_TEMPLATE_PATH ?>/assets/img/hit-7.jpg)">
+				<div class="hbc-slide-overlay"></div>
+				<div class="hbc-slide-content">
+					<div class="hbc-title">Бесплатный замер по Москве</div>
+					<div class="hbc-subtitle">Приедем в удобное время и оформим заказ на месте</div>
+					<span class="hbc-cta">Оставить заявку →</span>
+				</div>
+			</a>
+		</div>
+		<button type="button" class="hbc-arrow hbc-prev" aria-label="Предыдущий баннер">‹</button>
+		<button type="button" class="hbc-arrow hbc-next" aria-label="Следующий баннер">›</button>
+		<div class="hbc-dots"></div>
+	</div>
+
 	<!-- Каталог по категориям -->
 	<div style="padding:28px 56px 8px">
 		<div class="section-heading">
