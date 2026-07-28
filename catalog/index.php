@@ -34,7 +34,7 @@ $APPLICATION->SetTitle("Каталог товаров");
 	// фильтр CIBlockSection::GetList по IBLOCK_SECTION_ID не работает как ожидалось, возвращает
 	// вообще все секции инфоблока), поэтому матчим CODE только среди этих 8 ID — иначе обычный
 	// раздел каталога с тем же кодом сегмента URL мог бы случайно попасть под резолвер коллекции.
-	$eportaCollectionIds = [151, 152, 153, 154, 155, 156, 157, 158];
+	$eportaCollectionIds = [184, 185, 186, 187, 188, 189, 190, 191];
 	$eportaCollectionSection = null;
 	if ($isEportaTemplate && !$isEportaProductDetail) {
 		$eportaReqPath = parse_url($_SERVER["REQUEST_URI"] ?? "", PHP_URL_PATH);

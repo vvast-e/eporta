@@ -24,7 +24,7 @@ $APPLICATION->SetTitle("Коллекции фабрики EPORTA");
 	// берём только эти 8 ID напрямую, чтобы на хабе не всплыли посторонние разделы (фурнитура,
 	// цвета и т.п.).
 	$isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH) === "eporta";
-	$eportaCollectionIds = [151, 152, 153, 154, 155, 156, 157, 158];
+	$eportaCollectionIds = [184, 185, 186, 187, 188, 189, 190, 191];
 	$eportaCollections = [];
 	if ($isEportaTemplate) {
 		\Bitrix\Main\Loader::includeModule("iblock");
