@@ -25,41 +25,56 @@ $APPLICATION->SetTitle("Eporta");?> <?
 
 	<!-- Карусель баннеров: высота подобрана так, чтобы над сгибом (viewport) оставался
 	     виден край мозаики "Каталог по категориям" — пользователь сразу видит, что дальше
-	     есть категории, без скролла. Картинки-плейсхолдеры (hit-*.jpg) — заменить на баннеры
-	     заказчика того же соотношения сторон (~4.5:1, см. рекомендацию по размеру ниже). -->
+	     есть категории, без скролла. Слайды берутся из IBLOCK 27 (тип slider, редактируется
+	     через админку Bitrix: NAME=заголовок, DETAIL_PICTURE=картинка, свойства
+	     SUBTITLE/LINK/CTA_TEXT). Если активных слайдов меньше двух — карусель не выводится
+	     (JS-скрипт всё равно её не запустит). -->
+	<?
+		CModule::IncludeModule("iblock");
+		$arHomeBannerSlides = [];
+		$rsHomeBannerSlides = CIBlockElement::GetList(
+			["SORT" => "ASC"],
+			["IBLOCK_ID" => 27, "ACTIVE" => "Y"],
+			false,
+			false,
+			["ID", "NAME", "DETAIL_PICTURE"]
+		);
+		while ($obHomeBannerSlide = $rsHomeBannerSlides->GetNextElement()) {
+			$arSlideFields = $obHomeBannerSlide->GetFields();
+			$arSlideProps = $obHomeBannerSlide->GetProperties();
+			if (empty($arSlideFields["DETAIL_PICTURE"])) {
+				continue;
+			}
+			$arHomeBannerSlides[] = [
+				"IMAGE" => CFile::GetPath($arSlideFields["DETAIL_PICTURE"]),
+				"TITLE" => $arSlideFields["NAME"],
+				"SUBTITLE" => $arSlideProps["SUBTITLE"]["VALUE"] ?? "",
+				"LINK" => $arSlideProps["LINK"]["VALUE"] ?: "/catalog/",
+				"CTA_TEXT" => $arSlideProps["CTA_TEXT"]["VALUE"] ?: "Подробнее →",
+			];
+		}
+	?>
+	<?if (count($arHomeBannerSlides) >= 2):?>
 	<div style="padding:28px 56px 8px">
 	<div class="home-banner-carousel" id="homeBannerCarousel">
 		<div class="hbc-track">
-			<a href="/catalog/" class="hbc-slide" style="background-image:url(<?= SITE_TEMPLATE_PATH ?>/assets/img/hit-1.jpg)">
+			<?foreach ($arHomeBannerSlides as $arSlide):?>
+			<a href="<?= htmlspecialcharsbx($arSlide["LINK"]) ?>" class="hbc-slide" style="background-image:url(<?= htmlspecialcharsbx($arSlide["IMAGE"]) ?>)">
 				<div class="hbc-slide-overlay"></div>
 				<div class="hbc-slide-content">
-					<div class="hbc-title">Новая коллекция Dorsum</div>
-					<div class="hbc-subtitle">Модерн · экошпон · рассрочка 0%</div>
-					<span class="hbc-cta">Смотреть коллекцию →</span>
+					<div class="hbc-title"><?= htmlspecialcharsbx($arSlide["TITLE"]) ?></div>
+					<?if ($arSlide["SUBTITLE"]):?><div class="hbc-subtitle"><?= htmlspecialcharsbx($arSlide["SUBTITLE"]) ?></div><?endif;?>
+					<span class="hbc-cta"><?= htmlspecialcharsbx($arSlide["CTA_TEXT"]) ?></span>
 				</div>
 			</a>
-			<a href="/catalog/" class="hbc-slide" style="background-image:url(<?= SITE_TEMPLATE_PATH ?>/assets/img/hit-5.jpg)">
-				<div class="hbc-slide-overlay"></div>
-				<div class="hbc-slide-content">
-					<div class="hbc-title">Двери со скидкой до 30%</div>
-					<div class="hbc-subtitle">Акция действует до конца месяца</div>
-					<span class="hbc-cta">Перейти к акции →</span>
-				</div>
-			</a>
-			<a href="/catalog/" class="hbc-slide" style="background-image:url(<?= SITE_TEMPLATE_PATH ?>/assets/img/hit-7.jpg)">
-				<div class="hbc-slide-overlay"></div>
-				<div class="hbc-slide-content">
-					<div class="hbc-title">Бесплатный замер по Москве</div>
-					<div class="hbc-subtitle">Приедем в удобное время и оформим заказ на месте</div>
-					<span class="hbc-cta">Оставить заявку →</span>
-				</div>
-			</a>
+			<?endforeach;?>
 		</div>
 		<button type="button" class="hbc-arrow hbc-prev" aria-label="Предыдущий баннер">‹</button>
 		<button type="button" class="hbc-arrow hbc-next" aria-label="Следующий баннер">›</button>
 		<div class="hbc-dots"></div>
 	</div>
 	</div>
+	<?endif;?>
 
 	<!-- Каталог по категориям -->
 	<div style="padding:28px 56px 8px">
