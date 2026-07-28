@@ -370,6 +370,48 @@ img { display: block; }
   .hbc-arrow { display: none; }
 }
 
+/* ---- Мозаика: большой слайдер + два маленьких друг под другом ----
+   .home-banner-mosaic задаёт общую высоту (тот же clamp, что был у одиночного
+   слайдера), а вложенные .home-banner-carousel растягиваются на 100% высоты
+   своей ячейки вместо собственного clamp. */
+.home-banner-mosaic {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 14px;
+  height: clamp(280px, 42vh, 480px);
+}
+.home-banner-mosaic .home-banner-carousel {
+  height: 100%;
+}
+.hbc-side-stack {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 14px;
+  height: 100%;
+}
+.home-banner-carousel--compact .hbc-slide-content {
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  max-width: none;
+}
+.home-banner-carousel--compact .hbc-title { font-size: 15px; }
+.home-banner-carousel--compact .hbc-subtitle { font-size: 11px; margin-top: 4px; }
+.home-banner-carousel--compact .hbc-cta { font-size: 10.5px; padding: 6px 12px; margin-top: 8px; }
+.home-banner-carousel--compact .hbc-arrow { display: none; }
+.home-banner-carousel--compact .hbc-dots { bottom: 8px; }
+.home-banner-carousel--compact .hbc-dots .hbc-dot { width: 5px; height: 5px; }
+.home-banner-carousel--compact .hbc-dots .hbc-dot.active { width: 14px; }
+@media (max-width: 860px) {
+  .home-banner-mosaic {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    height: auto;
+  }
+  .home-banner-mosaic .home-banner-carousel.hbc-main { height: clamp(220px, 38vh, 360px); }
+  .hbc-side-stack { grid-template-columns: 1fr 1fr; grid-template-rows: none; height: 140px; }
+}
+
 /* ========== Хлебные крошки ========== */
 .breadcrumb {
   font: 500 12.5px var(--font);

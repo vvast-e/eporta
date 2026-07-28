@@ -23,15 +23,16 @@ $APPLICATION->SetTitle("Eporta");?> <?
 ?>
 <?if ($isEportaTemplate):?>
 
-	<!-- Карусель баннеров: высота подобрана так, чтобы над сгибом (viewport) оставался
-	     виден край мозаики "Каталог по категориям" — пользователь сразу видит, что дальше
-	     есть категории, без скролла. Слайды берутся из IBLOCK 27 (тип slider, редактируется
-	     через админку Bitrix: NAME=заголовок, DETAIL_PICTURE=картинка, свойства
-	     SUBTITLE/LINK/CTA_TEXT). Если активных слайдов меньше двух — карусель не выводится
-	     (JS-скрипт всё равно её не запустит). -->
+	<!-- Карусель(и) баннеров: общая высота подобрана так, чтобы над сгибом (viewport)
+	     оставался виден край мозаики "Каталог по категориям". Слайды берутся из IBLOCK 27
+	     (тип slider, редактируется через админку Bitrix: NAME=заголовок, DETAIL_PICTURE=
+	     картинка, свойства SUBTITLE/LINK/CTA_TEXT/PLACEMENT). PLACEMENT раскладывает слайды
+	     по трём местам: main (большой слева) / side1 (маленький сверху справа) /
+	     side2 (маленький снизу справа). Если боковые места пустые — большой слайдер
+	     растягивается на всю ширину, как раньше. -->
 	<?
 		CModule::IncludeModule("iblock");
-		$arHomeBannerSlides = [];
+		$arHomeBannerSlides = ["main" => [], "side1" => [], "side2" => []];
 		$rsHomeBannerSlides = CIBlockElement::GetList(
 			["SORT" => "ASC"],
 			["IBLOCK_ID" => 27, "ACTIVE" => "Y"],
@@ -45,7 +46,11 @@ $APPLICATION->SetTitle("Eporta");?> <?
 			if (empty($arSlideFields["DETAIL_PICTURE"])) {
 				continue;
 			}
-			$arHomeBannerSlides[] = [
+			$slidePlacement = $arSlideProps["PLACEMENT"]["VALUE_XML_ID"] ?: "main";
+			if (!isset($arHomeBannerSlides[$slidePlacement])) {
+				$slidePlacement = "main";
+			}
+			$arHomeBannerSlides[$slidePlacement][] = [
 				"IMAGE" => CFile::GetPath($arSlideFields["DETAIL_PICTURE"]),
 				"TITLE" => $arSlideFields["NAME"],
 				"SUBTITLE" => $arSlideProps["SUBTITLE"]["VALUE"] ?? "",
@@ -53,26 +58,50 @@ $APPLICATION->SetTitle("Eporta");?> <?
 				"CTA_TEXT" => $arSlideProps["CTA_TEXT"]["VALUE"] ?: "Подробнее →",
 			];
 		}
-	?>
-	<?if (count($arHomeBannerSlides) >= 2):?>
-	<div style="padding:28px 56px 8px">
-	<div class="home-banner-carousel" id="homeBannerCarousel">
-		<div class="hbc-track">
-			<?foreach ($arHomeBannerSlides as $arSlide):?>
-			<a href="<?= htmlspecialcharsbx($arSlide["LINK"]) ?>" class="hbc-slide" style="background-image:url(<?= htmlspecialcharsbx($arSlide["IMAGE"]) ?>)">
-				<div class="hbc-slide-overlay"></div>
-				<div class="hbc-slide-content">
-					<div class="hbc-title"><?= htmlspecialcharsbx($arSlide["TITLE"]) ?></div>
-					<?if ($arSlide["SUBTITLE"]):?><div class="hbc-subtitle"><?= htmlspecialcharsbx($arSlide["SUBTITLE"]) ?></div><?endif;?>
-					<span class="hbc-cta"><?= htmlspecialcharsbx($arSlide["CTA_TEXT"]) ?></span>
+
+		function renderHomeBannerCarousel($arSlides, $htmlId, $cssClass) {
+			if (count($arSlides) < 1) {
+				return;
+			}
+			?>
+			<div class="<?= $cssClass ?>" id="<?= htmlspecialcharsbx($htmlId) ?>">
+				<div class="hbc-track">
+					<?foreach ($arSlides as $arSlide):?>
+					<a href="<?= htmlspecialcharsbx($arSlide["LINK"]) ?>" class="hbc-slide" style="background-image:url(<?= htmlspecialcharsbx($arSlide["IMAGE"]) ?>)">
+						<div class="hbc-slide-overlay"></div>
+						<div class="hbc-slide-content">
+							<div class="hbc-title"><?= htmlspecialcharsbx($arSlide["TITLE"]) ?></div>
+							<?if ($arSlide["SUBTITLE"]):?><div class="hbc-subtitle"><?= htmlspecialcharsbx($arSlide["SUBTITLE"]) ?></div><?endif;?>
+							<span class="hbc-cta"><?= htmlspecialcharsbx($arSlide["CTA_TEXT"]) ?></span>
+						</div>
+					</a>
+					<?endforeach;?>
 				</div>
-			</a>
-			<?endforeach;?>
+				<?if (count($arSlides) >= 2):?>
+				<button type="button" class="hbc-arrow hbc-prev" aria-label="Предыдущий баннер">‹</button>
+				<button type="button" class="hbc-arrow hbc-next" aria-label="Следующий баннер">›</button>
+				<div class="hbc-dots"></div>
+				<?endif;?>
+			</div>
+			<?
+		}
+
+		$hasHomeBannerMain = count($arHomeBannerSlides["main"]) >= 1;
+		$hasHomeBannerSide = count($arHomeBannerSlides["side1"]) >= 1 || count($arHomeBannerSlides["side2"]) >= 1;
+	?>
+	<?if ($hasHomeBannerMain):?>
+	<div style="padding:28px 56px 8px">
+		<?if ($hasHomeBannerSide):?>
+		<div class="home-banner-mosaic">
+			<?renderHomeBannerCarousel($arHomeBannerSlides["main"], "homeBannerMain", "home-banner-carousel hbc-main");?>
+			<div class="hbc-side-stack">
+				<?renderHomeBannerCarousel($arHomeBannerSlides["side1"], "homeBannerSide1", "home-banner-carousel home-banner-carousel--compact");?>
+				<?renderHomeBannerCarousel($arHomeBannerSlides["side2"], "homeBannerSide2", "home-banner-carousel home-banner-carousel--compact");?>
+			</div>
 		</div>
-		<button type="button" class="hbc-arrow hbc-prev" aria-label="Предыдущий баннер">‹</button>
-		<button type="button" class="hbc-arrow hbc-next" aria-label="Следующий баннер">›</button>
-		<div class="hbc-dots"></div>
-	</div>
+		<?else:?>
+			<?renderHomeBannerCarousel($arHomeBannerSlides["main"], "homeBannerCarousel", "home-banner-carousel");?>
+		<?endif;?>
 	</div>
 	<?endif;?>
 

@@ -194,54 +194,62 @@ document.addEventListener('DOMContentLoaded', function () {
 	});
 });
 
-// ---- Карусель баннеров на главной ----
+// ---- Карусель(и) баннеров на главной ----
+// Может быть один слайдер (старая раскладка) или несколько независимых
+// (мозаика: главный + два боковых) — каждый .home-banner-carousel на странице
+// получает свой собственный таймер/точки, не зависящие от соседних.
 document.addEventListener('DOMContentLoaded', function () {
-	var root = document.getElementById('homeBannerCarousel');
-	if (!root) return;
-	var track = root.querySelector('.hbc-track');
-	var slides = Array.prototype.slice.call(root.querySelectorAll('.hbc-slide'));
-	if (slides.length < 2) return;
+	var roots = Array.prototype.slice.call(document.querySelectorAll('.home-banner-carousel'));
+	roots.forEach(initHomeBannerCarousel);
 
-	var dotsBox = root.querySelector('.hbc-dots');
-	var dots = slides.map(function (_, i) {
-		var dot = document.createElement('button');
-		dot.type = 'button';
-		dot.className = 'hbc-dot';
-		dot.setAttribute('aria-label', 'Баннер ' + (i + 1));
-		dot.addEventListener('click', function () { goTo(i); });
-		dotsBox.appendChild(dot);
-		return dot;
-	});
+	function initHomeBannerCarousel(root) {
+		var track = root.querySelector('.hbc-track');
+		var slides = Array.prototype.slice.call(root.querySelectorAll('.hbc-slide'));
+		if (!track || slides.length < 2) return;
 
-	var current = 0;
-	var timer = null;
+		var dotsBox = root.querySelector('.hbc-dots');
+		var dots = dotsBox ? slides.map(function (_, i) {
+			var dot = document.createElement('button');
+			dot.type = 'button';
+			dot.className = 'hbc-dot';
+			dot.setAttribute('aria-label', 'Баннер ' + (i + 1));
+			dot.addEventListener('click', function () { goTo(i); });
+			dotsBox.appendChild(dot);
+			return dot;
+		}) : [];
 
-	function render() {
-		track.style.transform = 'translateX(-' + (current * 100) + '%)';
-		dots.forEach(function (dot, i) { dot.classList.toggle('active', i === current); });
-	}
+		var current = 0;
+		var timer = null;
 
-	function goTo(i) {
-		current = (i + slides.length) % slides.length;
+		function render() {
+			track.style.transform = 'translateX(-' + (current * 100) + '%)';
+			dots.forEach(function (dot, i) { dot.classList.toggle('active', i === current); });
+		}
+
+		function goTo(i) {
+			current = (i + slides.length) % slides.length;
+			render();
+		}
+
+		function next() { goTo(current + 1); }
+		function prev() { goTo(current - 1); }
+
+		function startAutoplay() {
+			stopAutoplay();
+			timer = setInterval(next, 5000);
+		}
+		function stopAutoplay() {
+			if (timer) clearInterval(timer);
+		}
+
+		var nextBtn = root.querySelector('.hbc-next');
+		var prevBtn = root.querySelector('.hbc-prev');
+		if (nextBtn) nextBtn.addEventListener('click', function () { next(); startAutoplay(); });
+		if (prevBtn) prevBtn.addEventListener('click', function () { prev(); startAutoplay(); });
+		root.addEventListener('mouseenter', stopAutoplay);
+		root.addEventListener('mouseleave', startAutoplay);
+
 		render();
+		startAutoplay();
 	}
-
-	function next() { goTo(current + 1); }
-	function prev() { goTo(current - 1); }
-
-	function startAutoplay() {
-		stopAutoplay();
-		timer = setInterval(next, 5000);
-	}
-	function stopAutoplay() {
-		if (timer) clearInterval(timer);
-	}
-
-	root.querySelector('.hbc-next').addEventListener('click', function () { next(); startAutoplay(); });
-	root.querySelector('.hbc-prev').addEventListener('click', function () { prev(); startAutoplay(); });
-	root.addEventListener('mouseenter', stopAutoplay);
-	root.addEventListener('mouseleave', startAutoplay);
-
-	render();
-	startAutoplay();
 });
