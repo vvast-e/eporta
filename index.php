@@ -31,31 +31,38 @@ $APPLICATION->SetTitle("Eporta");?> <?
 	     side2 (маленький снизу справа). Если боковые места пустые — большой слайдер
 	     растягивается на всю ширину, как раньше. -->
 	<?
+		// GetProperties() у элемента здесь ненадёжен (не возвращает значения для этого
+		// инфоблока — похоже на не сброшенный кэш метаданных свойств), поэтому значения
+		// свойств выбираются напрямую полями PROPERTY_* в GetList().
 		CModule::IncludeModule("iblock");
+		$arPlacementXmlIdByEnumId = [];
+		$rsPlacementEnum = CIBlockPropertyEnum::GetList([], ["IBLOCK_ID" => 27, "CODE" => "PLACEMENT"]);
+		while ($arEnum = $rsPlacementEnum->Fetch()) {
+			$arPlacementXmlIdByEnumId[$arEnum["ID"]] = $arEnum["XML_ID"];
+		}
+
 		$arHomeBannerSlides = ["main" => [], "side1" => [], "side2" => []];
 		$rsHomeBannerSlides = CIBlockElement::GetList(
 			["SORT" => "ASC"],
 			["IBLOCK_ID" => 27, "ACTIVE" => "Y"],
 			false,
 			false,
-			["ID", "NAME", "DETAIL_PICTURE"]
+			["ID", "NAME", "DETAIL_PICTURE", "PROPERTY_PLACEMENT", "PROPERTY_SUBTITLE", "PROPERTY_LINK", "PROPERTY_CTA_TEXT"]
 		);
-		while ($obHomeBannerSlide = $rsHomeBannerSlides->GetNextElement()) {
-			$arSlideFields = $obHomeBannerSlide->GetFields();
-			$arSlideProps = $obHomeBannerSlide->GetProperties();
+		while ($arSlideFields = $rsHomeBannerSlides->Fetch()) {
 			if (empty($arSlideFields["DETAIL_PICTURE"])) {
 				continue;
 			}
-			$slidePlacement = $arSlideProps["PLACEMENT"]["VALUE_XML_ID"] ?: "main";
+			$slidePlacement = $arPlacementXmlIdByEnumId[$arSlideFields["PROPERTY_PLACEMENT_ENUM_ID"]] ?? "main";
 			if (!isset($arHomeBannerSlides[$slidePlacement])) {
 				$slidePlacement = "main";
 			}
 			$arHomeBannerSlides[$slidePlacement][] = [
 				"IMAGE" => CFile::GetPath($arSlideFields["DETAIL_PICTURE"]),
 				"TITLE" => $arSlideFields["NAME"],
-				"SUBTITLE" => $arSlideProps["SUBTITLE"]["VALUE"] ?? "",
-				"LINK" => $arSlideProps["LINK"]["VALUE"] ?: "/catalog/",
-				"CTA_TEXT" => $arSlideProps["CTA_TEXT"]["VALUE"] ?: "Подробнее →",
+				"SUBTITLE" => $arSlideFields["PROPERTY_SUBTITLE_VALUE"] ?? "",
+				"LINK" => $arSlideFields["PROPERTY_LINK_VALUE"] ?: "/catalog/",
+				"CTA_TEXT" => $arSlideFields["PROPERTY_CTA_TEXT_VALUE"] ?: "Подробнее →",
 			];
 		}
 
