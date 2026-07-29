@@ -1,18 +1,24 @@
 // EPORTA — общий JS шаблона
 
 // ---- Счётчик корзины ----
-(function(){
-	var count = sessionStorage.getItem('eporta_cart') || '0';
-	document.querySelectorAll('.cart-btn .badge').forEach(function(b){ b.textContent = count; });
-})();
+// Источник истины при загрузке страницы — реальный подсчёт на сервере (header.php,
+// CSaleBasket по текущему FUSER). Эти функции только обновляют бейдж мгновенно между
+// AJAX-добавлением и следующей перезагрузкой (см. addMainToCart/addKitToCart в
+// catalog.element/.default/template.php, addCartFromCompare в assets/compare.js).
+function eportaCartBadge(n) {
+	document.querySelectorAll('.cart-btn .badge').forEach(function (b) { b.textContent = n; });
+}
 
-function updateCartBadge(n){
-	sessionStorage.setItem('eporta_cart', n);
-	document.querySelectorAll('.cart-btn .badge').forEach(function(b){ b.textContent = n; });
+function eportaCartCount() {
+	var badge = document.querySelector('.cart-btn .badge');
+	return badge ? (parseInt(badge.textContent, 10) || 0) : 0;
 }
 
 // ---- Мегаменю каталога ----
-(function(){
+// EPORTA: скрипт подключается в <head> (Asset::addJs без defer, см. header.php) и выполняется
+// ДО парсинга <body> — обёртка в DOMContentLoaded обязательна для любого блока, читающего DOM
+// на верхнем уровне (без неё document.querySelector(...) вернёт null тихо, без единой ошибки).
+document.addEventListener('DOMContentLoaded', function(){
 	var nav = document.querySelector('.cat-nav');
 	if (!nav) return;
 
@@ -103,17 +109,147 @@ function updateCartBadge(n){
 	nav.addEventListener('mouseleave', closeMenu);
 	menu.addEventListener('mouseenter', function(){ clearTimeout(closeTimer); });
 	menu.addEventListener('mouseleave', closeMenu);
-})();
+});
 
-// ---- Добавление в корзину (используется в onclick карточек товара) ----
-function addToCart(e){
-	e.preventDefault();
-	e.stopPropagation();
-	var count = parseInt(sessionStorage.getItem('eporta_cart') || '0', 10) + 1;
-	updateCartBadge(count);
-	var btn = e.currentTarget;
-	var orig = btn.textContent;
-	btn.textContent = '✓ Добавлено';
-	btn.style.background = '#1f8a4c';
-	setTimeout(function(){ btn.textContent = orig; btn.style.background = '#e8820a'; }, 1500);
-}
+// ---- Поиск в шапке (подсказки через search/suggest.php — тот же CSearch, что у страницы
+// /search/, вместо вендорского dw.deluxe act=search (substring/LIKE) — движки больше не
+// расходятся, один и тот же запрос теперь даёт одинаковый набор результатов подсказке
+// и странице поиска). Контракт ответа не менялся, поэтому renderItems() ниже — без правок. ----
+document.addEventListener('DOMContentLoaded', function () {
+	var form = document.querySelector('.header-search');
+	if (!form) return;
+	var input = document.getElementById('headerSearchInput');
+	var box = document.getElementById('headerSearchSuggest');
+	var iblockId = form.getAttribute('data-iblock') || '';
+	if (!input || !box || !iblockId) return;
+
+	var debounceTimer = null;
+	var currentController = null;
+
+	function closeSuggest() {
+		box.classList.remove('open');
+		box.textContent = '';
+	}
+
+	function renderItems(items) {
+		box.textContent = '';
+		if (!items.length) {
+			var empty = document.createElement('div');
+			empty.className = 'hs-empty';
+			empty.textContent = 'Ничего не найдено';
+			box.appendChild(empty);
+			box.classList.add('open');
+			return;
+		}
+		items.forEach(function (item) {
+			var a = document.createElement('a');
+			a.className = 'hs-item';
+			a.href = item.DETAIL_PAGE_URL || '#';
+
+			var img = document.createElement('img');
+			img.src = item.DETAIL_PICTURE || '';
+			img.alt = '';
+			a.appendChild(img);
+
+			var name = document.createElement('span');
+			name.className = 'hs-name';
+			name.textContent = item.NAME || '';
+			a.appendChild(name);
+
+			if (item.PRICE) {
+				var price = document.createElement('span');
+				price.className = 'hs-price';
+				price.textContent = item.PRICE;
+				a.appendChild(price);
+			}
+
+			box.appendChild(a);
+		});
+		box.classList.add('open');
+	}
+
+	function fetchSuggest(q) {
+		if (currentController) currentController.abort();
+		var controller = new AbortController();
+		currentController = controller;
+		fetch('/search/suggest.php?name=' + encodeURIComponent(q) + '&iblock_id=' + encodeURIComponent(iblockId), { credentials: 'same-origin', signal: controller.signal })
+			.then(function (r) { return r.json(); })
+			.then(function (data) { renderItems(Array.isArray(data) ? data : []); })
+			.catch(function () {});
+	}
+
+	input.addEventListener('input', function () {
+		var q = input.value.trim();
+		clearTimeout(debounceTimer);
+		if (q.length < 2) { closeSuggest(); return; }
+		debounceTimer = setTimeout(function () { fetchSuggest(q); }, 300);
+	});
+
+	document.addEventListener('click', function (e) {
+		if (!form.contains(e.target)) closeSuggest();
+	});
+
+	input.addEventListener('keydown', function (e) {
+		if (e.key === 'Escape') closeSuggest();
+	});
+});
+
+// ---- Карусель(и) баннеров на главной ----
+// Может быть один слайдер (старая раскладка) или несколько независимых
+// (мозаика: главный + два боковых) — каждый .home-banner-carousel на странице
+// получает свой собственный таймер/точки, не зависящие от соседних.
+document.addEventListener('DOMContentLoaded', function () {
+	var roots = Array.prototype.slice.call(document.querySelectorAll('.home-banner-carousel'));
+	roots.forEach(initHomeBannerCarousel);
+
+	function initHomeBannerCarousel(root) {
+		var track = root.querySelector('.hbc-track');
+		var slides = Array.prototype.slice.call(root.querySelectorAll('.hbc-slide'));
+		if (!track || slides.length < 2) return;
+
+		var dotsBox = root.querySelector('.hbc-dots');
+		var dots = dotsBox ? slides.map(function (_, i) {
+			var dot = document.createElement('button');
+			dot.type = 'button';
+			dot.className = 'hbc-dot';
+			dot.setAttribute('aria-label', 'Баннер ' + (i + 1));
+			dot.addEventListener('click', function () { goTo(i); });
+			dotsBox.appendChild(dot);
+			return dot;
+		}) : [];
+
+		var current = 0;
+		var timer = null;
+
+		function render() {
+			track.style.transform = 'translateX(-' + (current * 100) + '%)';
+			dots.forEach(function (dot, i) { dot.classList.toggle('active', i === current); });
+		}
+
+		function goTo(i) {
+			current = (i + slides.length) % slides.length;
+			render();
+		}
+
+		function next() { goTo(current + 1); }
+		function prev() { goTo(current - 1); }
+
+		function startAutoplay() {
+			stopAutoplay();
+			timer = setInterval(next, 5000);
+		}
+		function stopAutoplay() {
+			if (timer) clearInterval(timer);
+		}
+
+		var nextBtn = root.querySelector('.hbc-next');
+		var prevBtn = root.querySelector('.hbc-prev');
+		if (nextBtn) nextBtn.addEventListener('click', function () { next(); startAutoplay(); });
+		if (prevBtn) prevBtn.addEventListener('click', function () { prev(); startAutoplay(); });
+		root.addEventListener('mouseenter', stopAutoplay);
+		root.addEventListener('mouseleave', startAutoplay);
+
+		render();
+		startAutoplay();
+	}
+});

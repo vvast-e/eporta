@@ -1,4 +1,7 @@
-<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");?>
+<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
+$APPLICATION->SetPageProperty("title", "Коллекции фабрики EPORTA");
+$APPLICATION->SetTitle("Коллекции фабрики EPORTA");
+?>
 <?
 	//include module
 	\Bitrix\Main\Loader::includeModule("dw.deluxe");
@@ -13,9 +16,65 @@
 		$catalogIblockId = $arTemplateSettings["TEMPLATE_PRODUCT_IBLOCK_ID"];
 		$arPriceCodes = explode(", ", $arTemplateSettings["TEMPLATE_PRICE_CODES"]);
 	}
+
+	// Этап 5 — Коллекции: ровно 8 дверных коллекций, подразделы раздела 183 "Коллекции" в
+	// IBLOCK 19 (Dorsum/Vitrum/Vilis/Vetus/Tabula/Actus/Lacuna/Invi, коды ниже). Список
+	// зафиксирован явно — фильтр CIBlockSection::GetList по IBLOCK_SECTION_ID не работает как
+	// ожидалось (возвращает вообще все секции инфоблока), поэтому не полагаемся на него, а
+	// берём только эти 8 ID напрямую, чтобы на хабе не всплыли посторонние разделы (фурнитура,
+	// цвета и т.п.).
+	$isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH) === "eporta";
+	$eportaCollectionIds = [184, 185, 186, 187, 188, 189, 190, 191];
+	$eportaCollections = [];
+	if ($isEportaTemplate) {
+		\Bitrix\Main\Loader::includeModule("iblock");
+		$eportaCollRes = \CIBlockSection::GetList(
+			["SORT" => "ASC"],
+			["IBLOCK_ID" => 19, "ID" => $eportaCollectionIds, "ACTIVE" => "Y"],
+			false,
+			["ID", "NAME", "CODE", "DESCRIPTION", "PICTURE", "DETAIL_PICTURE", "SECTION_PAGE_URL"]
+		);
+		while ($eportaCollSection = $eportaCollRes->GetNext()) {
+			$eportaCollSection["ELEMENT_CNT"] = \CIBlockElement::GetList(
+				[],
+				["IBLOCK_ID" => 19, "SECTION_ID" => $eportaCollSection["ID"], "ACTIVE" => "Y"],
+				["SECTION_ID"]
+			)->SelectedRowsCount();
+			$eportaCollections[] = $eportaCollSection;
+		}
+	}
 ?>
+<?if ($isEportaTemplate):?>
+
+	<div style="padding:12px 56px 0"><div style="font:500 13px;color:#726c62">Главная · Коллекции</div></div>
+
+	<div style="padding:14px 56px 6px">
+		<h1 style="margin:0;font:800 28px 'Manrope';letter-spacing:-0.01em">Коллекции фабрики EPORTA</h1>
+		<p style="margin:6px 0 0;font:500 14px/1.5 'Manrope';color:#8a857b;max-width:640px">Каждая коллекция — законченная серия дверей с единым дизайном полотна, кромки и фурнитуры. Выберите серию под ваш интерьер — внутри неё уже подобраны цвета, остекление и размеры.</p>
+	</div>
+
+	<div style="padding:18px 56px 40px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
+		<?foreach ($eportaCollections as $eportaColl):
+			$eportaCollImgSrc = \CFile::GetPath($eportaColl["DETAIL_PICTURE"] ?: $eportaColl["PICTURE"]);
+			$eportaCollUrl = str_replace("#SITE_DIR#", "/", $eportaColl["SECTION_PAGE_URL"]);
+			$eportaCollUrl = preg_replace('~/{2,}~', '/', $eportaCollUrl);
+		?>
+		<a href="<?=htmlspecialcharsbx($eportaCollUrl)?>" style="position:relative;border-radius:18px;overflow:hidden;height:250px;display:block;background:#efeae2<?=$eportaCollImgSrc ? ";background-image:url('".htmlspecialcharsbx($eportaCollImgSrc)."');background-size:cover;background-position:center" : ""?>">
+			<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 34%,rgba(20,17,12,.85) 100%);pointer-events:none"></div>
+			<div style="position:absolute;left:22px;right:22px;bottom:20px">
+				<div style="font:800 23px 'Manrope';color:#fff;letter-spacing:.01em"><?=htmlspecialcharsbx($eportaColl["NAME"])?></div>
+				<?if ($eportaColl["DESCRIPTION"]):?>
+				<div style="font:600 12px 'Manrope';color:#ffd7b0;margin-top:3px"><?=htmlspecialcharsbx($eportaColl["DESCRIPTION"])?></div>
+				<?endif;?>
+				<div style="display:inline-flex;align-items:center;gap:8px;margin-top:11px;font:700 12.5px 'Manrope';color:#fff"><?=$eportaColl["ELEMENT_CNT"]?> моделей <span style="color:#e8820a">→</span></div>
+			</div>
+		</a>
+		<?endforeach;?>
+	</div>
+
+<?else:?>
 <?$APPLICATION->IncludeComponent(
-	"bitrix:news", 
+	"bitrix:news",
 	"collection2.0", 
 	array(
 		"ADD_ELEMENT_CHAIN" => "Y",
@@ -251,4 +310,6 @@
 		)
 	),
 	false
-);?><br /><?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>
+);?><br />
+<?endif;?>
+<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>

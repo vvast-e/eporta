@@ -1,6 +1,8 @@
-# Ядро Битрикс (симлинк на dverimarket.ru — не трекаем)
-bitrix
-upload
+# Ядро Битрикс (симлинк на dverimarket.ru — не трекаем). Именно /bitrix у корня репозитория —
+# без ведущего слэша правило матчило бы и local/templates/*/components/bitrix/... (легитимные
+# оверрайды компонентов шаблона eporta), из-за чего они молча выпадали из гита.
+/bitrix
+/upload
 
 # Конфиг с кредами БД
 bitrix/.settings.php

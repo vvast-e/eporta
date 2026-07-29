@@ -335,6 +335,22 @@ function eportaImportGetOrCreateEnumId(int $iblockId, string $propertyCode, stri
     return $enumId;
 }
 
+// Символьный код нужен для SEF-ссылки на карточку товара (/catalog/<code>.html).
+// Генерируется транслитерацией названия с добавлением артикула для уникальности —
+// сам транслит не гарантирует уникальность при похожих названиях моделей.
+function eportaImportGenerateCode(string $name, string $article): string {
+    $base = \CUtil::translit($name, 'ru', [
+        'max_len' => 100,
+        'change_case' => 'L',
+        'replace_space' => '-',
+        'replace_other' => '-',
+        'delete_repeat_replace' => true,
+    ]);
+    $suffix = \CUtil::translit($article, 'ru', ['max_len' => 30, 'change_case' => 'L', 'replace_space' => '-', 'replace_other' => '-']);
+    $code = $suffix !== '' ? $base . '-' . $suffix : $base;
+    return $code !== '' ? $code : 'element';
+}
+
 function eportaImportSectionMap(): array {
     static $map = null;
     if ($map !== null) {
@@ -472,9 +488,11 @@ function eportaImportOneProduct(array $p): array {
         $propertyValues['MORE_PHOTO'] = $galleryFiles;
     }
 
+    $elName = $p['name'] ?? $article;
     $elFields = [
         'IBLOCK_ID' => EPORTA_IMPORT_IBLOCK_ID,
-        'NAME' => $p['name'] ?? $article,
+        'NAME' => $elName,
+        'CODE' => eportaImportGenerateCode($elName, $article),
         'ACTIVE' => 'Y',
         'IBLOCK_SECTION_ID' => $sectionId,
         'PREVIEW_TEXT' => $p['short_desc'] ?? '',
@@ -513,6 +531,15 @@ function eportaImportOneProduct(array $p): array {
 
     if (!$ok) {
         return ['article' => $article, 'status' => 'error', 'message' => $elObj->LAST_ERROR];
+    }
+
+    // Без записи в b_catalog_product элемент — просто карточка инфоблока, а не товар:
+    // bitrix:catalog.section не досчитывает для него ни MIN_PRICE, ни PROPERTIES/DISPLAY_PROPERTIES
+    // (весь торговый движок каталога завязан на регистрацию товара, не только на наличие цены).
+    if (\CCatalogProduct::GetByID($elementId)) {
+        \CCatalogProduct::Update($elementId, ['TYPE' => \Bitrix\Catalog\ProductTable::TYPE_PRODUCT]);
+    } else {
+        \CCatalogProduct::Add(['ID' => $elementId, 'TYPE' => \Bitrix\Catalog\ProductTable::TYPE_PRODUCT]);
     }
 
     if (!empty($p['price'])) {

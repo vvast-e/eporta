@@ -93,6 +93,7 @@ img { display: block; }
 
 /* Поиск */
 .header-search {
+  position: relative;
   flex: 1;
   display: flex;
   align-items: center;
@@ -102,10 +103,57 @@ img { display: block; }
   color: var(--text-hint);
   font-size: 14px;
   gap: 10px;
-  cursor: pointer;
 }
-.header-search:hover { border-color: var(--accent); }
-.header-search .ico { color: #c2bdb2; }
+.header-search:hover, .header-search:focus-within { border-color: var(--accent); }
+.header-search .ico { color: #c2bdb2; flex: none; }
+.header-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  color: var(--dark);
+}
+.header-search input::placeholder { color: var(--text-hint); }
+
+.header-search-suggest {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 8px);
+  background: #fff;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(27, 26, 23, .14);
+  z-index: 260;
+  max-height: 380px;
+  overflow-y: auto;
+  padding: 6px;
+}
+.header-search-suggest.open { display: block; }
+.header-search-suggest .hs-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--dark);
+}
+.header-search-suggest .hs-item:hover { background: #f6f4f0; }
+.header-search-suggest .hs-item img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex: none;
+  background: #f2efe9;
+}
+.header-search-suggest .hs-name { font: 600 13px var(--font); flex: 1; min-width: 0; }
+.header-search-suggest .hs-price { font: 700 13px var(--font); color: var(--accent); flex: none; }
+.header-search-suggest .hs-empty { padding: 14px; text-align: center; color: var(--text-hint); font-size: 13px; }
 
 /* Телефон */
 .header-phone { text-align: right; flex: none; }
@@ -117,19 +165,25 @@ img { display: block; }
 .header-actions .btn-account {
   width: 22px;
   height: 22px;
-  border: 1.6px solid #b3aea2;
-  border-radius: 50%;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #726c62;
+  transition: color .15s;
 }
-.header-actions .btn-account.active { border-color: var(--accent); }
-.cart-btn { position: relative; display: block; }
+.header-actions .btn-account svg { width: 100%; height: 100%; }
+.header-actions .btn-account:hover,
+.header-actions .btn-account.active { color: var(--accent); }
+.cart-btn { position: relative; display: block; color: var(--dark); transition: color .15s; }
+.cart-btn:hover { color: var(--accent); }
 .cart-btn .icon {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 22px;
   height: 22px;
-  border: 1.6px solid var(--dark);
-  border-radius: 6px;
 }
+.cart-btn .icon svg { width: 100%; height: 100%; }
 .cart-btn .badge {
   position: absolute;
   top: -6px;
@@ -143,6 +197,15 @@ img { display: block; }
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.compare-btn { position: relative; display: block; color: var(--dark); transition: color .15s; }
+.compare-btn:hover { color: var(--accent); }
+.compare-btn .icon { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; }
+.compare-btn .icon svg { width: 100%; height: 100%; }
+.compare-btn .badge {
+  position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--accent); color: #fff; font: 700 9px var(--font);
+  display: flex; align-items: center; justify-content: center;
 }
 
 /* ========== Навигация (cat-nav) ========== */
@@ -190,6 +253,7 @@ img { display: block; }
   padding: 2px 5px;
   border-radius: 4px;
   letter-spacing: .06em;
+  margin-left: 6px;
 }
 .cat-nav .spacer { flex: 1; }
 .cat-nav .sale-badge {
@@ -208,6 +272,146 @@ img { display: block; }
   display: inline-block;
 }
 
+/* ========== Карусель баннеров на главной ==========
+   Высота — clamp(min, 42vh, max): на низких вьюпортах (ноутбуки 768px и ниже)
+   ужимается так, чтобы под ней уже читался край мозаики "Каталог по категориям"
+   без скролла; на высоких — не раздувается больше 480px по той же причине. */
+.home-banner-carousel {
+  position: relative;
+  width: 100%;
+  height: clamp(280px, 42vh, 480px);
+  overflow: hidden;
+  border-radius: 16px;
+}
+.hbc-track {
+  display: flex;
+  height: 100%;
+  transform: translateX(0);
+  transition: transform .5s ease;
+  will-change: transform;
+}
+.hbc-slide {
+  position: relative;
+  flex: 0 0 100%;
+  height: 100%;
+  display: block;
+  background-size: cover;
+  background-position: center;
+  text-decoration: none;
+}
+.hbc-slide-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(20,17,12,.62) 0%, rgba(20,17,12,.18) 55%, rgba(20,17,12,0) 80%);
+}
+.hbc-slide-content {
+  position: absolute;
+  left: 32px;
+  bottom: 32px;
+  max-width: 460px;
+}
+.hbc-title { font: 800 30px var(--font); color: #fff; letter-spacing: -0.01em; line-height: 1.1; }
+.hbc-subtitle { font: 600 14px var(--font); color: rgba(255,255,255,.82); margin-top: 8px; }
+.hbc-cta {
+  display: inline-block;
+  margin-top: 16px;
+  font: 700 13.5px var(--font);
+  color: #fff;
+  background: var(--accent);
+  padding: 10px 20px;
+  border-radius: 999px;
+}
+.hbc-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,.85);
+  color: var(--dark);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: background .15s;
+}
+.hbc-arrow:hover { background: #fff; }
+.hbc-prev { left: 18px; }
+.hbc-next { right: 18px; }
+.hbc-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  z-index: 2;
+}
+.hbc-dots .hbc-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.55);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: width .2s, background .2s;
+}
+.hbc-dots .hbc-dot.active { width: 22px; border-radius: 4px; background: #fff; }
+@media (max-width: 640px) {
+  .hbc-slide-content { left: 20px; right: 20px; max-width: none; bottom: 24px; }
+  .hbc-title { font-size: 22px; }
+  .hbc-arrow { display: none; }
+}
+
+/* ---- Мозаика: большой слайдер + два маленьких друг под другом ----
+   .home-banner-mosaic задаёт общую высоту (тот же clamp, что был у одиночного
+   слайдера), а вложенные .home-banner-carousel растягиваются на 100% высоты
+   своей ячейки вместо собственного clamp. */
+.home-banner-mosaic {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 14px;
+  height: clamp(280px, 42vh, 480px);
+}
+.home-banner-mosaic .home-banner-carousel {
+  height: 100%;
+}
+.hbc-side-stack {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 14px;
+  height: 100%;
+}
+.home-banner-carousel--compact .hbc-slide-content {
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  max-width: none;
+}
+.home-banner-carousel--compact .hbc-title { font-size: 15px; }
+.home-banner-carousel--compact .hbc-subtitle { font-size: 11px; margin-top: 4px; }
+.home-banner-carousel--compact .hbc-cta { font-size: 10.5px; padding: 6px 12px; margin-top: 8px; }
+.home-banner-carousel--compact .hbc-arrow { display: none; }
+.home-banner-carousel--compact .hbc-dots { bottom: 8px; }
+.home-banner-carousel--compact .hbc-dots .hbc-dot { width: 5px; height: 5px; }
+.home-banner-carousel--compact .hbc-dots .hbc-dot.active { width: 14px; }
+@media (max-width: 860px) {
+  .home-banner-mosaic {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    height: auto;
+  }
+  .home-banner-mosaic .home-banner-carousel.hbc-main { height: clamp(220px, 38vh, 360px); }
+  .hbc-side-stack { grid-template-columns: 1fr 1fr; grid-template-rows: none; height: 140px; }
+}
+
 /* ========== Хлебные крошки ========== */
 .breadcrumb {
   font: 500 12.5px var(--font);
@@ -216,6 +420,21 @@ img { display: block; }
   background: var(--bg);
 }
 .breadcrumb a { color: inherit; }
+
+/* ========== Меню "personal" (bitrix:menu, страницы simple.offers) ========== */
+#personalMenuWrap { padding: 20px 56px 0; }
+#personalMenu { display: flex; gap: 8px; list-style: none; margin: 0; padding: 0; flex-wrap: wrap; }
+#personalMenu li { margin: 0; }
+#personalMenu a {
+  display: inline-block;
+  font: 600 13px var(--font);
+  color: var(--text, #3a3631);
+  background: #f3f1ec;
+  padding: 9px 16px;
+  border-radius: 20px;
+  text-decoration: none;
+}
+#personalMenu a.selected { background: var(--dark); color: #fff; }
 
 /* ========== Карточка товара ========== */
 .product-card {
@@ -241,6 +460,23 @@ img { display: block; }
 }
 .product-card .badge.hit { background: var(--accent); }
 .product-card .badge.sale { background: var(--success); }
+.wishlist-remove-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  color: #a39e95;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(27,26,23,.12);
+}
+.wishlist-remove-btn:hover { color: #e8820a; }
+.wishlist-remove-btn:disabled { opacity: .5; cursor: default; }
 .product-card .info { padding: 12px 13px 14px; }
 .product-card .stars { color: var(--accent); font-size: 11px; letter-spacing: 1px; }
 .product-card .stars span { color: var(--text-hint); }
@@ -260,6 +496,20 @@ img { display: block; }
   transition: background .15s;
 }
 .product-card .btn-cart:hover { background: var(--accent-dark); }
+.product-card .btn-compare {
+  background: #fff;
+  color: var(--dark);
+  font-weight: 700;
+  font-size: 12px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+  white-space: nowrap;
+}
+.product-card .btn-compare:hover, .product-card .btn-compare.added { border-color: var(--accent); color: var(--accent-dark); }
+.product-card .price-row-tools { display: flex; align-items: center; gap: 8px; }
 
 /* ========== Кнопки ========== */
 .btn-primary {
@@ -397,6 +647,31 @@ img { display: block; }
   transition: transform .2s;
 }
 .kit-overlay.open .kit-modal { transform: none; }
+
+/* ========== Подтверждение удаления позиции корзины (assets/cart-kit.js) ========== */
+.ek-confirm-overlay {
+  position: fixed; inset: 0; background: rgba(20,17,12,.6); z-index: 210;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .15s;
+}
+.ek-confirm-overlay.open { opacity: 1; pointer-events: all; }
+.ek-confirm-modal {
+  background: #fff; border-radius: 16px; width: 360px; max-width: 90vw;
+  padding: 24px 22px 20px; box-shadow: 0 24px 60px rgba(0,0,0,.35);
+  transform: translateY(10px); transition: transform .15s;
+}
+.ek-confirm-overlay.open .ek-confirm-modal { transform: none; }
+.ek-confirm-text { font: 700 15.5px var(--font); color: var(--dark); margin-bottom: 20px; }
+.ek-confirm-actions { display: flex; gap: 10px; }
+.ek-confirm-cancel, .ek-confirm-delete {
+  flex: 1; padding: 12px; border-radius: 10px; font: 700 13.5px var(--font); cursor: pointer;
+  border: none; transition: background .15s, color .15s;
+}
+.ek-confirm-cancel { background: var(--bg-warm); color: var(--dark); }
+.ek-confirm-cancel:hover { background: var(--border-soft); }
+.ek-confirm-delete { background: #fdeceb; color: #c0392b; }
+.ek-confirm-delete:hover { background: #c0392b; color: #fff; }
+
 .kit-mhead {
   display: flex;
   align-items: center;
@@ -585,17 +860,101 @@ img { display: block; }
 .swatch-label .sl-name { font: 700 13px var(--font); }
 .swatch-label .sl-val { font: 700 13px var(--font); color: var(--accent-dark); }
 
+/* Фото-свотчи цвета/остекления — вариант "1a" из Claude Design ("Варианты - Цвет и
+   остекление.dc.html"): 42x42 превью реального фото товара-варианта (PREVIEW_PICTURE),
+   активный — оранжевая рамка. Отличие от прототипа: >5 вариантов не обрезаются пунктиром
+   переноса, а едут в горизонтальную карусель со стрелками (см. .eporta-variant-row). */
+.eporta-variant-row { display: flex; align-items: center; gap: 6px; }
+.eporta-variant-scroll {
+  display: flex;
+  gap: 9px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.eporta-variant-scroll::-webkit-scrollbar { display: none; }
+.eporta-variant-item {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  box-sizing: border-box;
+  border-radius: 9px;
+  padding: 2px;
+  border: 2px solid transparent;
+  display: block;
+  transition: border-color .13s;
+}
+.eporta-variant-item:hover { border-color: #e7e3db; }
+.eporta-variant-item.active { border-color: var(--accent); }
+.eporta-variant-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+  display: block;
+  background: #f6f4ef;
+}
+.eporta-variant-item .eporta-variant-noimg {
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+  background: #f6f4ef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 13px var(--font);
+  color: #a39e95;
+}
+.eporta-variant-nav {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid var(--border-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font: 700 14px var(--font);
+  color: #3a3631;
+  padding: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,.1);
+}
+.eporta-variant-nav:hover { border-color: var(--accent); color: var(--accent-dark); }
+
+/* Кнопки размера (SIZES): тот же товар, меняется только надбавка к цене — не ссылка, а JS-переключатель. */
+.eporta-size-wrap { display: flex; gap: 8px; flex-wrap: wrap; }
+.eporta-size-btn {
+  padding: 8px 13px;
+  border-radius: 10px;
+  border: 1.6px solid var(--border-soft);
+  font: 600 12.5px var(--font);
+  color: #3a3631;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color .13s, background .13s;
+}
+.eporta-size-btn:hover { border-color: var(--accent); }
+.eporta-size-btn.active {
+  border-color: var(--accent);
+  background: #fff8f0;
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
 /* ========== Тост-уведомление ========== */
 .toast {
   position: fixed;
-  bottom: 28px;
+  bottom: 32px;
   left: 50%;
   transform: translateX(-50%) translateY(60px);
   background: var(--dark);
   color: #fff;
-  font: 600 13.5px var(--font);
-  padding: 13px 18px 13px 22px;
-  border-radius: 12px;
+  font: 600 15px var(--font);
+  padding: 17px 22px 17px 26px;
+  border-radius: 14px;
   z-index: 300;
   opacity: 0;
   transition: all .28s;
@@ -603,16 +962,17 @@ img { display: block; }
   pointer-events: none;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
+  box-shadow: 0 18px 40px rgba(27,26,23,.28);
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
 .toast-btn {
-  font: 700 13px var(--font);
+  font: 700 14.5px var(--font);
   color: var(--accent);
   background: none;
-  border: 1px solid rgba(232,130,10,.5);
-  border-radius: 8px;
-  padding: 6px 13px;
+  border: 1.5px solid rgba(232,130,10,.5);
+  border-radius: 9px;
+  padding: 9px 16px;
   cursor: pointer;
   white-space: nowrap;
   text-decoration: none;
@@ -621,3 +981,842 @@ img { display: block; }
 /* ========== Мегаменю ========== */
 .mm-link { text-decoration: none; transition: color .12s; }
 .mm-link:hover { color: var(--accent-dark) !important; }
+
+/* ========== Корзина (bx-basket, bitrix:sale.basket.basket, шаблон "eporta") ==========
+   Override вендорского .default (local/templates/eporta/components/bitrix/sale.basket.basket/eporta) —
+   template.php/js-templates свои, но JS-контроллер BX.Sale.BasketComponent, темы и картинки
+   подключаются напрямую из вендорской .default-директории (см. комментарий в template.php),
+   поэтому здесь по-прежнему только перекрашиваем/переструктурируем классы компонента под
+   эталон "EPORTA Прототип" (#cart), не трогая функциональные data-entity-хуки.
+   Все селекторы намеренно с префиксом #basket-root: у вендорского style.css
+   (2228 строк) и themes/blue/style.css часть правил тег-квалифицированы или
+   составные (h2.basket-item-info-name, div.bx-blue .btn.btn-default) —
+   специфичнее наших плоских классов, поэтому побеждают независимо от того, что
+   наш файл подключается последним. #basket-root (ID) гарантированно перебивает
+   любые их классы/теги; !important у вендора в этом скоупе не встречается. */
+#basket-root, #basket-root * { font-family: var(--font); box-sizing: border-box; }
+#basket-root { max-width: none; }
+
+/* 2-колоночный layout эталона: без форка HTML template.php — родная структура
+   #basket-root > .row.col-xs-12 > (.basket-items-list-wrapper | [data-entity=basket-total-block])
+   превращается в две flex-колонки через :has(); скрытый .row с basket-warning (display:none
+   по умолчанию) в раскладке не участвует. */
+#basket-root { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }
+#basket-root > .row { margin: 0; }
+/* flex-basis намеренно 0 (не px): жёсткий px-минимум (560+340+22 gap) оказался чуть шире реального
+   контейнера страницы (~913px) и колонки переносились на отдельные строки на всю ширину — при этом
+   sticky-карточка "Итого" визуально наезжала на карточки товаров. С basis:0 колонки всегда делят
+   ширину пропорционально 1.62:1, без переноса. */
+#basket-root > .row:has(.basket-items-list-wrapper) { flex: 1.62 1 0; min-width: 0; }
+#basket-root > .row:has([data-entity="basket-total-block"]) { flex: 1 1 0; min-width: 280px; position: sticky; top: 20px; }
+#basket-root > .row:not(:has(.basket-items-list-wrapper)):not(:has([data-entity="basket-total-block"])) { flex: 0 0 100%; }
+
+/* В эталоне нет строки поиска/фильтра по позициям корзины */
+#basket-root .basket-items-list-header { display: none; }
+
+#basket-root .basket-items-list-wrapper { border: none; box-shadow: none; }
+/* table-layout:fixed обязателен: с дефолтным auto длинное название двери в .basket-item-info-name
+   (одна ячейка на всю строку, см. basket-item.php) заставляет таблицу вырасти по контенту шире
+   родительской колонки (width:100% не ограничивает auto-таблицу сверху) — карточка визуально
+   "наезжала" на соседнюю колонку "Итого". С fixed таблица держит 100% и переносит длинный текст. */
+#basket-root .basket-items-list-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+#basket-root .basket-item-info-name,
+#basket-root .basket-kit-header .bkh-name { overflow-wrap: break-word; word-break: break-word; }
+#basket-root .basket-items-list-item-container {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  display: block;
+  margin-bottom: 14px;
+  overflow: hidden;
+  transition: box-shadow .2s;
+}
+#basket-root .basket-items-list-item-container:hover { box-shadow: 0 14px 32px rgba(27,26,23,.07); }
+#basket-root .basket-items-list-item-container td { display: block; padding: 0; border: none; }
+#basket-root .basket-items-list-item-descriptions { padding: 0 !important; }
+#basket-root .basket-items-list-item-descriptions-inner { display: flex; gap: 15px; align-items: flex-start; padding: 16px 18px; }
+
+/* Шапка карточки-«комплекта» (название/бейдж/сумма) — эталон #cart, группа cartGroups[].name */
+#basket-root .basket-kit-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; gap: 10px;
+  background: linear-gradient(180deg,#faf8f4,#f6f4ef);
+  border-bottom: 1px solid var(--border);
+}
+#basket-root .bkh-left { display: flex; align-items: center; gap: 11px; min-width: 0; }
+#basket-root .bkh-name { font: 800 14.5px var(--font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#basket-root .bkh-badge {
+  font: 700 11px var(--font); color: var(--accent-dark); background: #fbecd9;
+  padding: 4px 10px; border-radius: 20px; white-space: nowrap; flex: none;
+}
+#basket-root .bkh-badge.bkh-badge-kit { color: #c2670a; background: #fbecd9; }
+#basket-root .bkh-total { font: 800 15px var(--font); flex: none; }
+
+#basket-root .basket-item-block-image {
+  width: 78px; height: 104px; flex: none;
+  border-radius: 12px; border: 1px solid var(--border);
+  padding: 4px; background: #fff; position: relative;
+}
+#basket-root .basket-item-image { width: 100%; height: 100%; object-fit: contain; background: var(--bg-warm); border-radius: 8px; }
+
+#basket-root .basket-item-info-name { font: 700 14.5px var(--font); margin: 0 0 4px; }
+#basket-root .basket-item-info-name-link { color: var(--dark); }
+#basket-root .basket-item-property { font: 500 12px var(--font); color: var(--text-muted); margin-top: 4px; }
+#basket-root .basket-item-property-name { display: inline; }
+#basket-root .basket-item-property-value { display: inline; margin-left: 4px; }
+
+#basket-root .basket-items-list-item-amount,
+#basket-root .basket-items-list-item-price,
+#basket-root .basket-items-list-item-remove {
+  padding: 0 18px 14px !important;
+}
+#basket-root .basket-item-block-amount {
+  display: inline-flex; align-items: center;
+  border: 1.5px solid var(--border-soft); border-radius: 9px; overflow: hidden;
+}
+/* Кнопки −/+ у вендора — пустые <span>, глиф рисуется через вендорскую тему (themes/blue/style.css);
+   под нашими селекторами он не подхватывается (нет фонового спрайта/иконки в этом скоупе), поэтому
+   явно рисуем "−"/"+" через ::before — тот же приём, что уже применён для basket-item-actions-remove. */
+#basket-root .basket-item-amount-btn-minus, #basket-root .basket-item-amount-btn-plus {
+  width: 32px; height: 34px; display: flex; align-items: center; justify-content: center;
+  font: 700 16px var(--font); color: var(--text-muted); cursor: pointer; transition: background .15s;
+}
+#basket-root .basket-item-amount-btn-minus::before { content: "−"; }
+#basket-root .basket-item-amount-btn-plus::before { content: "+"; }
+#basket-root .basket-item-amount-btn-minus:hover,
+#basket-root .basket-item-amount-btn-plus:hover { background: var(--bg-warm); }
+#basket-root .basket-item-amount-btn-plus { color: var(--accent-dark); }
+#basket-root .basket-item-amount-filed-block { width: 34px; }
+#basket-root .basket-item-amount-filed {
+  width: 100%; border: none; text-align: center; font: 700 13.5px var(--font); background: none;
+}
+
+#basket-root .basket-item-price-current-text { font: 800 17px var(--font); color: var(--dark); }
+#basket-root .basket-item-price-old-text { font: 500 11.5px var(--font); color: var(--text-hint); text-decoration: line-through; }
+
+/* Цена двери, перенесённая cart-kit.js рядом с фото/названием (см. relocatePrice) — эталон #cart
+   показывает её справа от строки фото+название, а не отдельной строкой внизу карточки. */
+#basket-root .basket-item-price-inline { flex: none; margin-left: auto; text-align: right; }
+
+/* Степпер количества, перенесённый cart-kit.js под свойства товара (см. relocateAmount) —
+   в исходной табличной вёрстке шёл отдельным блоком в самом низу карточки. Доп. правый
+   паддинг — иначе текст "N шт = ЦЕНА" (.basket-item-amount-field-description) упирается
+   прямо в правую рамку блока (overflow:hidden без внутренних отступов). */
+#basket-root .basket-item-amount-inline { margin-top: 12px; }
+#basket-root .basket-item-block-amount.basket-item-amount-inline { padding-right: 10px; }
+#basket-root .basket-item-amount-inline .basket-item-amount-field-description {
+  padding: 0 2px 0 8px;
+  white-space: nowrap;
+}
+
+/* Кнопка удаления у вендора — пустой <span>, крестик целиком рисуется через
+   ::before/::after (2px×14px, повёрнуты ±45deg, красный фон). Раньше здесь
+   просто подменялся content на "::before" — текст "Удалить" рендерился внутри
+   этой узкой красной полоски вместо нормальной ссылки. Сбрасываем геометрию
+   псевдоэлементов и превращаем в обычный текстовый линк. */
+#basket-root .basket-item-actions-remove {
+  position: static; width: auto; height: auto; display: inline-block;
+  cursor: pointer;
+}
+#basket-root .basket-item-actions-remove::after { content: none; }
+#basket-root .basket-item-actions-remove::before {
+  content: "Удалить";
+  position: static; width: auto; height: auto;
+  background: none; transform: none;
+  font: 500 12.5px var(--font); color: var(--text-muted);
+  transition: color .15s;
+}
+#basket-root .basket-item-actions-remove:hover::before {
+  background: none; color: var(--accent-dark);
+}
+
+/* Зона допов позиции (заполняется assets/cart-kit.js) + строки допов + триггер модалки */
+#basket-root .basket-item-addons { border-top: 1px dashed var(--border); }
+#basket-root .kb-addon-row {
+  display: flex; gap: 13px; padding: 11px 18px; align-items: center;
+  border-top: 1px dashed var(--border);
+}
+#basket-root .kb-addon-row:first-child { border-top: none; }
+#basket-root .kb-addon-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+#basket-root .kb-addon-name { font: 600 13px var(--font); }
+#basket-root .kb-addon-qty { color: var(--text-hint); font-weight: 600; }
+#basket-root .kb-addon-sub { font: 500 11.5px var(--font); color: var(--text-hint); margin-top: 2px; }
+#basket-root .kb-addon-price { font: 700 14px var(--font); flex: none; }
+#basket-root .kb-addon-remove {
+  font: 600 12px var(--font); color: var(--text-hint); flex: none; cursor: pointer; transition: color .15s;
+}
+#basket-root .kb-addon-remove:hover { color: var(--accent-dark); }
+#basket-root .kb-kit-trigger {
+  display: flex; align-items: center; gap: 10px; padding: 12px 18px;
+  border-top: 1px dashed var(--border); cursor: pointer; color: var(--accent-dark);
+  font: 700 13px var(--font); transition: background .15s;
+}
+#basket-root .kb-kit-trigger:hover { background: var(--bg-warm); }
+#basket-root .kb-kit-trigger-icon {
+  width: 26px; height: 26px; border-radius: 8px; background: #fbecd9; color: var(--accent-dark);
+  display: flex; align-items: center; justify-content: center; font: 700 16px var(--font); flex: none;
+}
+
+/* Апселл "С этими дверями берут" — под списком групп */
+#basket-root .cart-upsell { border-top: 1px solid var(--border); padding-top: 24px; margin-top: 6px; }
+#basket-root .cart-upsell-title { font: 800 17px var(--font); margin-bottom: 14px; }
+#basket-root .cart-upsell-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+#basket-root .cart-upsell-card {
+  display: flex; gap: 12px; align-items: center; border: 1px solid var(--border);
+  border-radius: 13px; padding: 12px; transition: box-shadow .15s, border-color .15s;
+}
+#basket-root .cart-upsell-card:hover { box-shadow: 0 10px 24px rgba(27,26,23,.06); border-color: #e2ddd0; }
+#basket-root .cart-upsell-icon {
+  width: 56px; height: 56px; flex: none; border-radius: 9px; background: var(--bg-warm);
+  display: flex; align-items: center; justify-content: center; color: var(--text-hint); font-size: 20px;
+}
+#basket-root .cart-upsell-name { font: 600 12.5px var(--font); }
+#basket-root .cart-upsell-price { font: 800 14px var(--font); margin-top: 4px; }
+#basket-root .cart-upsell-add {
+  width: 30px; height: 30px; border-radius: 8px; background: #fbecd9; color: var(--accent-dark);
+  font: 700 17px var(--font); display: flex; align-items: center; justify-content: center; flex: none; cursor: pointer;
+}
+
+/* Итог заказа */
+#basket-root .basket-checkout-container {
+  border: 1px solid var(--border); border-radius: 18px;
+  padding: 22px 22px 24px;
+  background: linear-gradient(180deg,#ffffff,#fdfbf7);
+  box-shadow: 0 18px 44px rgba(27,26,23,.08);
+}
+#basket-root .basket-checkout-title {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 16px; font: 800 18px var(--font);
+}
+#basket-root .basket-checkout-title-icon {
+  width: 34px; height: 34px; flex: none; border-radius: 10px; background: #fbecd9; color: var(--accent-dark);
+  display: flex; align-items: center; justify-content: center; font: 800 16px var(--font);
+}
+#basket-root .basket-checkout-line {
+  display: flex; justify-content: space-between; padding: 7px 0; font: 500 13.5px var(--font); color: #3a3631;
+}
+#basket-root .basket-checkout-line-value { font-weight: 700; color: var(--dark); }
+#basket-root .basket-checkout-line-value-free { color: #1f8a4c; }
+#basket-root .basket-coupon-block-field .form-control {
+  border: 1.5px dashed var(--border-soft); border-radius: 10px;
+  padding: 11px 13px; font: 500 13px var(--font); color: var(--text-hint);
+}
+#basket-root .basket-checkout-block-total-title { font: 700 15px var(--font); }
+#basket-root .basket-checkout-block-total-description { font: 500 12px var(--font); color: var(--text-muted); }
+#basket-root .basket-coupon-block-total-price-current { font: 800 26px var(--font); letter-spacing: -0.01em; color: var(--dark); }
+#basket-root .basket-coupon-block-total-price-old { font: 500 13px var(--font); color: var(--text-hint); text-decoration: line-through; }
+/* Строка "К оплате ... 23 460 ₽" — вендор рендерит подпись и сумму двумя соседними
+   блоками (.basket-checkout-block-total / -total-price), эталон показывает их одной
+   строкой на противоположных краях — делаем контейнер flex-row вместо форка разметки. */
+#basket-root .basket-checkout-section-inner {
+  display: flex; align-items: baseline; justify-content: space-between;
+  border-top: 1px solid var(--border); margin: 12px 0 0; padding-top: 14px;
+}
+#basket-root .basket-checkout-block-total-price-inner { display: flex; align-items: baseline; gap: 10px; }
+#basket-root .basket-btn-checkout {
+  display: block; width: 100%; text-align: center; text-decoration: none;
+  background: var(--accent); color: #fff; font: 700 15px var(--font);
+  padding: 15px; border-radius: 12px; border: none; cursor: pointer;
+  box-shadow: 0 10px 24px rgba(232,130,10,.32); margin-top: 14px;
+}
+#basket-root .basket-btn-checkout.disabled { opacity: .5; pointer-events: none; }
+#basket-root .basket-checkout-guarantees { margin-top: 18px; display: flex; flex-direction: column; gap: 11px; }
+#basket-root .basket-checkout-guarantee-row { display: flex; align-items: center; gap: 10px; font: 600 12.5px var(--font); color: #3a3631; }
+#basket-root .bcg-check {
+  width: 20px; height: 20px; flex: none; border-radius: 50%; background: #eaf6ee; color: #1f8a4c;
+  display: flex; align-items: center; justify-content: center; font: 700 11px var(--font);
+}
+
+/* Пустая корзина (empty.php) */
+#basket-root ~ .basket-empty,
+.basket-empty {
+  text-align: center; padding: 80px 20px 96px; color: var(--text-hint);
+}
+.basket-empty-title { font: 700 18px var(--font); color: #5f5a51; }
+.basket-empty-desc { font: 500 13.5px var(--font); margin-top: 8px; }
+.basket-empty-cta {
+  display: inline-block; margin-top: 20px; background: var(--accent); color: #fff;
+  font: 700 14px var(--font); padding: 13px 26px; border-radius: 11px; text-decoration: none;
+  transition: background .15s;
+}
+.basket-empty-cta:hover { background: var(--accent-dark); }
+
+/* ========== Защита общей шапки/навигации/подвала от bootstrap.css ==========
+   Компонент bitrix:sale.basket.basket (.default) на этой странице сам
+   подключает /bitrix/css/main/bootstrap.css, у которого `a:hover, a:focus
+   { color: #23527c; text-decoration: underline; }` специфичнее нашего общего
+   сброса `a { text-decoration: none; color: inherit; }` — из-за этого на
+   странице корзины (единственной, где грузится bootstrap.css) обычные ссылки
+   шапки/навигации/подвала подсвечивались и подчёркивались при наведении.
+   Явные :hover-правила ниже специфичнее bootstrap-овского `a:hover`, поэтому
+   перебивают его без !important. */
+.logo-wrap:hover, .logo-wrap:hover * { text-decoration: none; color: inherit; }
+.header-phone a:hover { text-decoration: none; }
+.header-actions a:hover { text-decoration: none; }
+.cat-nav a:hover, .cat-nav .nav-item:hover { text-decoration: none; }
+.breadcrumb a:hover { text-decoration: none; color: inherit; }
+.site-footer nav a:hover { text-decoration: none; }
+
+/* Та же история, что и с :hover выше, но со второй частью вендорского правила —
+   `a:focus { outline: 5px auto -webkit-focus-ring-color; outline-offset: -2px; }` — рисует
+   прямоугольную рамку вокруг ссылок шапки/навигации при клике (клик отдаёт фокус <a>), чего нет
+   на других страницах (там bootstrap.css не подключается). */
+.logo-wrap:focus, .logo-wrap:focus-visible,
+.header-phone a:focus, .header-phone a:focus-visible,
+.header-actions a:focus, .header-actions a:focus-visible,
+.cat-nav a:focus, .cat-nav a:focus-visible, .cat-nav .nav-item:focus, .cat-nav .nav-item:focus-visible,
+.breadcrumb a:focus, .breadcrumb a:focus-visible,
+.site-footer nav a:focus, .site-footer nav a:focus-visible {
+  outline: none;
+}
+
+/* ========== Личный кабинет (Этап 6) ==========
+   Общая карточка-контейнер + таб-навигация + инпуты + пустые состояния —
+   переиспользуются на всех LK-страницах (профиль/заказы/счёт/подписка/сравнение)
+   и на странице авторизации/регистрации (/auth/). */
+.lk-card {
+  width: 100%; max-width: 1200px; margin: 0 auto; background: var(--bg);
+  border-radius: 18px; overflow: hidden; box-shadow: 0 18px 50px rgba(27, 26, 23, .12);
+}
+.lk-breadcrumb { padding: 12px 28px 0; font: 500 12.5px var(--font); color: var(--text-hint); }
+.lk-breadcrumb a { color: inherit; }
+.lk-breadcrumb a:hover { text-decoration: underline; }
+.lk-title { padding: 16px 28px 4px; }
+.lk-title h1 { margin: 0; font: 800 27px var(--font); letter-spacing: -0.01em; }
+
+.lk-tabs {
+  display: flex; align-items: center; gap: 26px; flex-wrap: wrap;
+  padding: 14px 28px 0; border-bottom: 1px solid var(--border);
+}
+.lk-tab {
+  font: 600 13.5px var(--font); color: var(--text-mid); text-decoration: none;
+  padding-bottom: 12px; border-bottom: 2.5px solid transparent; white-space: nowrap;
+}
+.lk-tab:hover { color: var(--dark); }
+.lk-tab.active { font-weight: 700; color: var(--dark); border-bottom-color: var(--accent); }
+
+.lk-body { display: flex; gap: 60px; padding: 28px 28px 40px; flex-wrap: wrap; }
+.lk-col { flex: 1; min-width: 280px; max-width: 420px; }
+
+.epi {
+  width: 100%; border: 1.5px solid var(--border-soft); border-radius: 10px;
+  padding: 12px 14px; font: 600 13.5px var(--font); color: var(--dark);
+  background: #faf8f4; resize: none;
+}
+.epi::placeholder { color: #c2bdb2; font-weight: 500; }
+.epi:focus { outline: none; border-color: var(--accent); }
+.lk-field-label {
+  font: 700 12.5px var(--font); color: #3a3631; margin: 16px 0 7px;
+}
+.lk-field-label:first-child { margin-top: 0; }
+
+.lk-btn-primary {
+  display: inline-block; font: 700 14px var(--font); color: #fff; background: var(--accent);
+  padding: 13px 26px; border-radius: 12px; box-shadow: 0 10px 24px rgba(232, 130, 10, .32);
+  text-decoration: none; border: none; cursor: pointer;
+}
+.lk-btn-primary:hover { background: var(--accent-dark); }
+.lk-btn-ghost {
+  display: inline-block; font: 700 13.5px var(--font); color: var(--dark);
+  border: 1.6px solid var(--dark); padding: 12px 20px; border-radius: 12px; text-decoration: none;
+}
+.lk-btn-ghost:hover { background: var(--dark); color: #fff; }
+
+.lk-check-row { display: flex; align-items: center; gap: 9px; margin: 16px 0 20px; }
+.lk-check-row input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--accent); flex: none; }
+.lk-check-row span { font: 500 12.5px var(--font); color: #5f5a51; }
+
+.lk-empty {
+  padding: 60px 28px 70px; display: flex; flex-direction: column; align-items: center; text-align: center;
+}
+.lk-empty-icon {
+  width: 64px; height: 64px; border-radius: 16px; background: var(--bg-warm);
+  display: flex; align-items: center; justify-content: center; margin-bottom: 18px;
+}
+.lk-empty-icon svg { width: 26px; height: 26px; stroke: var(--text-hint); }
+.lk-empty-title { font: 800 18px var(--font); margin-bottom: 6px; }
+.lk-empty-desc { font: 500 13.5px var(--font); color: var(--text-muted); max-width: 340px; margin-bottom: 24px; }
+.lk-empty-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+/* Общая обёртка страниц ЛК (тот же паддинг, что у /auth/) — Фаза B. */
+.lk-page-wrap { padding: 46px var(--pad-x) 80px; }
+.lk-subheading { font: 800 15px var(--font); color: var(--accent-dark); margin: 22px 0 12px; }
+
+/* Профиль (dresscode:personal.info/eporta) — модалка результата сохранения вместо
+   вендорского #elementError, тот же контракт ajax.php (heading/message/reload). */
+.lk-profile-modal {
+  position: fixed; inset: 0; background: rgba(27, 26, 23, .45); z-index: 200;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+/* [hidden] в UA-стиле теряет против авторского `display:flex` той же специфичности —
+   без явного правила модалка рендерится (и блокирует клики) ещё до первого сабмита. */
+.lk-profile-modal[hidden] { display: none; }
+.lk-profile-modal-box {
+  background: var(--bg); border-radius: 16px; padding: 28px; max-width: 360px; width: 100%;
+  text-align: center; box-shadow: 0 24px 60px rgba(27, 26, 23, .25);
+}
+.lk-profile-modal-heading { font: 800 18px var(--font); margin-bottom: 10px; }
+.lk-profile-modal-message { font: 500 13.5px var(--font); color: var(--text-mid); margin: 0 0 22px; }
+
+/* История заказов (sale.personal.order.list/eporta) — карточки, по аналогии с корзиной. */
+.lk-orders-list { display: flex; flex-direction: column; gap: 16px; }
+.lk-order-card { border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; }
+.lk-order-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.lk-order-number { font: 800 15.5px var(--font); }
+.lk-order-date { font: 500 12.5px var(--font); color: var(--text-hint); margin-top: 4px; }
+.lk-order-status {
+  font: 700 12px var(--font); color: var(--accent-dark); background: var(--bg-warm);
+  border-radius: 8px; padding: 6px 12px; white-space: nowrap;
+}
+.lk-order-status.is-paid { color: #2e7d32; background: #eaf5ea; }
+.lk-order-sum { font: 800 18px var(--font); margin-top: 14px; }
+.lk-order-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.lk-order-actions .lk-btn-ghost { padding: 10px 18px; font-size: 13px; }
+.lk-order-cancel {
+  font: 700 13px var(--font); color: #a12b2b; text-decoration: none;
+  padding: 10px 18px; border: 1.6px solid #a12b2b; border-radius: 12px;
+}
+.lk-order-cancel:hover { background: #a12b2b; color: #fff; }
+
+/* Сравнение товаров (dresscode:catalog.compare/eporta) — Этап 6, Фаза D. */
+.compare-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 20px 28px 0;
+}
+.compare-count { font: 700 13.5px var(--font); color: var(--text-mid); }
+.compare-table-wrap { padding: 20px 28px 40px; overflow-x: auto; }
+.compare-table { width: 100%; border-collapse: collapse; min-width: 640px; }
+.compare-table th, .compare-table td {
+  border-bottom: 1px solid var(--border); padding: 14px 16px; text-align: left; vertical-align: top;
+}
+.compare-table th:first-child, .compare-table td:first-child {
+  width: 190px; min-width: 190px; font: 700 12.5px var(--font); color: var(--text-hint);
+}
+.compare-item-col { min-width: 200px; }
+.compare-item-remove {
+  border: none; background: none; color: var(--text-hint); font: 700 16px var(--font);
+  cursor: pointer; float: right; line-height: 1;
+}
+.compare-item-remove:hover { color: #a12b2b; }
+.compare-item-photo { width: 100%; max-width: 160px; height: 120px; object-fit: contain; background: #f6f4ef; border-radius: 10px; display: block; margin-bottom: 10px; }
+.compare-item-name { font: 700 13.5px var(--font); color: inherit; text-decoration: none; display: block; margin-bottom: 8px; }
+.compare-item-name:hover { color: var(--accent-dark); }
+.compare-item-price { font: 800 17px var(--font); margin-bottom: 10px; }
+.compare-item-actions { display: flex; flex-direction: column; gap: 8px; }
+.compare-item-actions .lk-btn-primary { font-size: 12.5px; padding: 10px 14px; text-align: center; }
+.compare-prop-value { font: 500 13px var(--font); color: var(--text-mid); }
+
+/* Личный счёт (sale.personal.account + sale.account.pay, Фаза C) — две отдельные
+   компоненты в общем flex-ряду, компоновка задаётся страницей (.lk-bill-row). */
+.lk-bill-row { display: flex; gap: 40px; padding: 28px 28px 40px; align-items: flex-start; flex-wrap: wrap; }
+
+.lk-bill-balance { flex: none; width: 360px; max-width: 100%; }
+.lk-bill-balance-card { border: 1px solid var(--border); border-radius: 16px; padding: 20px 22px; background: #faf8f4; }
+.lk-bill-balance-label { font: 700 11.5px var(--font); letter-spacing: .04em; text-transform: uppercase; color: var(--text-hint); margin-bottom: 10px; }
+.lk-bill-balance-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.lk-bill-balance-row + .lk-bill-balance-row { margin-top: 10px; }
+.lk-bill-balance-code { font: 800 16px var(--font); }
+.lk-bill-balance-name { font: 500 12px var(--font); color: var(--text-hint); }
+.lk-bill-balance-sum { font: 800 28px var(--font); white-space: nowrap; }
+
+.lk-bill-pay { flex: 1; min-width: 280px; max-width: 480px; }
+.lk-bill-confirm { font: 500 13.5px var(--font); color: var(--text-mid); }
+.lk-bill-confirm p { margin: 0 0 10px; }
+
+/* Классы ниже — обязательный контракт вендорского script.js (sale.account.pay/.default),
+   скопированного без изменений: переименовывать нельзя, JS ищет их по getElementsByClassName. */
+.sale-acountpay-block { margin-bottom: 18px; }
+.sale-acountpay-title { font: 700 12.5px var(--font); color: #3a3631; margin: 0 0 10px; }
+.sale-acountpay-fixedpay-list { list-style: none; margin: 0; padding: 0; display: flex; gap: 9px; flex-wrap: wrap; }
+.sale-acountpay-fixedpay-item {
+  display: inline-block; cursor: pointer; font: 700 13px var(--font);
+  border: 1.5px solid var(--border-soft); border-radius: 9px; padding: 10px 16px;
+  transition: border-color .15s ease;
+}
+.sale-acountpay-fixedpay-item:hover { border-color: var(--accent); }
+.sale-acountpay-input { text-align: left; margin-top: 0; }
+.sale-acountpay-pp { display: flex; gap: 12px; flex-wrap: wrap; }
+.sale-acountpay-pp-company {
+  display: flex; align-items: center; gap: 10px; cursor: pointer; width: fit-content;
+  border: 2px solid var(--border-soft); border-radius: 10px; padding: 11px 14px;
+  transition: border-color .15s ease, background .15s ease;
+}
+.sale-acountpay-pp-company.bx-selected { border-color: var(--accent); background: #fff8f0; }
+.sale-acountpay-pp-company-graf-container {
+  position: relative; flex: none; width: 34px; height: 22px; border-radius: 4px;
+  background: #fff; border: 1px solid var(--border-soft); overflow: hidden;
+}
+.sale-acountpay-pp-company-image { position: absolute; inset: 0; background-size: contain; background-repeat: no-repeat; background-position: center; }
+.sale-acountpay-pp-company-checkbox { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.sale-acountpay-pp-company-smalltitle { font: 600 13px var(--font); color: var(--text-mid); }
+.sale-acountpay-pp-company.bx-selected .sale-acountpay-pp-company-smalltitle { color: var(--accent-dark); }
+.sale-account-pay-button.btn { margin-top: 6px; }
+#loading_screen img { display: block; }
+
+/* Подписка на рассылку (subscribe.edit, Фаза C). */
+.lk-subscribe-banner {
+  border: 1px solid var(--border); border-radius: 14px; padding: 16px 20px; margin: 0 0 26px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  background: #faf8f4;
+}
+.lk-subscribe-banner-text { font: 600 13px var(--font); color: #3a3631; }
+.lk-subscribe-logout { font: 600 12.5px var(--font); color: var(--text-hint); text-decoration: underline; }
+.lk-subscribe-heading { font: 800 15.5px var(--font); margin: 0 0 16px; }
+.lk-subscribe-form { max-width: 440px; }
+.lk-subscribe-rubrics { margin: 10px 0 20px; display: flex; flex-direction: column; gap: 8px; }
+.lk-subscribe-radio-row { display: flex; gap: 22px; margin: 0 0 22px; }
+.lk-subscribe-radio { display: flex; align-items: center; gap: 8px; font: 600 13px var(--font); cursor: pointer; }
+.lk-subscribe-radio input[type="radio"] { width: 17px; height: 17px; accent-color: var(--accent); }
+.lk-subscribe-note { font: 500 12px var(--font); color: var(--text-hint); margin: 0 0 20px; }
+.lk-subscribe-legacy table.data-table { width: 100%; border-collapse: collapse; margin: 0 0 20px; font: 500 13px var(--font); }
+.lk-subscribe-legacy table.data-table thead td { font: 800 14px var(--font); padding: 0 0 12px; }
+.lk-subscribe-legacy table.data-table td { padding: 6px 0; vertical-align: top; }
+.lk-subscribe-legacy input[type="text"], .lk-subscribe-legacy input[type="password"] { width: 100%; max-width: 260px; }
+.lk-subscribe-legacy .starrequired { color: #a12b2b; }
+
+/* ========== Авторизация / Регистрация (/auth/) ==========
+   Оверрайд .default для bitrix:system.auth.authorize и bitrix:system.auth.registration —
+   те же компоненты, что и штатный NEED_AUTH-рендер ядра, просто своя вёрстка вместо
+   родного bx-auth-table. */
+.auth-page-wrap { padding: 46px var(--pad-x) 80px; }
+.auth-tabs { display: flex; align-items: center; gap: 26px; padding: 14px 28px 0; border-bottom: 1px solid var(--border); }
+.auth-tab { font: 600 13.5px var(--font); color: var(--text-mid); text-decoration: none; padding-bottom: 12px; border-bottom: 2.5px solid transparent; }
+.auth-tab:hover { color: var(--dark); }
+.auth-tab.active { font-weight: 700; color: var(--dark); border-bottom-color: var(--accent); cursor: default; }
+.auth-body { display: flex; gap: 60px; padding: 28px 28px 40px; flex-wrap: wrap; }
+.auth-form-col { flex: 1; min-width: 280px; max-width: 400px; }
+.auth-side-col { flex: 1; min-width: 280px; border-left: 1px solid var(--border); padding-left: 40px; }
+.auth-side-col h2 { font: 800 16px var(--font); margin-bottom: 10px; }
+.auth-side-col p { font: 500 14px/1.6 var(--font); color: var(--text-mid); max-width: 420px; margin-bottom: 16px; }
+.auth-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 28px; max-width: 820px; }
+.auth-error {
+  background: #fdecea; color: #a12b2b; border: 1px solid #f3c6c2; border-radius: 10px;
+  padding: 12px 16px; font: 600 13px var(--font); margin: 0 28px 20px;
+}
+.auth-captcha img { border-radius: 8px; border: 1px solid var(--border-soft); }
+
+/* Блок соцавторизации (bitrix:socserv.auth.form, реальный активный функционал —
+   LiveJournal/Mail.ru OpenID/Blogger/OpenID, рендерится вендорским компонентом без
+   изменений). Даём только отступ/контейнер, чтобы иконки не торчали вплотную к карточке. */
+.bx-auth-serv-icons {
+  max-width: 1200px; margin: 16px auto 0; padding: 10px 28px;
+  display: flex; gap: 14px; align-items: center;
+}
+.bx-auth-serv-icons a { opacity: .55; transition: opacity .15s; }
+.bx-auth-serv-icons a:hover { opacity: 1; }
+
+/* ========== Пагинация каталога/поиска (маркап .bx-pagination/.bx-pag-prev/.bx-active/
+   .bx-pag-next) ==========
+   На /catalog/ эту разметку по-прежнему рендерит core-компонент bitrix:system.pagenavigation
+   (шаблон "round", bitrix/components/bitrix/system.pagenavigation/templates/round) — его
+   собственный style.css (синий #0083d1) подключается САМИМ компонентом при вызове. На
+   /search/ с этапа "релевантность CSearch" (2026-07-17) пагинация рендерится вручную в
+   search/index.php (той же разметкой, для визуального единства) — без вызова компонента,
+   а значит БЕЗ его CSS вообще. Поэтому здесь заданы полные базовые layout-свойства
+   (display/list-style на ul и li), а не только цвета/рамки поверх core — иначе на /search/
+   разметка разваливается (ul/li падают на display:block/list-item браузера по умолчанию).
+   На /catalog/ эти базовые правила просто дублируют то, что уже задаёт core-CSS. */
+.bx-pagination { margin: 28px 0 0; }
+.bx-pagination .bx-pagination-container { text-align: center; }
+.bx-pagination .bx-pagination-container ul {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.bx-pagination .bx-pagination-container ul li { display: flex; margin: 0 3px 10px; }
+/* Коробка (рамка/фон/скругление) — только на внешнем элементе (<a> у ссылок, голый <span> у
+   активной/недоступной страницы). Вложенный <span> внутри <a> (маркап core-шаблона:
+   <a href="..."><span>1</span></a>) сведён к display:contents — иначе получалась двойная рамка
+   и число не по центру: и <a>, и вложенный <span> одновременно рисовали свою рамку/паддинг. */
+.bx-pagination .bx-pagination-container ul li > a,
+.bx-pagination .bx-pagination-container ul li > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  background: #fff;
+  border: 1.5px solid var(--border-soft);
+  border-radius: 10px;
+  height: 40px;
+  min-width: 40px;
+  padding: 0 14px;
+  font: 600 13px var(--font);
+  line-height: normal;
+  color: var(--dark);
+}
+.bx-pagination .bx-pagination-container ul li > a > span { display: contents; }
+.bx-pagination .bx-pagination-container ul li > a:hover {
+  background: var(--bg-warm);
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+.bx-pagination .bx-pagination-container ul li.bx-active > span,
+.bx-pagination.bx-blue .bx-pagination-container ul li.bx-active > span,
+.bx-pagination.bx-green .bx-pagination-container ul li.bx-active > span,
+.bx-pagination.bx-yellow .bx-pagination-container ul li.bx-active > span,
+.bx-pagination.bx-red .bx-pagination-container ul li.bx-active > span {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+.bx-pagination .bx-pagination-container ul li.bx-pag-all > a,
+.bx-pagination .bx-pagination-container ul li.bx-pag-prev > a,
+.bx-pagination .bx-pagination-container ul li.bx-pag-next > a,
+.bx-pagination .bx-pagination-container ul li.bx-pag-all > span,
+.bx-pagination .bx-pagination-container ul li.bx-pag-prev > span,
+.bx-pagination .bx-pagination-container ul li.bx-pag-next > span {
+  padding: 0 16px;
+  font-weight: 700;
+}
+.bx-pagination .bx-pagination-container ul li.bx-pag-all > span,
+.bx-pagination .bx-pagination-container ul li.bx-pag-prev > span,
+.bx-pagination .bx-pagination-container ul li.bx-pag-next > span {
+  color: var(--text-hint);
+}
+
+/* ========== Плавающая панель чипов /search/ (вариант C) ==========
+   Скрыта по умолчанию (translateY + opacity), показывается JS-классом .visible, когда
+   исходный блок чипов (#eportaChipRow) уходит за пределы экрана — см. IntersectionObserver
+   в search/index.php. pointer-events отключены в скрытом состоянии, чтобы невидимая панель
+   не перехватывала клики по контенту под ней во время transition. */
+.eporta-sticky-chips {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border-bottom: 1px solid var(--border-soft);
+  box-shadow: 0 6px 18px rgba(20, 17, 12, .08);
+  padding: 10px 56px;
+  z-index: 150;
+  transform: translateY(-100%);
+  opacity: 0;
+  transition: transform .2s ease, opacity .2s ease;
+  pointer-events: none;
+}
+.eporta-sticky-chips.visible {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.eporta-sticky-chips > div::-webkit-scrollbar { display: none; }
+.eporta-sticky-chips > div { scrollbar-width: none; }
+
+/* ========== Оформление заказа (bitrix:sale.order.ajax, шаблон "eporta") ==========
+   ВАЖНО: template.php/script.js/order_ajax.js в local/templates/eporta/components/bitrix/
+   sale.order.ajax/eporta/ — байт-в-байт копия вендорского .default, НЕ изменены. Основной
+   контент шагов (доставка/оплата/адрес) рендерится JS из компилированного order_ajax.min.js —
+   markup внутри него не редактируется (риск для бизнес-логики), поэтому здесь ТОЛЬКО CSS
+   поверх классов, которые генерирует сам вендорский JS (та же схема, что и фикс пагинации
+   bitrix:system.pagenavigation — переопределение без вмешательства в разметку/поведение).
+   Обёртка .lk-page-wrap/.lk-card — на стороне вызывающей personal/cart/order/index.php,
+   не здесь. */
+#bx-soa-order, #bx-soa-order * { font-family: var(--font) !important; }
+#bx-soa-order { color: var(--dark); }
+#bx-soa-order a { color: var(--accent-dark); }
+
+/* Карточка шага (доставка/оплата/адрес/корзина) */
+.bx-soa-section {
+  background: #fff;
+  border: 1.5px solid var(--border-soft) !important;
+  border-radius: 14px;
+  padding: 22px 24px !important;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 10px rgba(20, 17, 12, .04);
+}
+.bx-soa-section.bx-selected { border-color: var(--accent) !important; }
+.bx-soa-section.bx-step-completed { border-color: var(--border-soft) !important; }
+.bx-soa-section.bx-step-warning { border-color: #f0b429 !important; }
+.bx-soa-section.bx-step-error { border-color: var(--sale) !important; }
+.bx-soa-section-title-container { padding: 0 0 4px !important; border: none !important; }
+.bx-soa-section-title {
+  font: 800 18px var(--font) !important;
+  color: var(--dark);
+  letter-spacing: -0.01em;
+}
+.bx-soa-section.bx-selected .bx-soa-section-title { font-size: 20px !important; }
+.bx-soa-section-title-count {
+  background: var(--bg-warm) !important;
+  border-color: var(--border-soft) !important;
+  color: var(--text-mid) !important;
+  font-weight: 700 !important;
+  border-radius: 50% !important;
+}
+.bx-soa-section.bx-step-completed .bx-soa-section-title-count,
+.bx-soa-section.bx-selected .bx-soa-section-title-count {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+.bx-soa-editstep {
+  font: 700 12.5px var(--font);
+  color: var(--accent-dark);
+  border-bottom-color: var(--accent) !important;
+}
+
+/* Поля ввода (адрес/ФИО/телефон/промокод) — тот же стиль, что фильтры каталога/поиска.
+   Поля-локейшн-виджета (sale.location.selector.search, класс "Местоположение" в адресе)
+   ИСКЛЮЧЕНЫ из общего правила через :not() — вендор сам рисует единственную рамку/фон на
+   родителе .dropdown-block, а сам <input class="dropdown-field"> намеренно безрамочный
+   (то же самое для служебных оверлей-инпутов .bx-ui-sls-fake/.bx-ui-sls-route). Раньше эти
+   классы попадали под общий "input[type=text]" и получали ВТОРУЮ рамку внутри уже
+   обрамлённого .dropdown-block — визуально "коробка в коробке" (тот же класс бага, что чинили
+   в пагинации: родитель и вложенный элемент красились одинаково). Единственная коробка теперь
+   рисуется на .dropdown-block отдельным правилом ниже. */
+#bx-soa-order .form-control,
+#bx-soa-order input[type="text"]:not(.dropdown-field):not(.bx-ui-sls-fake):not(.bx-ui-sls-route),
+#bx-soa-order input[type="tel"],
+#bx-soa-order input[type="email"],
+#bx-soa-order textarea,
+#bx-soa-order select {
+  font-family: var(--font) !important;
+  border: 1.5px solid var(--border-soft) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  padding: 9px 12px !important;
+}
+#bx-soa-order .form-control:focus,
+#bx-soa-order input:not(.dropdown-field):not(.bx-ui-sls-fake):not(.bx-ui-sls-route):focus,
+#bx-soa-order textarea:focus,
+#bx-soa-order select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: none !important;
+}
+#bx-soa-order input[type="radio"],
+#bx-soa-order input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+#bx-soa-order .radio,
+#bx-soa-order .checkbox {
+  margin: 9px 0;
+}
+#bx-soa-order .radio label,
+#bx-soa-order .checkbox label {
+  font: 600 13.5px var(--font);
+  padding-left: 4px;
+  cursor: pointer;
+}
+
+/* Местоположение (bitrix:sale.location.selector.search, класс .bx-sls) — единственная коробка
+   на родителе .dropdown-block вместо вендорского серого 2px-радиуса, тот же язык, что у
+   остальных полей выше. Сам <input class="dropdown-field"> внутри остаётся безрамочным
+   (см. исключение выше) — это НЕ баг, а как вендор его и задумывал: контейнер красит рамку,
+   инпут просто заполняет её текстом. */
+.bx-sls .dropdown-block {
+  border: 1.5px solid var(--border-soft) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  background: #fff !important;
+}
+.bx-sls .dropdown-block:focus-within { border-color: var(--accent) !important; }
+.bx-sls .dropdown-field { font: 600 14px var(--font) !important; }
+.bx-ui-sls-pane {
+  border: 1.5px solid var(--border-soft) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 10px 28px rgba(20, 17, 12, .1) !important;
+  font-family: var(--font);
+  overflow: hidden;
+}
+.dropdown-item.bx-ui-sls-variant {
+  font: 600 13.5px var(--font);
+  padding: 9px 14px;
+}
+.dropdown-item.bx-ui-sls-variant:hover { background: var(--bg-warm); }
+
+/* Кнопки — основная CTA "Оформить заказ"/"Продолжить" в акцентном оранжевом */
+#bx-soa-order .btn,
+#bx-soa-order .btn-default,
+#bx-soa-order [data-save-button] {
+  font: 700 14px var(--font) !important;
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff !important;
+  border-radius: 10px !important;
+  box-shadow: 0 10px 24px rgba(232, 130, 10, .28) !important;
+  text-shadow: none !important;
+}
+#bx-soa-order .btn:hover,
+#bx-soa-order .btn-default:hover,
+#bx-soa-order [data-save-button]:hover {
+  background: var(--accent-dark) !important;
+  border-color: var(--accent-dark) !important;
+}
+#bx-soa-order .btn-link { background: none !important; color: var(--accent-dark) !important; }
+
+/* Купон */
+.bx-soa-coupon-input input[type="text"].form-control { border-radius: 10px 0 0 10px !important; }
+.bx-soa-coupon-item {
+  background: var(--bg-warm);
+  border-radius: 20px;
+  font: 600 12.5px var(--font);
+}
+
+/* Сайдбар итогов заказа */
+.bx-soa-sidebar { }
+.bx-soa-cart-total {
+  background: #fff;
+  border: 1.5px solid var(--border-soft);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+.bx-soa-cart-total-line { font: 600 13.5px var(--font); }
+.bx-soa-changeCostSign { color: var(--accent-dark); font-weight: 800; }
+
+/* Способы доставки/оплаты — карточки-компании и пункты выдачи */
+.bx-soa-pp-company {
+  border: 1.5px solid var(--border-soft) !important;
+  border-radius: 14px !important;
+  transition: border-color .15s, box-shadow .15s;
+}
+.bx-soa-pp-company:hover { border-color: var(--accent) !important; box-shadow: 0 4px 14px rgba(20, 17, 12, .06); }
+.bx-soa-pp-company-selected {
+  border-color: var(--accent) !important;
+  box-shadow: 0 4px 14px rgba(232, 130, 10, .12);
+}
+.bx-soa-pp-company-title { font: 700 14px var(--font) !important; color: var(--dark); }
+.bx-soa-pickup-l-item-btn,
+.bx-soa-more { color: var(--accent-dark) !important; }
+
+/* Информационные плашки — тот же стиль, что .auth-error на /auth/ */
+#bx-soa-order .alert {
+  border-radius: 10px;
+  font: 600 13px var(--font);
+  border: 1px solid transparent;
+}
+#bx-soa-order .alert-danger { background: #fdecea; color: #a12b2b; border-color: #f3c6c2; }
+#bx-soa-order .alert-warning { background: #fff6e5; color: #8a6100; border-color: #f0dba8; }
+#bx-soa-order .alert-success { background: #eaf7ee; color: #1f8a4c; border-color: #bfe6cc; }
+
+/* Подтверждение заказа (confirm.php — отдельный, не JS-завязанный шаблон sale.order.ajax,
+   показывается после отправки формы и на прямых визитах ?ORDER_ID=N). В отличие от
+   template.php здесь нет вендорской JS-инициализации на конкретных id/классах — поэтому
+   разметка confirm.php сама приведена к паттерну .lk-empty (как на /auth/), не только CSS
+   поверх исходных <table>/<td>. Успех/ошибка используют одну и ту же .lk-empty — визуально
+   различаются только иконкой/текстом. */
+.lk-order-pay-block {
+  margin-top: 20px;
+  padding: 20px 22px;
+  border: 1.5px solid var(--border-soft);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.lk-order-pay-header { display: flex; align-items: center; gap: 14px; }
+.lk-order-pay-logo { border-radius: 10px; object-fit: contain; }
+.lk-order-pay-label { font: 600 12px var(--font); color: var(--text-hint); text-transform: uppercase; letter-spacing: .04em; }
+.lk-order-pay-name { font: 700 15px var(--font); color: var(--dark); }
+.lk-order-pay-action { margin-left: auto; font: 600 13.5px var(--font); }
+.lk-order-pay-action a { color: var(--accent-dark); }
+.lk-order-pay-error {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: #fdecea;
+  color: #a12b2b;
+  border: 1px solid #f3c6c2;
+  border-radius: 10px;
+  font: 600 13px var(--font);
+}
