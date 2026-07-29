@@ -1,7 +1,38 @@
 <?
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 $APPLICATION->SetTitle("Рассылки");
-?><h1>Настройка подписки</h1>
+
+// Дев-превью нового шаблона eporta: реальная подписка на рассылку (Этап 6, Фаза C).
+// Боевой bitrix:subscribe.edit (шаблон .default) не трогаем.
+$isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH) === "eporta";
+?>
+<?if ($isEportaTemplate):?>
+	<div class="lk-page-wrap">
+	<div class="lk-card">
+		<div class="lk-breadcrumb"><a href="/">Главная</a> · <a href="/personal/">Личный кабинет</a> · Подписка на рассылку</div>
+		<div class="lk-title"><h1>Настройка подписки</h1></div>
+		<?php $active = 'subscribe'; require $_SERVER["DOCUMENT_ROOT"] . SITE_TEMPLATE_PATH . '/include/lk-tabs.php'; ?>
+		<div style="padding:28px 28px 8px">
+		<?$APPLICATION->IncludeComponent("bitrix:subscribe.edit", "eporta", Array(
+			"AJAX_MODE" => "N",	// Включить режим AJAX
+				"SHOW_HIDDEN" => "N",	// Показать скрытые рубрики подписки
+				"ALLOW_ANONYMOUS" => "Y",	// Разрешить анонимную подписку
+				"SHOW_AUTH_LINKS" => "Y",	// Показывать ссылки на авторизацию при анонимной подписке
+				"CACHE_TYPE" => "A",	// Тип кеширования
+				"CACHE_TIME" => "36000000",	// Время кеширования (сек.)
+				"SET_TITLE" => "N",	// Устанавливать заголовок страницы
+				"AJAX_OPTION_SHADOW" => "Y",
+				"AJAX_OPTION_JUMP" => "N",	// Включить прокрутку к началу компонента
+				"AJAX_OPTION_STYLE" => "Y",	// Включить подгрузку стилей
+				"AJAX_OPTION_HISTORY" => "N",	// Включить эмуляцию навигации браузера
+			),
+			false
+		);?>
+		</div>
+	</div>
+	</div>
+<?else:?>
+<h1>Настройка подписки</h1>
 <?$APPLICATION->IncludeComponent("bitrix:menu", "personal", Array(
 	"COMPONENT_TEMPLATE" => ".default",
 		"ROOT_MENU_TYPE" => "personal",	// Тип меню для первого уровня
@@ -30,4 +61,4 @@ $APPLICATION->SetTitle("Рассылки");
 		"AJAX_OPTION_HISTORY" => "N",	// Включить эмуляцию навигации браузера
 	),
 	false
-);?><?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>
+);?><?endif;?><?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>

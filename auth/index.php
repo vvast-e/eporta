@@ -21,6 +21,31 @@ if (!$userName)
 	<?endif?>
 </script>
 
+<?
+// Эта ветка исполняется только для УЖЕ авторизованного пользователя — для анонима
+// NEED_AUTH=true отдаёт форму входа средствами ядра ещё до этой точки (см.
+// memory/project_lk_redesign_2026_07_16.md). Вендорская заглушка ниже (шаблон
+// dresscode/.default) зовёт bitrix:menu/emptyMenuAuth — этого шаблона нет в
+// local/templates/eporta/components/bitrix/menu/, поэтому под нашим шаблоном
+// авторизованный визит на /auth/ падал с "Cannot find 'emptyMenuAuth' template".
+$isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH) === "eporta";
+?>
+<?if ($isEportaTemplate):?>
+	<?$APPLICATION->SetTitle("Вы авторизованы");?>
+	<div class="lk-page-wrap">
+	<div class="lk-card">
+		<div class="lk-empty">
+			<div class="lk-empty-icon">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"></path></svg>
+			</div>
+			<div class="lk-empty-title">Вы авторизованы<?= $userName ? " как " . htmlspecialcharsbx($userName) : "" ?></div>
+			<div class="lk-empty-actions">
+				<a href="/personal/" class="lk-btn-primary">В личный кабинет</a>
+			</div>
+		</div>
+	</div>
+	</div>
+<?else:?>
 <?$APPLICATION->SetTitle("Вы зарегистрированы и успешно авторизовались.");?>
 <h1>Авторизация</h1>
 <p>Вы зарегистрированы и успешно авторизовались.</p>
@@ -41,4 +66,5 @@ if (!$userName)
 		false
 	);?>
 </div>
+<?endif?>
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>
