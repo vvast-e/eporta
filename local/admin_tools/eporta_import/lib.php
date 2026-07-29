@@ -536,17 +536,36 @@ function eportaImportOneProduct(array $p): array {
     // Без записи в b_catalog_product элемент — просто карточка инфоблока, а не товар:
     // bitrix:catalog.section не досчитывает для него ни MIN_PRICE, ни PROPERTIES/DISPLAY_PROPERTIES
     // (весь торговый движок каталога завязан на регистрацию товара, не только на наличие цены).
+    // AVAILABLE/QUANTITY_TRACE по умолчанию 'N'/'D' — без явного 'Y'/'N' кнопка "В корзину"
+    // отвечает "Товар отсутствует", хотя элемент активен и цена есть. Двери — под заказ,
+    // складского учёта нет (USE_STORE=>"N" в каталожном компоненте), поэтому трекинг остатков
+    // отключаем совсем, а не просто проставляем количество.
+    $catalogProductFields = [
+        'TYPE' => \Bitrix\Catalog\ProductTable::TYPE_PRODUCT,
+        'AVAILABLE' => 'Y',
+        'QUANTITY_TRACE' => 'N',
+        'CAN_BUY_ZERO' => 'Y',
+    ];
     if (\CCatalogProduct::GetByID($elementId)) {
-        \CCatalogProduct::Update($elementId, ['TYPE' => \Bitrix\Catalog\ProductTable::TYPE_PRODUCT]);
+        \CCatalogProduct::Update($elementId, $catalogProductFields);
     } else {
-        \CCatalogProduct::Add(['ID' => $elementId, 'TYPE' => \Bitrix\Catalog\ProductTable::TYPE_PRODUCT]);
+        \CCatalogProduct::Add(array_merge(['ID' => $elementId], $catalogProductFields));
     }
+
+    // "Цена" в 1С-выгрузке — цена ДО скидки, "Скидка" — процент. В b_catalog_price (BASE)
+    // кладём уже итоговую цену: это и есть то, что реально спишется в корзине/заказе.
+    // Исходную цену для зачёркнутого "было" считаем на витрине обратно от DISCOUNT-свойства
+    // (см. eportaPropText-замену в шаблонах карточки/списка) — второй ценовой тип заводить незачем.
+    $discountPercent = max(0, min(100, (float)($p['discount'] ?? 0)));
+    $finalPrice = $discountPercent > 0
+        ? round(($p['price'] ?? 0) * (1 - $discountPercent / 100))
+        : ($p['price'] ?? 0);
 
     if (!empty($p['price'])) {
         $priceFields = [
             'PRODUCT_ID' => $elementId,
             'CATALOG_GROUP_ID' => EPORTA_IMPORT_PRICE_TYPE_ID,
-            'PRICE' => $p['price'],
+            'PRICE' => $finalPrice,
             'CURRENCY' => 'RUB',
         ];
         $existingPrice = CPrice::GetList([], ['PRODUCT_ID' => $elementId, 'CATALOG_GROUP_ID' => EPORTA_IMPORT_PRICE_TYPE_ID])->Fetch();

@@ -18,7 +18,7 @@ if ($eportaItemIds) {
 		["IBLOCK_ID" => $arParams["IBLOCK_ID"], "ID" => $eportaItemIds],
 		false,
 		false,
-		["ID", "IBLOCK_ID", "PROPERTY_RATING", "PROPERTY_VOTE_COUNT", "PROPERTY_PRODUCT_DAY"]
+		["ID", "IBLOCK_ID", "PROPERTY_RATING", "PROPERTY_VOTE_COUNT", "PROPERTY_PRODUCT_DAY", "PROPERTY_DISCOUNT"]
 	);
 	while ($eportaPropsEl = $eportaPropsRes->GetNextElement()) {
 		$eportaFields = $eportaPropsEl->GetFields();
@@ -26,20 +26,26 @@ if ($eportaItemIds) {
 			"RATING" => $eportaFields["PROPERTY_RATING_VALUE"] ?? 0,
 			"VOTE_COUNT" => $eportaFields["PROPERTY_VOTE_COUNT_VALUE"] ?? 0,
 			"PRODUCT_DAY" => $eportaFields["PROPERTY_PRODUCT_DAY_VALUE"] ?? "",
+			"DISCOUNT" => $eportaFields["PROPERTY_DISCOUNT_VALUE"] ?? 0,
 		];
 	}
 }
 ?>
 <div style="display:grid;grid-template-columns:repeat(<?=$eportaCols?>,1fr);gap:16px">
 <?php foreach ($arResult["ITEMS"] as $arItem):
-	$eportaExtra = $eportaExtraProps[$arItem["ID"]] ?? ["RATING" => 0, "VOTE_COUNT" => 0, "PRODUCT_DAY" => ""];
+	$eportaExtra = $eportaExtraProps[$arItem["ID"]] ?? ["RATING" => 0, "VOTE_COUNT" => 0, "PRODUCT_DAY" => "", "DISCOUNT" => 0];
 	$rating = (int)$eportaExtra["RATING"];
 	$voteCount = (int)$eportaExtra["VOTE_COUNT"];
 	$stars = str_repeat("★", max(0, min(5, round($rating)))) . str_repeat("☆", 5 - max(0, min(5, round($rating))));
 	$isHit = !empty($eportaExtra["PRODUCT_DAY"]);
 
+	// MIN_PRICE в БАЗЕ уже посчитан импортёром как цена ПОСЛЕ скидки (см. eportaImportOneProduct) —
+	// зачёркнутую "старую" цену для витрины восстанавливаем обратно из процента (свойство DISCOUNT).
 	$price = $arItem["MIN_PRICE"] ?? null;
-	$hasDiscount = $price && !empty($price["DISCOUNT_VALUE"]) && $price["DISCOUNT_VALUE"] < $price["VALUE"];
+	$discountPercent = (float)$eportaExtra["DISCOUNT"];
+	$priceValue = (float)($price["VALUE"] ?? 0);
+	$hasDiscount = $price && $discountPercent > 0 && $priceValue > 0;
+	$priceOldPrint = $hasDiscount ? \CCurrencyLang::CurrencyFormat(round($priceValue / (1 - $discountPercent / 100)), $price["CURRENCY"] ?? "RUB") : "";
 
 	$imgSrc = $arItem["PREVIEW_PICTURE"]["SRC"] ?? ($arItem["DETAIL_PICTURE"]["SRC"] ?? $placeholderImg);
 
@@ -55,6 +61,7 @@ if ($eportaItemIds) {
 		<div class="img-wrap">
 			<img src="<?= htmlspecialcharsbx($imgSrc) ?>" alt="<?= htmlspecialcharsbx($arItem["NAME"]) ?>">
 			<?php if ($isHit): ?><span class="badge hit">ХИТ</span><?php endif; ?>
+			<?php if ($hasDiscount): ?><span class="badge" style="background:#c2670a;top:<?= $isHit ? "44px" : "10px" ?>">−<?= round($discountPercent) ?>%</span><?php endif; ?>
 			<?php if (($arParams["SHOW_WISHLIST_REMOVE"] ?? "N") === "Y"): ?>
 				<button type="button" class="wishlist-remove-btn" data-id="<?= (int)$arItem["ID"] ?>" onclick="event.preventDefault();event.stopPropagation();removeFromWishlistCard(this)" title="Удалить из избранного">×</button>
 			<?php endif; ?>
@@ -65,7 +72,7 @@ if ($eportaItemIds) {
 			<div class="price-row">
 				<?php if ($price): ?>
 					<?php if ($hasDiscount): ?>
-						<div><span class="price"><?= $price["PRINT_DISCOUNT_VALUE"] ?></span> <span class="price-old"><?= $price["PRINT_VALUE"] ?></span></div>
+						<div><span class="price"><?= $price["PRINT_VALUE"] ?></span> <span class="price-old"><?= $priceOldPrint ?></span></div>
 					<?php else: ?>
 						<div class="price"><?= $price["PRINT_VALUE"] ?></div>
 					<?php endif; ?>
