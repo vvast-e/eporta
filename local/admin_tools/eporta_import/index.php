@@ -90,7 +90,11 @@ $sessid = bitrix_sessid();
     const resultsBody = document.getElementById('results-body');
 
     function showError(msg) {
-        uploadError.innerHTML = '<div class="error">' + msg + '</div>';
+        uploadError.innerHTML = '';
+        const div = document.createElement('div');
+        div.className = 'error';
+        div.textContent = msg;
+        uploadError.appendChild(div);
     }
 
     function statusLabel(status) {
@@ -136,8 +140,10 @@ $sessid = bitrix_sessid();
         }
 
         if (uploadResp.unmapped_headers && uploadResp.unmapped_headers.length) {
-            headerWarning.innerHTML = '<div class="warn">Неизвестные колонки (проигнорированы): ' +
-                uploadResp.unmapped_headers.join(', ') + '</div>';
+            const div = document.createElement('div');
+            div.className = 'warn';
+            div.textContent = 'Неизвестные колонки (проигнорированы): ' + uploadResp.unmapped_headers.join(', ');
+            headerWarning.appendChild(div);
         }
 
         const token = uploadResp.token;
@@ -174,7 +180,11 @@ $sessid = bitrix_sessid();
                 else errors++;
                 const tr = document.createElement('tr');
                 tr.className = 'status-' + row.status;
-                tr.innerHTML = '<td>' + row.article + '</td><td>' + statusLabel(row.status) + '</td><td>' + (row.message || '') + '</td>';
+                [row.article, statusLabel(row.status), row.message || ''].forEach(function (text) {
+                    const td = document.createElement('td');
+                    td.textContent = text;
+                    tr.appendChild(td);
+                });
                 resultsBody.appendChild(tr);
             });
 

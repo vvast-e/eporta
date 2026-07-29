@@ -351,8 +351,27 @@ function eportaImportSectionMap(): array {
     return $map;
 }
 
+// URL приходит из загруженного сотрудником xlsx — не доверенный источник.
+// Не даём серверу ходить в приватные/локальные сети (SSRF) под видом "скачивания фото".
+function eportaImportIsPublicImageUrl(string $url): bool {
+    $parts = parse_url($url);
+    if (!$parts || empty($parts['host']) || !in_array($parts['scheme'] ?? '', ['http', 'https'], true)) {
+        return false;
+    }
+    $ips = @gethostbynamel($parts['host']);
+    if (!$ips) {
+        return false;
+    }
+    foreach ($ips as $ip) {
+        if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 function eportaImportDownloadImage(?string $url) {
-    if (!$url) {
+    if (!$url || !eportaImportIsPublicImageUrl($url)) {
         return false;
     }
     $ext = pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
@@ -361,10 +380,13 @@ function eportaImportDownloadImage(?string $url) {
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
+        // itphoto.ru (хостинг фото поставщика в 1С-выгрузке) отдаёт неполную цепочку
+        // сертификата — сторонний CDN с фото, не наш прод, поэтому проверку отключаем,
+        // но сам хост уже проверен выше на публичность (не приватная сеть).
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_SSL_VERIFYHOST => false,
         CURLOPT_TIMEOUT => 20,
-        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_FOLLOWLOCATION => false,
     ]);
     $data = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
