@@ -12,7 +12,7 @@ const EPORTA_IMPORT_IBLOCK_ID = 19;
 const EPORTA_IMPORT_COLLECTIONS_SECTION_ID = 183;
 const EPORTA_IMPORT_PRICE_TYPE_ID = 1; // BASE
 
-// 1С-заголовок (лист "Тест") -> внутренний ключ. Совпадает с xlsx_to_json.py.
+// 1С-заголовок (лист "Выгрузка") -> внутренний ключ. Совпадает с xlsx_to_json.py.
 const EPORTA_IMPORT_FIELD_MAP = [
     'Артикул' => 'article',
     'Модель' => 'model',

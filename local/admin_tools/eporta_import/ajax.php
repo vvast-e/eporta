@@ -46,11 +46,11 @@ if ($action === 'upload') {
         eportaImportJsonFail('Не удалось сохранить загруженный файл');
     }
 
-    $grid = eportaImportReadSheet($xlsxPath, 'Тест');
+    $grid = eportaImportReadSheet($xlsxPath, 'Выгрузка');
     @unlink($xlsxPath);
 
     if ($grid === null) {
-        eportaImportJsonFail('Не удалось прочитать лист "Тест" — проверьте, что это тот же формат, что и эталонный файл (2026-07-29-Vilis.xlsx)');
+        eportaImportJsonFail('Не удалось прочитать лист "Выгрузка" — проверьте, что это тот же формат, что и эталонный файл (2026-07-29-Vilis.xlsx)');
     }
 
     $parsed = eportaImportParseGrid($grid);
