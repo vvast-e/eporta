@@ -82,6 +82,18 @@ $APPLICATION->SetTitle("Каталог товаров");
 			$eportaScopeFilter["SECTION_ID"] = $eportaFilterSectionId;
 		}
 
+		// Категория (PROPERTY_CATEGORY, строковое свойство — см. inc/categories.php) — привязка
+		// пунктов мега-меню "Тип дверей" и плиток "Каталог по категориям" на главной. Не enum,
+		// поэтому фильтруется по массиву точных строковых значений (ALIASES), а не по ID варианта.
+		require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/categories.php");
+		$eportaCategoryMap = eportaGetCategoryMap();
+		$eportaSelectedCategory = (!empty($_GET["category"]) && isset($eportaCategoryMap[$_GET["category"]]))
+			? $_GET["category"] : null;
+		if ($eportaSelectedCategory) {
+			$eportaScopeFilter["PROPERTY_CATEGORY"] = $eportaCategoryMap[$eportaSelectedCategory]["ALIASES"];
+			$eportaActiveChips[] = ["LABEL" => $eportaCategoryMap[$eportaSelectedCategory]["LABEL"], "REMOVE_KEY" => "category", "REMOVE_VALUE" => null];
+		}
+
 		// Свойства-чекбоксы: код свойства => [ query-параметр, подпись, ключ фильтра CIBlockElement ]
 		$eportaPropDefs = [
 			"style" => ["CODE" => "STYLE", "LABEL" => "Стиль", "FILTER_KEY" => "PROPERTY_STYLE"],
@@ -291,8 +303,10 @@ $APPLICATION->SetTitle("Каталог товаров");
 		<?foreach ($eportaActiveChips as $eportaChip):
 			$eportaChipParams = [];
 			parse_str(parse_url($_SERVER["REQUEST_URI"] ?? "", PHP_URL_QUERY) ?: "", $eportaChipParams);
-			if ($eportaChip["REMOVE_VALUE"] === null) {
+			if ($eportaChip["REMOVE_KEY"] === "price") {
 				unset($eportaChipParams["price_min"], $eportaChipParams["price_max"]);
+			} elseif ($eportaChip["REMOVE_VALUE"] === null) {
+				unset($eportaChipParams[$eportaChip["REMOVE_KEY"]]);
 			} else {
 				$eportaChipParams[$eportaChip["REMOVE_KEY"]] = array_values(array_diff((array)($eportaChipParams[$eportaChip["REMOVE_KEY"]] ?? []), [(string)$eportaChip["REMOVE_VALUE"]]));
 				if (empty($eportaChipParams[$eportaChip["REMOVE_KEY"]])) unset($eportaChipParams[$eportaChip["REMOVE_KEY"]]);
@@ -349,8 +363,12 @@ $APPLICATION->SetTitle("Каталог товаров");
 					"SECTION_ID" => $eportaCollectionSection ? $eportaCollectionSection["ID"] : false,
 					"SECTION_CODE" => "",
 					"SECTION_USER_FIELDS" => [],
-					"ELEMENT_SORT_FIELD" => "sort",
-					"ELEMENT_SORT_ORDER" => "asc",
+					// "Сначала популярные" — реальная сортировка по рейтингу (в выгрузке нет
+					// отдельной колонки хит/популярность), а не декоративный <div> без логики.
+					// Раньше сортировка шла по "sort"/"id" и не учитывала рейтинг вообще —
+					// товары с рейтингом 5 не поднимались выше товаров с рейтингом 0.
+					"ELEMENT_SORT_FIELD" => "PROPERTY_RATING",
+					"ELEMENT_SORT_ORDER" => "desc",
 					"ELEMENT_SORT_FIELD2" => "id",
 					"ELEMENT_SORT_ORDER2" => "desc",
 					"FILTER_NAME" => "arrFilter",

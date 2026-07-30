@@ -56,8 +56,10 @@ $APPLICATION->SetTitle("Коллекции фабрики EPORTA");
 	<div style="padding:18px 56px 40px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
 		<?foreach ($eportaCollections as $eportaColl):
 			$eportaCollImgSrc = \CFile::GetPath($eportaColl["DETAIL_PICTURE"] ?: $eportaColl["PICTURE"]);
-			$eportaCollUrl = str_replace("#SITE_DIR#", "/", $eportaColl["SECTION_PAGE_URL"]);
-			$eportaCollUrl = preg_replace('~/{2,}~', '/', $eportaCollUrl);
+			// SECTION_PAGE_URL у секций-коллекций пустое (шаблон URL не настроен в админке),
+			// поэтому строился href="" и клик просто перезагружал текущую страницу. Строим URL
+			// явно из CODE секции — совпадает с рабочим резолвером детали в catalog/index.php.
+			$eportaCollUrl = "/catalog/collections/".$eportaColl["CODE"]."/";
 		?>
 		<a href="<?=htmlspecialcharsbx($eportaCollUrl)?>" style="position:relative;border-radius:18px;overflow:hidden;height:250px;display:block;background:#efeae2<?=$eportaCollImgSrc ? ";background-image:url('".htmlspecialcharsbx($eportaCollImgSrc)."');background-size:cover;background-position:center" : ""?>">
 			<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 34%,rgba(20,17,12,.85) 100%);pointer-events:none"></div>

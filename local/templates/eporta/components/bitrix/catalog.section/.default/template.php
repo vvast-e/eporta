@@ -34,10 +34,17 @@ if ($eportaItemIds) {
 <div style="display:grid;grid-template-columns:repeat(<?=$eportaCols?>,1fr);gap:16px">
 <?php foreach ($arResult["ITEMS"] as $arItem):
 	$eportaExtra = $eportaExtraProps[$arItem["ID"]] ?? ["RATING" => 0, "VOTE_COUNT" => 0, "PRODUCT_DAY" => "", "DISCOUNT" => 0];
-	$rating = (int)$eportaExtra["RATING"];
+	// (float), не (int) — иначе 4.99 обрезается до 4 и попадает мимо порога ХИТ ниже.
+	$rating = (float)$eportaExtra["RATING"];
 	$voteCount = (int)$eportaExtra["VOTE_COUNT"];
 	$stars = str_repeat("★", max(0, min(5, round($rating)))) . str_repeat("☆", 5 - max(0, min(5, round($rating))));
-	$isHit = !empty($eportaExtra["PRODUCT_DAY"]);
+	// ХИТ определяем автоматически по рейтингу (в выгрузке нет отдельной колонки
+	// хит/популярность) — PRODUCT_DAY импортом никогда не заполняется, порог 4.8 согласован
+	// с заказчиком. См. тот же порог в catalog.element/.default/template.php.
+	$isHit = $rating >= 4.8;
+	// "Новинка" — товар без рейтинга (0 или пусто в выгрузке, до накопления отзывов).
+	// Взаимоисключающе с ХИТ (rating>=4.8), поэтому обе плашки одновременно не показываются.
+	$isNew = $rating <= 0;
 
 	// MIN_PRICE в БАЗЕ уже посчитан импортёром как цена ПОСЛЕ скидки (см. eportaImportOneProduct) —
 	// зачёркнутую "старую" цену для витрины восстанавливаем обратно из процента (свойство DISCOUNT).
@@ -61,13 +68,17 @@ if ($eportaItemIds) {
 		<div class="img-wrap">
 			<img src="<?= htmlspecialcharsbx($imgSrc) ?>" alt="<?= htmlspecialcharsbx($arItem["NAME"]) ?>">
 			<?php if ($isHit): ?><span class="badge hit">ХИТ</span><?php endif; ?>
-			<?php if ($hasDiscount): ?><span class="badge" style="background:#c2670a;top:<?= $isHit ? "44px" : "10px" ?>">−<?= round($discountPercent) ?>%</span><?php endif; ?>
+			<?php if ($isNew): ?><span class="badge new">Новинка</span><?php endif; ?>
+			<?php if ($hasDiscount): ?><span class="badge" style="background:#c2670a;top:<?= ($isHit || $isNew) ? "44px" : "10px" ?>">−<?= round($discountPercent) ?>%</span><?php endif; ?>
 			<?php if (($arParams["SHOW_WISHLIST_REMOVE"] ?? "N") === "Y"): ?>
 				<button type="button" class="wishlist-remove-btn" data-id="<?= (int)$arItem["ID"] ?>" onclick="event.preventDefault();event.stopPropagation();removeFromWishlistCard(this)" title="Удалить из избранного">×</button>
 			<?php endif; ?>
 		</div>
 		<div class="info">
-			<div class="stars"><?= $stars ?> <span><?= $voteCount ?></span></div>
+			<!-- Раньше тут выводился $voteCount (число отзывов, всегда 0 — импорт его не
+			заполняет), из-за чего рядом со звёздами у всех товаров стоял "0". Значение
+			рейтинга нагляднее и совпадает с тем, что показывается на детальной странице. -->
+			<div class="stars"><?= $stars ?><?php if ($rating > 0): ?> <span><?= number_format($rating, 1, ".", "") ?></span><?php endif; ?></div>
 			<div class="name"><?= htmlspecialcharsbx($arItem["NAME"]) ?></div>
 			<div class="price-row">
 				<?php if ($price): ?>

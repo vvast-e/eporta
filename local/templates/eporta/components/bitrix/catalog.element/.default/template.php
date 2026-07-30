@@ -50,7 +50,11 @@ $rating = (float)eportaPropText($eportaDirectProps, "RATING");
 $voteCount = (int)eportaPropText($eportaDirectProps, "VOTE_COUNT");
 $ratingRounded = max(0, min(5, (int)round($rating)));
 $stars = str_repeat("★", $ratingRounded) . str_repeat("☆", 5 - $ratingRounded);
-$isHit = eportaPropText($eportaDirectProps, "PRODUCT_DAY") !== "";
+// ХИТ определяем автоматически по рейтингу (в выгрузке нет отдельной колонки
+// хит/популярность), порог согласован с заказчиком — см. eportaExtra в catalog.section.
+$isHit = $rating >= 4.8;
+// "Новинка" — товар без рейтинга (0 или пусто в выгрузке); взаимоисключающе с ХИТ.
+$isNew = $rating <= 0;
 $article = eportaPropText($eportaDirectProps, "CML2_ARTICLE");
 $discountPercent = (float)eportaPropText($eportaDirectProps, "DISCOUNT");
 
@@ -104,15 +108,18 @@ if ($eportaModel !== "") {
 		["IBLOCK_ID" => 19, "PROPERTY_MODEL" => $eportaModel, "ACTIVE" => "Y"],
 		false,
 		false,
-		["ID", "PROPERTY_COATING_COLOR", "PROPERTY_GLAZING", "DETAIL_PAGE_URL", "PREVIEW_PICTURE"]
+		["ID", "CODE", "PROPERTY_COATING_COLOR", "PROPERTY_GLAZING", "DETAIL_PAGE_URL", "PREVIEW_PICTURE"]
 	);
 	$eportaVariants = [];
 	while ($v = $eportaVariantsRes->GetNext()) {
+		// DETAIL_PAGE_URL у IBLOCK 19 не настроен (шаблон URL пуст) — строим ссылку по CODE,
+		// как и остальные оверрайды (см. catalog.section/.default/template.php), иначе свотчи
+		// получают href="" и клик по ним просто перезагружает текущую страницу.
 		$eportaVariants[] = [
 			"id" => (int)$v["ID"],
 				"color" => (string)($v["PROPERTY_COATING_COLOR_VALUE"] ?? ""),
 			"glazing" => (string)($v["PROPERTY_GLAZING_VALUE"] ?? ""),
-			"url" => $v["DETAIL_PAGE_URL"],
+			"url" => $v["DETAIL_PAGE_URL"] ?: ($v["CODE"] ? "/catalog/" . $v["CODE"] . ".html" : ""),
 			"photo" => $v["PREVIEW_PICTURE"] ? CFile::GetPath($v["PREVIEW_PICTURE"]) : "",
 		];
 	}
@@ -165,6 +172,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 		<div style="position:relative;flex:1;min-height:0">
 			<img id="mainPhoto" src="<?= htmlspecialcharsbx($galleryPhotos[0]) ?>" style="width:100%;height:100%;object-fit:contain;background:#f6f4ef;border-radius:16px" alt="<?= htmlspecialcharsbx($arResult["NAME"]) ?>">
 			<?php if ($isHit): ?><span style="position:absolute;top:14px;left:14px;background:#e8820a;color:#fff;font:700 11px 'Manrope';padding:6px 12px;border-radius:7px">ХИТ ПРОДАЖ</span><?php endif; ?>
+			<?php if ($isNew): ?><span style="position:absolute;top:14px;left:14px;background:#1f8a4c;color:#fff;font:700 11px 'Manrope';padding:6px 12px;border-radius:7px">НОВИНКА</span><?php endif; ?>
 		</div>
 		<?php if (count($galleryPhotos) > 1): ?>
 		<div style="display:flex;gap:12px;flex:none;height:96px">

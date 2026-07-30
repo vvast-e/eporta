@@ -30,6 +30,23 @@ document.addEventListener('DOMContentLoaded', function(){
 		s.addEventListener('click', function(){ window.location.href = '/catalog/'; });
 	});
 
+	// Ссылки строятся из window.EPORTA_MEGAMENU (задаётся в header.php: там резолвятся
+	// реальные enum-ID свойств STYLE/COATING и ключи категорий — на клиенте их нет).
+	// Без фильтра (значение null/отсутствует в конфиге) — fallback на просто "/catalog/".
+	var mm = window.EPORTA_MEGAMENU || {};
+	function mmCategoryUrl(label) {
+		var key = (mm.category || {})[label];
+		return key ? '/catalog/?category=' + encodeURIComponent(key) : '/catalog/';
+	}
+	function mmStyleUrl(label) {
+		var id = (mm.style || {})[label];
+		return id ? '/catalog/?style[]=' + encodeURIComponent(id) : '/catalog/';
+	}
+	function mmCoatingUrl(label) {
+		var id = (mm.coating || {})[label];
+		return id ? '/catalog/?coating[]=' + encodeURIComponent(id) : '/catalog/';
+	}
+
 	var menu = document.createElement('div');
 	menu.id = 'megaMenu';
 	menu.innerHTML =
@@ -40,30 +57,30 @@ document.addEventListener('DOMContentLoaded', function(){
 		'<div style="flex:none">' +
 			'<div style="font:800 11px \'Manrope\';letter-spacing:.08em;color:#a39e95;margin-bottom:14px">ТИП ДВЕРЕЙ</div>' +
 			'<div style="display:flex;flex-direction:column;gap:12px">' +
-				'<a href="/catalog/" class="mm-link" style="font:700 14px \'Manrope\';color:#1b1a17">Межкомнатные</a>' +
-				'<a href="/catalog/" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Раздвижные перегородки</a>' +
-				'<a href="/catalog/" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Входные</a>' +
-				'<a href="/catalog/" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Фурнитура</a>' +
+				'<a href="' + mmCategoryUrl('Межкомнатные') + '" class="mm-link" style="font:700 14px \'Manrope\';color:#1b1a17">Межкомнатные</a>' +
+				'<a href="' + mmCategoryUrl('Раздвижные перегородки') + '" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Раздвижные перегородки</a>' +
+				'<a href="' + mmCategoryUrl('Входные') + '" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Входные</a>' +
+				'<a href="' + mmCategoryUrl('Фурнитура') + '" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Фурнитура</a>' +
 			'</div>' +
 		'</div>' +
 
 		'<div style="flex:none">' +
 			'<div style="font:800 11px \'Manrope\';letter-spacing:.08em;color:#a39e95;margin-bottom:14px">ПО СТИЛЮ</div>' +
 			'<div style="display:flex;flex-direction:column;gap:12px">' +
-				'<a href="/catalog/" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Модерн / хай-тек</a>' +
-				'<a href="/catalog/" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Классика</a>' +
-				'<a href="/catalog/" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Лофт</a>' +
-				'<a href="/catalog/" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Скандинавский</a>' +
+				'<a href="' + mmStyleUrl('Модерн / хай-тек') + '" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Модерн / хай-тек</a>' +
+				'<a href="' + mmStyleUrl('Классика') + '" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Классика</a>' +
+				'<a href="' + mmStyleUrl('Лофт') + '" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Лофт</a>' +
+				'<a href="' + mmStyleUrl('Скандинавский') + '" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Скандинавский</a>' +
 			'</div>' +
 		'</div>' +
 
 		'<div style="flex:none">' +
 			'<div style="font:800 11px \'Manrope\';letter-spacing:.08em;color:#a39e95;margin-bottom:14px">ПО ПОКРЫТИЮ</div>' +
 			'<div style="display:flex;flex-direction:column;gap:12px">' +
-				'<a href="/catalog/" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Экошпон</a>' +
-				'<a href="/catalog/" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Эмаль</a>' +
-				'<a href="/catalog/" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Эмалит</a>' +
-				'<a href="/catalog/" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Натуральный шпон</a>' +
+				'<a href="' + mmCoatingUrl('Экошпон') + '" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Экошпон</a>' +
+				'<a href="' + mmCoatingUrl('Эмаль') + '" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Эмаль</a>' +
+				'<a href="' + mmCoatingUrl('Эмалит') + '" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Эмалит</a>' +
+				'<a href="' + mmCoatingUrl('Натуральный шпон') + '" class="mm-link" style="font:600 14px \'Manrope\';color:#3a3631">Натуральный шпон</a>' +
 			'</div>' +
 		'</div>' +
 

@@ -43,7 +43,10 @@ const EPORTA_IMPORT_FIELD_MAP = [
     'Полное описание' => 'full_desc',
     'Фото-Big' => 'photo_big',
     'Фото-Preview' => 'photo_preview',
-    'Галеррея' => 'gallery',
+    // Опечатка "Галеррея" (двойное "р") не совпадала с реальным заголовком в эталонном
+    // xlsx ("Галерея", одно "р") — колонка считалась неизвестной и полностью игнорировалась,
+    // из-за чего галерея не импортировалась НИКОГДА, независимо от расширения файлов в ссылках.
+    'Галерея' => 'gallery',
     'Рейтинг' => 'rating',
 ];
 
@@ -338,6 +341,34 @@ function eportaImportGetOrCreateEnumId(int $iblockId, string $propertyCode, stri
 // Символьный код нужен для SEF-ссылки на карточку товара (/catalog/<code>.html).
 // Генерируется транслитерацией названия с добавлением артикула для уникальности —
 // сам транслит не гарантирует уникальность при похожих названиях моделей.
+// Составляет название двери из нескольких полей выгрузки — раньше NAME брался напрямую
+// из колонки "Название" (обычно только код модели), из-за чего в карточке/поиске/названии
+// вкладки была голая модель без коллекции и отделки. Формат: "Коллекция Модель, Покрытие Цвет"
+// (например "Vilis 2, экошпон дуб серый"). "Цвет" здесь — колонка "Цвет" / ключ coating_color
+// (не "Оттенок"/main_color — это разные свойства, см. память по неймингу свойств IBLOCK 19).
+// Пустые части аккуратно выпадают, если совсем ничего нет — fallback на артикул.
+function eportaImportComposeName(array $p, string $article): string {
+    $collection = trim($p['collection'] ?? '');
+    $model = trim($p['model'] ?? '');
+    $coating = trim($p['coating'] ?? '');
+    $color = trim($p['coating_color'] ?? '');
+
+    // В выгрузке колонка "Модель" уже нередко начинается с названия коллекции (например
+    // модель "Vilis 00" при коллекции "Vilis") — не дублируем коллекцию в этом случае.
+    if ($collection !== '' && $model !== '' && stripos($model, $collection) === 0) {
+        $head = $model;
+    } else {
+        $head = trim($collection . ' ' . $model);
+    }
+    $tail = trim(implode(' ', array_filter([$coating, $color])));
+
+    $name = $tail !== '' ? ($head !== '' ? $head . ', ' . $tail : $tail) : $head;
+    if ($name === '') {
+        $name = trim($p['name'] ?? '') ?: $article;
+    }
+    return $name;
+}
+
 function eportaImportGenerateCode(string $name, string $article): string {
     $base = \CUtil::translit($name, 'ru', [
         'max_len' => 100,
@@ -391,7 +422,15 @@ function eportaImportDownloadImage(?string $url) {
         return false;
     }
     $ext = pathinfo(parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
-    $tmpBase = tempnam(sys_get_temp_dir(), 'imgimport_');
+    // ВАЖНО: не sys_get_temp_dir() ("/tmp") — под веб (Apache/php83) прод сидит на
+    // open_basedir="/var/www/www-root/data:.", "/tmp" в него не входит. tempnam()/
+    // file_put_contents() на "/tmp" там молча проваливаются (no error, просто false/0 байт),
+    // из-за чего при массовом импорте через веб-форму фото не сохранялись ни у одного товара
+    // (см. project_import_vilis_2026_07_30/photo-open_basedir bug). tempnam() из CLI-скрипта
+    // работает нормально — open_basedir там не задан, поэтому баг долго не воспроизводился.
+    // Кладём временный файл в уже существующую защищённую (.htaccess Deny from all) папку
+    // импортёра — она внутри open_basedir.
+    $tmpBase = tempnam(eportaImportTmpDir(), 'imgimport_');
     $tmpFile = $tmpBase . '.' . $ext;
     $ch = curl_init($url);
     curl_setopt_array($ch, [
@@ -488,7 +527,7 @@ function eportaImportOneProduct(array $p): array {
         $propertyValues['MORE_PHOTO'] = $galleryFiles;
     }
 
-    $elName = $p['name'] ?? $article;
+    $elName = eportaImportComposeName($p, $article);
     $elFields = [
         'IBLOCK_ID' => EPORTA_IMPORT_IBLOCK_ID,
         'NAME' => $elName,

@@ -52,7 +52,45 @@ if (!$eportaDevAccess) {
 	die();
 }
 
+// Мега-меню "Каталог": пункты "По стилю"/"По покрытию" ведут на /catalog/ с реальным фильтром
+// (?style[]=ID / ?coating[]=ID), "Тип дверей" — на /catalog/?category=<key> (см.
+// inc/categories.php). Меню строится на клиенте (assets/app.js), где enum-ID свойств
+// недоступны — поэтому резолвим их здесь и прокидываем как window.EPORTA_MEGAMENU.
+\Bitrix\Main\Loader::includeModule("iblock");
+require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/categories.php");
+function eportaResolveEnumMap($code) {
+	$map = [];
+	$rs = \CIBlockPropertyEnum::GetList(["SORT" => "ASC"], ["IBLOCK_ID" => 19, "CODE" => $code]);
+	while ($e = $rs->Fetch()) { $map[$e["VALUE"]] = (int)$e["ID"]; }
+	return $map;
+}
+$eportaStyleEnum = eportaResolveEnumMap("STYLE");
+$eportaCoatingEnum = eportaResolveEnumMap("COATING");
+$eportaMegaMenuConfig = [
+	"style" => [
+		"Модерн / хай-тек" => $eportaStyleEnum["Модерн"] ?? ($eportaStyleEnum["Хай-тек"] ?? null),
+		"Классика" => $eportaStyleEnum["Классика"] ?? null,
+		"Лофт" => $eportaStyleEnum["Лофт"] ?? null,
+		"Скандинавский" => $eportaStyleEnum["Скандинавский"] ?? null,
+	],
+	"coating" => [
+		"Экошпон" => $eportaCoatingEnum["Экошпон"] ?? null,
+		"Эмаль" => $eportaCoatingEnum["Эмаль"] ?? null,
+		// "Эмалит" в справочнике COATING отсутствует (нет такого значения у товаров) — ссылка
+		// без фильтра, пока в выгрузке не появится соответствующий вариант.
+		"Эмалит" => null,
+		"Натуральный шпон" => $eportaCoatingEnum["Шпон натуральный"] ?? null,
+	],
+	"category" => [
+		"Межкомнатные" => "mkd",
+		"Раздвижные перегородки" => "sliding",
+		"Входные" => "entrance",
+		"Фурнитура" => "hardware",
+	],
+];
+
 $asset = Asset::getInstance();
+$asset->addString('<script>window.EPORTA_MEGAMENU = '.json_encode($eportaMegaMenuConfig, JSON_UNESCAPED_UNICODE).';</script>');
 // Cache-busting через filemtime: nginx отдаёт статику immutable+1y без версионирования
 // (конфиг генерируется ISPmanager, ручную правку не сохранить), поэтому версионируем
 // на стороне PHP через query-параметр — браузер перекачает файл при изменении даты правки.
