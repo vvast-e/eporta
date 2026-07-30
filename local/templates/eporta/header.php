@@ -13,6 +13,45 @@ if (($_REQUEST["dev_preview"] ?? "") === "x7Qm2pR9vL" && empty($_COOKIE["dev_pre
 	setcookie("dev_preview", "x7Qm2pR9vL", 0, "/");
 }
 
+// Сайт ещё не готов к публичному запуску (данные/контакты не окончательные).
+// Без dev_preview-куки/параметра — заглушка "в разработке" вместо реального контента.
+// У кого кука уже стоит (команда) — видят обычный сайт как раньше.
+$eportaDevAccess = ($_COOKIE["dev_preview"] ?? "") === "x7Qm2pR9vL" || ($_REQUEST["dev_preview"] ?? "") === "x7Qm2pR9vL";
+if (!$eportaDevAccess) {
+	header("HTTP/1.1 503 Service Unavailable");
+	header("Retry-After: 3600");
+	header("X-Robots-Tag: noindex, nofollow");
+	?><!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Сайт готовится к запуску — Eporta</title>
+<style>
+	html,body{height:100%;margin:0;}
+	body{
+		display:flex;align-items:center;justify-content:center;
+		min-height:100vh;padding:24px;box-sizing:border-box;
+		background:#0f0f10;color:#f2f0ec;
+		font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+		text-align:center;
+	}
+	.wrap{max-width:520px;}
+	h1{font-size:26px;font-weight:600;margin:0 0 12px;}
+	p{font-size:15px;line-height:1.5;color:#b7b3ac;margin:0;}
+</style>
+</head>
+<body>
+	<div class="wrap">
+		<h1>Сайт готовится к запуску</h1>
+		<p>Мы обновляем каталог и контактные данные. Загляните чуть позже — скоро здесь будет новый сайт Eporta.</p>
+	</div>
+</body>
+</html>
+<?php
+	die();
+}
+
 $asset = Asset::getInstance();
 // Cache-busting через filemtime: nginx отдаёт статику immutable+1y без версионирования
 // (конфиг генерируется ISPmanager, ручную правку не сохранить), поэтому версионируем
