@@ -1,7 +1,8 @@
 <?
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
-$APPLICATION->SetPageProperty("title", "Каталог товаров");
-$APPLICATION->SetTitle("Каталог товаров");
+$eportaCatalogPageTitle = !empty($_GET["sale"]) ? "Распродажа" : (!empty($_GET["new"]) ? "Новинки" : "Каталог товаров");
+$APPLICATION->SetPageProperty("title", $eportaCatalogPageTitle);
+$APPLICATION->SetTitle($eportaCatalogPageTitle);
 ?>
 <?
 	//include module
@@ -92,6 +93,27 @@ $APPLICATION->SetTitle("Каталог товаров");
 		if ($eportaSelectedCategory) {
 			$eportaScopeFilter["PROPERTY_CATEGORY"] = $eportaCategoryMap[$eportaSelectedCategory]["ALIASES"];
 			$eportaActiveChips[] = ["LABEL" => $eportaCategoryMap[$eportaSelectedCategory]["LABEL"], "REMOVE_KEY" => "category", "REMOVE_VALUE" => null];
+		}
+
+		// "Распродажа" (шапка, /catalog/?sale=1) — те же товары, для которых карточка
+		// показывает бейдж скидки (см. $hasDiscount в catalog.section/.default/template.php).
+		$eportaOnlySale = !empty($_GET["sale"]);
+		if ($eportaOnlySale) {
+			$eportaScopeFilter[">PROPERTY_DISCOUNT"] = 0;
+			$eportaActiveChips[] = ["LABEL" => "Распродажа", "REMOVE_KEY" => "sale", "REMOVE_VALUE" => null];
+		}
+
+		// "Новинки" (шапка, /catalog/?new=1) — те же товары, что дают бейдж "Новинка"
+		// ($isNew = rating <= 0 в том же template.php). Старый CIBlockElement::GetList (в отличие
+		// от D7 ORM) НЕ поддерживает вложенные подфильтры с LOGIC=>OR — такой ключ просто молча
+		// игнорируется, и фильтр не отсекает ничего (было замечено вживую: "Новинки" находили
+		// все 68 товаров). Импортёр eporta всегда пишет RATING (хотя бы 0, см. eportaImportOneProduct
+		// в lib.php), так что в реальных данных свойство не бывает вообще незаполненным — простое
+		// "<=0" достаточно, без подстраховки на "PROPERTY_RATING => false".
+		$eportaOnlyNew = !empty($_GET["new"]);
+		if ($eportaOnlyNew) {
+			$eportaScopeFilter["<=PROPERTY_RATING"] = 0;
+			$eportaActiveChips[] = ["LABEL" => "Новинки", "REMOVE_KEY" => "new", "REMOVE_VALUE" => null];
 		}
 
 		// Свойства-чекбоксы: код свойства => [ query-параметр, подпись, ключ фильтра CIBlockElement ]
@@ -279,6 +301,10 @@ $APPLICATION->SetTitle("Каталог товаров");
 		<div>
 			<?if ($eportaCollectionSection):?>
 			<h2 style="margin:0;font:800 24px 'Manrope';letter-spacing:-0.01em">Товары коллекции <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></h2>
+			<?elseif ($eportaOnlySale):?>
+			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Распродажа</h1>
+			<?elseif ($eportaOnlyNew):?>
+			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Новинки</h1>
 			<?else:?>
 			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Межкомнатные двери</h1>
 			<?endif;?>
@@ -353,7 +379,23 @@ $APPLICATION->SetTitle("Каталог товаров");
 
 		<!-- Сетка товаров: реальные данные IBLOCK 19 (Этап 1, Фаза B), фильтр — этот этап -->
 		<div style="flex:1">
-			<?$arrFilter = $eportaArrFilter;?>
+			<?
+				// FILTER_NAME=>"arrFilter" ниже читает глобальную $arrFilter, а не $eportaArrFilter —
+				// раньше сюда не попадали category/sale/new (они писались только в $eportaScopeFilter,
+				// который используется для счётчиков/диапазона цены, но НЕ передаётся в сам компонент).
+				// Из-за этого "Новинки"/"Распродажа"/категория меняли счётчик "Найдено N" и чипы,
+				// но сетка товаров ниже реально не фильтровалась. Дублируем те же условия сюда.
+				$arrFilter = $eportaArrFilter;
+				if (!empty($eportaScopeFilter["PROPERTY_CATEGORY"])) {
+					$arrFilter["PROPERTY_CATEGORY"] = $eportaScopeFilter["PROPERTY_CATEGORY"];
+				}
+				if (isset($eportaScopeFilter[">PROPERTY_DISCOUNT"])) {
+					$arrFilter[">PROPERTY_DISCOUNT"] = $eportaScopeFilter[">PROPERTY_DISCOUNT"];
+				}
+				if (isset($eportaScopeFilter["<=PROPERTY_RATING"])) {
+					$arrFilter["<=PROPERTY_RATING"] = $eportaScopeFilter["<=PROPERTY_RATING"];
+				}
+			?>
 			<?$APPLICATION->IncludeComponent(
 				"bitrix:catalog.section",
 				".default",

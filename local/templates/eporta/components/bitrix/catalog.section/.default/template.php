@@ -92,7 +92,7 @@ if ($eportaItemIds) {
 				<?php endif; ?>
 				<div class="price-row-tools">
 					<button class="btn-compare" onclick="addCompare(event, <?= (int)$arItem["ID"] ?>)" title="Сравнить">⇄</button>
-					<button class="btn-cart" onclick="event.preventDefault()">В корзину</button>
+					<button class="btn-cart" onclick="addCartAjax(event, <?= (int)$arItem["ID"] ?>)">В корзину</button>
 				</div>
 			</div>
 		</div>

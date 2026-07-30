@@ -5,6 +5,7 @@
 // Пункт "Профили покупателя" сознательно не включён — убран из навигации по решению
 // пользователя (см. память project_lk_redesign_source), сама страница
 // bitrix:sale.personal.profile при этом не удаляется, просто больше никуда не ведёт.
+global $APPLICATION;
 $eportaLkTabs = [
 	'profile'   => ['/personal/', 'Персональные данные'],
 	'orders'    => ['/personal/order/', 'История заказов'],
@@ -23,4 +24,6 @@ $eportaLkActive = $active ?? '';
 		<a href="<?= $url ?>" class="lk-tab"><?= htmlspecialcharsbx($label) ?></a>
 	<?php endif; ?>
 <?php endforeach; ?>
+	<span style="margin-left:auto"></span>
+	<a href="<?= htmlspecialcharsbx($APPLICATION->GetCurPageParam("logout=yes", ["login", "logout"])) ?>" class="lk-tab lk-tab-logout">Выйти</a>
 </div>

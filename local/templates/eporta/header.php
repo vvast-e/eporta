@@ -91,6 +91,11 @@ $eportaMegaMenuConfig = [
 
 $asset = Asset::getInstance();
 $asset->addString('<script>window.EPORTA_MEGAMENU = '.json_encode($eportaMegaMenuConfig, JSON_UNESCAPED_UNICODE).';</script>');
+
+// Сайт-wide CSRF-токен для ajax.php (dw.deluxe, act=addCart/addCompare/compDEL/clearCompare —
+// все требуют check_bitrix_sessid() и id строго через POST-тело, не GET). compare.js раньше
+// слал обычный GET без токена — эндпоинт молча не срабатывал (сессия просто не совпадала).
+$asset->addString('<script>window.BX_SESSID = '.json_encode(bitrix_sessid(), JSON_UNESCAPED_SLASHES).';</script>');
 // Cache-busting через filemtime: nginx отдаёт статику immutable+1y без версионирования
 // (конфиг генерируется ISPmanager, ручную правку не сохранить), поэтому версионируем
 // на стороне PHP через query-параметр — браузер перекачает файл при изменении даты правки.
@@ -159,14 +164,6 @@ if (\Bitrix\Main\Loader::includeModule("dw.deluxe")) {
 <body>
 <?php $APPLICATION->ShowPanel(); ?>
 
-<!-- Тикер -->
-<div class="trust-bar">
-	<span>Бесплатный замер по Москве</span><span class="sep">•</span>
-	<span>Доставка по РФ от 1 дня</span><span class="sep">•</span>
-	<span>Рассрочка 0% до 12 мес.</span><span class="sep">•</span>
-	<span>Гарантия 2 года</span>
-</div>
-
 <!-- Шапка -->
 <div class="site-header">
 	<a href="/" class="logo-wrap">
@@ -183,7 +180,14 @@ if (\Bitrix\Main\Loader::includeModule("dw.deluxe")) {
 		<a href="#">Заказать звонок</a>
 	</div>
 	<div class="header-actions">
-		<a href="<?= $USER->IsAuthorized() ? "/personal/" : "/auth/" ?>" class="btn-account" aria-label="Личный кабинет">
+		<?php
+		// Без явного backurl вход через /auth/ всегда возвращал на дефолтный экран ("Вы
+		// авторизованы" -> кнопка "В личный кабинет"), а не туда, откуда пользователь пришёл
+		// логиниться — раздражало на страницах каталога/товара. auth/index.php уже умеет
+		// редиректить на backurl из запроса (см. его JS), не хватало только передать его сюда.
+		$eportaAuthHref = "/auth/?backurl=".urlencode($_SERVER["REQUEST_URI"]);
+		?>
+		<a href="<?= $USER->IsAuthorized() ? "/personal/" : $eportaAuthHref ?>" class="btn-account" aria-label="Личный кабинет">
 			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"></path></svg>
 		</a>
 		<a href="/compare/" class="compare-btn" aria-label="Сравнение">
@@ -207,15 +211,17 @@ if (\Bitrix\Main\Loader::includeModule("dw.deluxe")) {
 // и на /catalog/collections/<code>/ (SEF-страница конкретной коллекции внутри того же каталога,
 // см. project_phase_b_data_map, ЭТАП 5) — это самый специфичный префикс, проверяем его первым.
 $eportaCurPath = parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);
+$eportaNavSale = !empty($_GET["sale"]);
+$eportaNavNew = !empty($_GET["new"]);
 $eportaNavCollections = str_starts_with($eportaCurPath, "/collection/") || str_starts_with($eportaCurPath, "/catalog/collections/");
-$eportaNavCatalog = !$eportaNavCollections && str_starts_with($eportaCurPath, "/catalog/");
+$eportaNavCatalog = !$eportaNavCollections && !$eportaNavSale && !$eportaNavNew && str_starts_with($eportaCurPath, "/catalog/");
 ?>
 <!-- Навигация -->
 <div class="cat-nav">
 	<a href="/catalog/" class="<?= $eportaNavCatalog ? "active" : "" ?>">Каталог</a>
 	<a href="/collection/" class="<?= $eportaNavCollections ? "active" : "" ?>">Коллекции</a>
-	<span class="nav-item nav-sale"><span class="dot-red"></span>Распродажа</span>
-	<span class="nav-item nav-new">Новинки<span class="badge-new">NEW</span></span>
+	<a href="/catalog/?sale=1" class="nav-item nav-sale<?= $eportaNavSale ? " active" : "" ?>"><span class="dot-red"></span>Распродажа</a>
+	<a href="/catalog/?new=1" class="nav-item nav-new<?= $eportaNavNew ? " active" : "" ?>">Новинки<span class="badge-new">NEW</span></a>
 	<span class="spacer"></span>
 	<span class="sale-badge"><span class="dot"></span>Акция: рассрочка 0%</span>
 </div>
