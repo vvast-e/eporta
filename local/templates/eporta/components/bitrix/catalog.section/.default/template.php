@@ -31,7 +31,7 @@ if ($eportaItemIds) {
 	}
 }
 ?>
-<div style="display:grid;grid-template-columns:repeat(<?=$eportaCols?>,1fr);gap:16px">
+<div class="eporta-product-grid" style="display:grid;grid-template-columns:repeat(<?=$eportaCols?>,1fr);gap:16px">
 <?php foreach ($arResult["ITEMS"] as $arItem):
 	$eportaExtra = $eportaExtraProps[$arItem["ID"]] ?? ["RATING" => 0, "VOTE_COUNT" => 0, "PRODUCT_DAY" => "", "DISCOUNT" => 0];
 	// (float), не (int) — иначе 4.99 обрезается до 4 и попадает мимо порога ХИТ ниже.

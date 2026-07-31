@@ -312,13 +312,13 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		</div>
 		<div style="display:flex;align-items:center;gap:10px">
 			<div style="display:flex;align-items:center;gap:9px;border:1.5px solid #e7e3db;border-radius:10px;padding:10px 14px;font:600 13px 'Manrope';color:#3a3631;cursor:pointer">Сначала популярные <span style="color:#a39e95">▾</span></div>
-			<div style="display:flex;border:1.5px solid #e7e3db;border-radius:10px;overflow:hidden">
-				<span style="width:38px;height:40px;display:flex;align-items:center;justify-content:center;background:#1b1a17;cursor:pointer">
-					<span style="display:grid;grid-template-columns:1fr 1fr;gap:2px"><span style="width:5px;height:5px;background:#fff"></span><span style="width:5px;height:5px;background:#fff"></span><span style="width:5px;height:5px;background:#fff"></span><span style="width:5px;height:5px;background:#fff"></span></span>
-				</span>
-				<span style="width:38px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer">
-					<span style="display:flex;flex-direction:column;gap:3px"><span style="width:14px;height:3px;background:#b3aea2"></span><span style="width:14px;height:3px;background:#b3aea2"></span><span style="width:14px;height:3px;background:#b3aea2"></span></span>
-				</span>
+			<!-- Переключатель числа карточек в строке (4/5/6) — переключает .eporta-product-grid
+			     через eportaSetGridCols() ниже; выбор хранится в localStorage и подхватывается
+			     на всех страницах каталога/коллекций, где используется тот же catalog.section. -->
+			<div class="eporta-cols-switch" style="display:flex;border:1.5px solid #e7e3db;border-radius:10px;overflow:hidden">
+				<button type="button" class="eporta-cols-btn" data-cols="4" onclick="eportaSetGridCols(4)" style="width:38px;height:40px;border:none;background:transparent;font:700 13px 'Manrope';color:#8a857b;cursor:pointer">4</button>
+				<button type="button" class="eporta-cols-btn" data-cols="5" onclick="eportaSetGridCols(5)" style="width:38px;height:40px;border:none;border-left:1.5px solid #e7e3db;background:transparent;font:700 13px 'Manrope';color:#8a857b;cursor:pointer">5</button>
+				<button type="button" class="eporta-cols-btn" data-cols="6" onclick="eportaSetGridCols(6)" style="width:38px;height:40px;border:none;border-left:1.5px solid #e7e3db;background:transparent;font:700 13px 'Manrope';color:#8a857b;cursor:pointer">6</button>
 			</div>
 		</div>
 	</div>
@@ -462,6 +462,41 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			);?>
 		</div>
 	</div>
+
+	<script>
+	(function(){
+		// Переключатель "N карточек в строке" — общий для каталога и коллекций, т.к. обе
+		// страницы рендерятся через этот же catalog/index.php. Выбор персистится в
+		// localStorage и переживает переход между страницами/пагинацией.
+		var STORAGE_KEY = "eportaGridCols";
+		var DEFAULT_COLS = 3;
+
+		function applyCols(cols) {
+			document.querySelectorAll(".eporta-product-grid").forEach(function(grid){
+				grid.style.gridTemplateColumns = "repeat(" + cols + ",1fr)";
+			});
+			document.querySelectorAll(".eporta-cols-btn").forEach(function(btn){
+				var active = parseInt(btn.getAttribute("data-cols"), 10) === cols;
+				btn.style.background = active ? "#1b1a17" : "transparent";
+				btn.style.color = active ? "#fff" : "#8a857b";
+			});
+		}
+
+		window.eportaSetGridCols = function(cols) {
+			cols = parseInt(cols, 10);
+			if (!cols) return;
+			try { localStorage.setItem(STORAGE_KEY, cols); } catch (e) {}
+			applyCols(cols);
+		};
+
+		var saved = DEFAULT_COLS;
+		try {
+			var stored = parseInt(localStorage.getItem(STORAGE_KEY), 10);
+			if (stored) saved = stored;
+		} catch (e) {}
+		applyCols(saved);
+	})();
+	</script>
 
 <?else:?>
 <?$APPLICATION->IncludeComponent(
