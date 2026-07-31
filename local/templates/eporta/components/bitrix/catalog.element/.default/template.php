@@ -17,31 +17,46 @@ if (!function_exists("plural")) {
 	}
 }
 
-// Свойство: сначала DISPLAY_PROPERTIES (человекочитаемое значение списка), иначе сырое VALUE.
+// bitrix:catalog.element (как и bitrix:catalog.section, см. feedback_catalog_import_gotchas)
+// не досчитывает $arResult["PROPERTIES"]/["DISPLAY_PROPERTIES"] в этой связке параметров —
+// забираем свойства напрямую классическим CIBlockElement::GetProperties(), это не зависит
+// от внутренней кухни компонента. VALUE_ENUM уже человекочитаемый (резолвится текстом),
+// поэтому отдельный DISPLAY_PROPERTIES-путь не нужен.
 if (!function_exists("eportaPropText")) {
-function eportaPropText($arResult, $code) {
-	if (!empty($arResult["DISPLAY_PROPERTIES"][$code]["DISPLAY_VALUE"])) {
-		$v = $arResult["DISPLAY_PROPERTIES"][$code]["DISPLAY_VALUE"];
-		return is_array($v) ? implode(", ", $v) : (string)$v;
-	}
-	if (!empty($arResult["PROPERTIES"][$code]["VALUE_ENUM"])) {
-		$v = $arResult["PROPERTIES"][$code]["VALUE_ENUM"];
-		return is_array($v) ? implode(", ", $v) : (string)$v;
-	}
-	if (!empty($arResult["PROPERTIES"][$code]["VALUE"])) {
-		$v = $arResult["PROPERTIES"][$code]["VALUE"];
-		return is_array($v) ? implode(", ", $v) : (string)$v;
-	}
-	return "";
+function eportaPropText($eportaDirectProps, $code) {
+	// VALUE_ENUM у не-списочных свойств (N/S/...) — не отсутствует, а пустая строка/массив,
+	// поэтому ?? тут не подходит: явно проверяем непустоту, иначе VALUE_ENUM="" маскирует VALUE.
+	$enum = $eportaDirectProps[$code]["VALUE_ENUM"] ?? "";
+	$v = (is_array($enum) ? !empty(array_filter($enum, fn($x) => $x !== "" && $x !== null)) : $enum !== "")
+		? $enum
+		: ($eportaDirectProps[$code]["VALUE"] ?? "");
+	return is_array($v) ? implode(", ", array_filter($v, fn($x) => $x !== "" && $x !== null)) : (string)$v;
 }
 }
 
-$rating = (float)eportaPropText($arResult, "RATING");
-$voteCount = (int)eportaPropText($arResult, "VOTE_COUNT");
+$eportaDirectProps = [];
+$eportaDirectEl = \CIBlockElement::GetList(
+	[],
+	["IBLOCK_ID" => $arResult["IBLOCK_ID"], "ID" => $arResult["ID"]],
+	false,
+	false,
+	["ID", "IBLOCK_ID"]
+)->GetNextElement();
+if ($eportaDirectEl) {
+	$eportaDirectProps = $eportaDirectEl->GetProperties();
+}
+
+$rating = (float)eportaPropText($eportaDirectProps, "RATING");
+$voteCount = (int)eportaPropText($eportaDirectProps, "VOTE_COUNT");
 $ratingRounded = max(0, min(5, (int)round($rating)));
 $stars = str_repeat("★", $ratingRounded) . str_repeat("☆", 5 - $ratingRounded);
-$isHit = eportaPropText($arResult, "PRODUCT_DAY") !== "";
-$article = eportaPropText($arResult, "CML2_ARTICLE");
+// ХИТ определяем автоматически по рейтингу (в выгрузке нет отдельной колонки
+// хит/популярность), порог согласован с заказчиком — см. eportaExtra в catalog.section.
+$isHit = $rating >= 4.8;
+// "Новинка" — товар без рейтинга (0 или пусто в выгрузке); взаимоисключающе с ХИТ.
+$isNew = $rating <= 0;
+$article = eportaPropText($eportaDirectProps, "CML2_ARTICLE");
+$discountPercent = (float)eportaPropText($eportaDirectProps, "DISCOUNT");
 
 // Реальное добавление в корзину: официальный compatible-mode механизм
 // bitrix:catalog.element (см. ACTION_VARIABLE="action"/PRODUCT_ID_VARIABLE="id"
@@ -55,10 +70,15 @@ $addToBasketUrl = !empty($arResult["~ADD_URL_TEMPLATE"])
 	? str_replace("#ID#", $arResult["ID"], $arResult["~ADD_URL_TEMPLATE"]) . "&ajax_basket=Y"
 	: null;
 
+// Импортёр кладёт в BASE-цену уже итоговую (после скидки) сумму — это и есть то, что спишется
+// в корзине, так что $price["VALUE"] тут уже посчитанная цена, а не "было". Зачёркнутую старую
+// цену для витрины восстанавливаем обратно из процента (свойство DISCOUNT), а не из
+// Bitrix-движка скидок (его для xlsx-импорта не подключали, см. eportaImportOneProduct).
 $price = $arResult["PRICES"]["BASE"] ?? null;
-$hasDiscount = $price && !empty($price["DISCOUNT_VALUE"]) && $price["DISCOUNT_VALUE"] < $price["VALUE"];
-$priceValue = $price["DISCOUNT_VALUE"] ?? $price["VALUE"] ?? 0;
-$priceOldValue = $price["VALUE"] ?? 0;
+$priceValue = (float)($price["VALUE"] ?? 0);
+$hasDiscount = $price && $discountPercent > 0 && $priceValue > 0;
+$priceOldValue = $hasDiscount ? round($priceValue / (1 - $discountPercent / 100)) : $priceValue;
+$priceOldValuePrint = $hasDiscount ? \CCurrencyLang::CurrencyFormat($priceOldValue, $price["CURRENCY"] ?? "RUB") : "";
 
 // Галерея: основное фото + MORE_PHOTO (на большинстве товаров — одно доп. фото или ни одного).
 $mainPhotoSrc = $arResult["DETAIL_PICTURE"]["SRC"] ?? ($arResult["PREVIEW_PICTURE"]["SRC"] ?? $placeholderImg);
@@ -76,9 +96,9 @@ if (!empty($arResult["MORE_PHOTO"]) && is_array($arResult["MORE_PHOTO"])) {
 // будущую выгрузку из 1С (project_import_table_v2, колонка "Модель"), сейчас MODEL заполнен
 // вручную демо-затравкой на Dorsum 1 (см. план "transient-swimming-ullman"). Каждый вариант —
 // отдельный элемент IBLOCK 19 со своей ценой/фото/артикулом, свотч — обычная ссылка на него.
-$eportaModel = eportaPropText($arResult, "MODEL");
-$eportaCurrentColor = eportaPropText($arResult, "COATING_COLOR");
-$eportaCurrentGlazing = eportaPropText($arResult, "GLAZING");
+$eportaModel = eportaPropText($eportaDirectProps, "MODEL");
+$eportaCurrentColor = eportaPropText($eportaDirectProps, "COATING_COLOR");
+$eportaCurrentGlazing = eportaPropText($eportaDirectProps, "GLAZING");
 $eportaColorOptions = [];
 $eportaGlazingOptions = [];
 
@@ -88,15 +108,18 @@ if ($eportaModel !== "") {
 		["IBLOCK_ID" => 19, "PROPERTY_MODEL" => $eportaModel, "ACTIVE" => "Y"],
 		false,
 		false,
-		["ID", "PROPERTY_COATING_COLOR", "PROPERTY_GLAZING", "DETAIL_PAGE_URL", "PREVIEW_PICTURE"]
+		["ID", "CODE", "PROPERTY_COATING_COLOR", "PROPERTY_GLAZING", "DETAIL_PAGE_URL", "PREVIEW_PICTURE"]
 	);
 	$eportaVariants = [];
 	while ($v = $eportaVariantsRes->GetNext()) {
+		// DETAIL_PAGE_URL у IBLOCK 19 не настроен (шаблон URL пуст) — строим ссылку по CODE,
+		// как и остальные оверрайды (см. catalog.section/.default/template.php), иначе свотчи
+		// получают href="" и клик по ним просто перезагружает текущую страницу.
 		$eportaVariants[] = [
 			"id" => (int)$v["ID"],
 				"color" => (string)($v["PROPERTY_COATING_COLOR_VALUE"] ?? ""),
 			"glazing" => (string)($v["PROPERTY_GLAZING_VALUE"] ?? ""),
-			"url" => $v["DETAIL_PAGE_URL"],
+			"url" => $v["DETAIL_PAGE_URL"] ?: ($v["CODE"] ? "/catalog/" . $v["CODE"] . ".html" : ""),
 			"photo" => $v["PREVIEW_PICTURE"] ? CFile::GetPath($v["PREVIEW_PICTURE"]) : "",
 		];
 	}
@@ -125,11 +148,9 @@ $eportaShowVariantSelectors = count($eportaColorOptions) > 1 || count($eportaGla
 // Размеры (свойство SIZES, многозначное): значение "ШxВ" или "ШxВ:надбавка" — формат-задел
 // под будущую выгрузку, надбавка пока в основном 0 (демо-данные без пересчёта).
 $eportaSizeOptions = [];
-$eportaSizesRaw = $arResult["DISPLAY_PROPERTIES"]["SIZES"]["DISPLAY_VALUE"]
-	?? ($arResult["PROPERTIES"]["SIZES"]["VALUE"] ?? []);
-if (!is_array($eportaSizesRaw)) {
-	$eportaSizesRaw = $eportaSizesRaw !== "" ? [$eportaSizesRaw] : [];
-}
+$eportaSizesRaw = eportaPropText($eportaDirectProps, "SIZES");
+// Импортёр кладёт SIZES одной строкой через запятую (implode), не multiple-свойством.
+$eportaSizesRaw = $eportaSizesRaw !== "" ? explode(",", $eportaSizesRaw) : [];
 foreach ($eportaSizesRaw as $sizeRaw) {
 	$sizeParts = explode(":", (string)$sizeRaw, 2);
 	$eportaSizeOptions[] = [
@@ -151,6 +172,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 		<div style="position:relative;flex:1;min-height:0">
 			<img id="mainPhoto" src="<?= htmlspecialcharsbx($galleryPhotos[0]) ?>" style="width:100%;height:100%;object-fit:contain;background:#f6f4ef;border-radius:16px" alt="<?= htmlspecialcharsbx($arResult["NAME"]) ?>">
 			<?php if ($isHit): ?><span style="position:absolute;top:14px;left:14px;background:#e8820a;color:#fff;font:700 11px 'Manrope';padding:6px 12px;border-radius:7px">ХИТ ПРОДАЖ</span><?php endif; ?>
+			<?php if ($isNew): ?><span style="position:absolute;top:14px;left:14px;background:#1f8a4c;color:#fff;font:700 11px 'Manrope';padding:6px 12px;border-radius:7px">НОВИНКА</span><?php endif; ?>
 		</div>
 		<?php if (count($galleryPhotos) > 1): ?>
 		<div style="display:flex;gap:12px;flex:none;height:96px">
@@ -165,9 +187,9 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 	<div style="flex:1;align-self:flex-start">
 		<h1 style="margin:0 0 8px;font:800 24px/1.2 'Manrope';letter-spacing:-0.01em"><?= htmlspecialcharsbx($arResult["NAME"]) ?></h1>
 		<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-			<?php if ($voteCount > 0): ?>
+			<?php if ($rating > 0): ?>
 				<span style="color:#e8820a;font-size:13px;letter-spacing:1px"><?= $stars ?></span>
-				<span style="font:600 13px;color:#5f5a51"><?= number_format($rating, 1, ".", "") ?> · <?= $voteCount ?> <?= plural($voteCount, "отзыв", "отзыва", "отзывов") ?></span>
+				<span style="font:600 13px;color:#5f5a51"><?= number_format($rating, 1, ".", "") ?><?php if ($voteCount > 0): ?> · <?= $voteCount ?> <?= plural($voteCount, "отзыв", "отзыва", "отзывов") ?><?php endif; ?></span>
 			<?php else: ?>
 				<span style="font:600 13px;color:#8a857b">Пока нет отзывов</span>
 			<?php endif; ?>
@@ -177,10 +199,10 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 
 		<div style="display:flex;align-items:baseline;gap:12px;margin-bottom:4px">
 			<?php if ($price): ?>
-				<div id="priceBig" style="font:800 40px 'Manrope';letter-spacing:-0.02em"><?= $price["PRINT_DISCOUNT_VALUE"] ?? $price["PRINT_VALUE"] ?></div>
+				<div id="priceBig" style="font:800 40px 'Manrope';letter-spacing:-0.02em"><?= $price["PRINT_VALUE"] ?></div>
 				<?php if ($hasDiscount): ?>
-					<div id="oldPrice" style="font:600 16px;color:#a39e95;text-decoration:line-through"><?= $price["PRINT_VALUE"] ?></div>
-					<span id="discountBadge" style="font:700 12px;color:#c2670a;background:#fbecd9;padding:5px 9px;border-radius:6px">−<?= round((1 - $priceValue / $priceOldValue) * 100) ?>%</span>
+					<div id="oldPrice" style="font:600 16px;color:#a39e95;text-decoration:line-through"><?= $priceOldValuePrint ?></div>
+					<span id="discountBadge" style="font:700 12px;color:#c2670a;background:#fbecd9;padding:5px 9px;border-radius:6px">−<?= round($discountPercent) ?>%</span>
 				<?php endif; ?>
 			<?php else: ?>
 				<div id="priceBig" style="font:800 40px 'Manrope';letter-spacing:-0.02em">по запросу</div>
@@ -253,7 +275,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 			<span class="kt-arrow">›</span>
 		</button>
 
-		<button id="ctaBtn" onclick="addMainToCart(event)" style="display:block;width:100%;background:#e8820a;color:#fff;font-weight:800;font-size:18px;text-align:center;padding:17px;border-radius:13px;box-shadow:0 10px 24px rgba(232,130,10,.32);border:none;cursor:pointer">В корзину · <span id="ctaPrice"><?= $price ? ($price["PRINT_DISCOUNT_VALUE"] ?? $price["PRINT_VALUE"]) : "по запросу" ?></span></button>
+		<button id="ctaBtn" onclick="addMainToCart(event)" style="display:block;width:100%;background:#e8820a;color:#fff;font-weight:800;font-size:18px;text-align:center;padding:17px;border-radius:13px;box-shadow:0 10px 24px rgba(232,130,10,.32);border:none;cursor:pointer">В корзину · <span id="ctaPrice"><?= $price ? ($price["PRINT_VALUE"]) : "по запросу" ?></span></button>
 		<div style="display:flex;gap:10px;margin-top:10px">
 			<div style="flex:1;background:#fff;color:#1b1a17;font-weight:700;font-size:14px;text-align:center;padding:13px;border-radius:12px;border:1.6px solid #1b1a17;cursor:pointer">Купить в 1 клик</div>
 			<div id="favBtn" onclick="toggleFav()" style="flex:none;width:50px;background:#fff;border:1.6px solid #e7e3db;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#a39e95;cursor:pointer">♡</div>
@@ -283,11 +305,13 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 				// Цвет/остекление дублировать в характеристиках не нужно, когда они уже вынесены
 				// в переключаемые селекторы выше (count > 1) — там они хорошо видны и так.
 				$specs = [
-					"Стиль" => eportaPropText($arResult, "STYLE"),
-					"Покрытие" => eportaPropText($arResult, "COATING"),
-					"Цвет покрытия" => count($eportaColorOptions) > 1 ? "" : eportaPropText($arResult, "COATING_COLOR"),
-					"Остекление" => count($eportaGlazingOptions) > 1 ? "" : eportaPropText($arResult, "GLAZING"),
-					"Основной цвет" => eportaPropText($arResult, "MAIN_COLOR"),
+					"Стиль" => eportaPropText($eportaDirectProps, "STYLE"),
+					"Покрытие" => eportaPropText($eportaDirectProps, "COATING"),
+					"Цвет покрытия" => count($eportaColorOptions) > 1 ? "" : eportaPropText($eportaDirectProps, "COATING_COLOR"),
+					"Остекление" => count($eportaGlazingOptions) > 1 ? "" : eportaPropText($eportaDirectProps, "GLAZING"),
+					"Основной цвет" => eportaPropText($eportaDirectProps, "MAIN_COLOR"),
+					"Шумоизоляция" => eportaPropText($eportaDirectProps, "NOISE_ISOLATION"),
+					"Огнестойкость" => eportaPropText($eportaDirectProps, "FIRE_RESISTANCE"),
 				];
 			?>
 			<?php foreach ($specs as $specName => $specValue): if ($specValue === "") continue; ?>
@@ -364,7 +388,7 @@ var HAS_SIZE_OPTIONS = <?= count($eportaSizeOptions) > 1 ? "true" : "false" ?>; 
 var selectedSizeLabel = <?= json_encode($eportaSizeOptions[0]["label"] ?? "", JSON_UNESCAPED_UNICODE) ?>;
 var ADD_TO_BASKET_URL = <?= $addToBasketUrl ? json_encode($addToBasketUrl, JSON_UNESCAPED_SLASHES) : "null" ?>;
 var DOOR_NAME = <?= json_encode($arResult["NAME"], JSON_UNESCAPED_UNICODE) ?>;
-var DOOR_PRICE_LABEL = <?= json_encode($price ? ($price["PRINT_DISCOUNT_VALUE"] ?? $price["PRINT_VALUE"]) : "", JSON_UNESCAPED_UNICODE) ?>;
+var DOOR_PRICE_LABEL = <?= json_encode($price ? ($price["PRINT_VALUE"]) : "", JSON_UNESCAPED_UNICODE) ?>;
 var productKitSelection = {}; // сохраняем выбор допов между открытиями модалки на этой странице
 
 function fmtPrice(n) { return KitModal.fmtPrice(n); }

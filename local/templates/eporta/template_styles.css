@@ -34,21 +34,6 @@ body {
 a { text-decoration: none; color: inherit; }
 img { display: block; }
 
-/* ========== Тикер (trust-bar) ========== */
-.trust-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 34px;
-  padding: 8px;
-  background: var(--dark);
-  color: #d7d2c8;
-  font-size: 12.5px;
-  font-weight: 500;
-  flex-wrap: wrap;
-}
-.trust-bar span.sep { color: #5f5a51; }
-
 /* ========== Шапка ========== */
 .site-header {
   display: flex;
@@ -272,6 +257,55 @@ img { display: block; }
   display: inline-block;
 }
 
+/* ---- Блок "Покупателю" (Замер/Доставка/Оплата/Монтаж/Гарантия) ----
+   Крайний правый пункт .cat-nav — то есть противоположный от Каталога/Коллекций. */
+.buyer-nav { position: relative; margin-left: 22px; }
+.buyer-nav-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 14.5px var(--font);
+  color: var(--text-mid);
+  background: none;
+  border: none;
+  padding: 0 0 6px;
+  border-bottom: 2.5px solid transparent;
+  cursor: pointer;
+}
+.buyer-nav-toggle:hover,
+.buyer-nav.open .buyer-nav-toggle { color: var(--dark); }
+.buyer-nav-arrow {
+  width: 7px;
+  height: 7px;
+  border-right: 1.6px solid currentColor;
+  border-bottom: 1.6px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform .15s;
+}
+.buyer-nav.open .buyer-nav-arrow { transform: rotate(-135deg) translateY(1px); }
+.buyer-nav-dropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 9px);
+  z-index: 210;
+  min-width: 190px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(27,26,23,.13);
+  padding: 8px;
+}
+.buyer-nav.open .buyer-nav-dropdown { display: block; }
+.buyer-nav-dropdown a {
+  display: block;
+  font: 600 14px var(--font);
+  color: var(--dark);
+  padding: 9px 12px;
+  border-radius: 8px;
+}
+.buyer-nav-dropdown a:hover { background: var(--bg-warm); }
+.buyer-nav-dropdown a.active { color: var(--accent-dark); background: var(--bg-warm); }
 /* ========== Карусель баннеров на главной ==========
    Высота — clamp(min, 42vh, max): на низких вьюпортах (ноутбуки 768px и ниже)
    ужимается так, чтобы под ней уже читался край мозаики "Каталог по категориям"
@@ -460,6 +494,7 @@ img { display: block; }
 }
 .product-card .badge.hit { background: var(--accent); }
 .product-card .badge.sale { background: var(--success); }
+.product-card .badge.new { background: var(--success); }
 .wishlist-remove-btn {
   position: absolute;
   top: 10px;
@@ -1292,6 +1327,8 @@ img { display: block; }
 }
 .lk-tab:hover { color: var(--dark); }
 .lk-tab.active { font-weight: 700; color: var(--dark); border-bottom-color: var(--accent); }
+.lk-tab-logout { color: var(--sale); }
+.lk-tab-logout:hover { color: var(--sale); text-decoration: underline; }
 
 .lk-body { display: flex; gap: 60px; padding: 28px 28px 40px; flex-wrap: wrap; }
 .lk-col { flex: 1; min-width: 280px; max-width: 420px; }
@@ -1778,6 +1815,96 @@ img { display: block; }
 .bx-soa-pp-company-title { font: 700 14px var(--font) !important; color: var(--dark); }
 .bx-soa-pickup-l-item-btn,
 .bx-soa-more { color: var(--accent-dark) !important; }
+
+/* ========== Страницы раздела "Покупателю" (Замер/Доставка/Оплата/Монтаж/Гарантия) ========== */
+.info-page { max-width: 900px; margin: 0 auto; padding: 32px var(--pad-x) 64px; }
+.info-page h1 { font: 800 30px var(--font); color: var(--dark); margin-bottom: 22px; }
+.info-page h2 { font: 800 20px var(--font); color: var(--dark); margin: 30px 0 12px; }
+.info-page p { font: 500 15px/1.6 var(--font); color: var(--text-mid); margin-bottom: 12px; }
+.info-page strong { color: var(--dark); }
+.info-page a.info-link { color: var(--accent-dark); font-weight: 700; }
+
+.info-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 26px;
+}
+.info-tabs a {
+  font: 700 13.5px var(--font);
+  color: var(--text-mid);
+  background: var(--bg-warm);
+  border-radius: 20px;
+  padding: 9px 16px;
+}
+.info-tabs a:hover { color: var(--dark); }
+.info-tabs a.active { color: #fff; background: var(--accent-dark); }
+
+.info-callout {
+  border-radius: 14px;
+  padding: 18px 22px;
+  margin-bottom: 20px;
+  background: var(--bg-warm);
+  border: 1px solid var(--border-soft);
+}
+.info-callout h4 { font: 800 15.5px var(--font); color: var(--dark); margin-bottom: 8px; }
+.info-callout p { margin: 0; color: var(--text-mid); }
+.info-callout--accent { background: #fdf1e2; border-color: #f3dcb2; }
+.info-callout--accent h4 { color: var(--accent-dark); }
+
+.info-list { list-style: none; margin: 0 0 20px; padding: 0; }
+.info-list li {
+  font: 500 14.5px/1.5 var(--font);
+  color: var(--text-mid);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.info-list li:last-child { border-bottom: none; }
+.info-list li.info-list-heading {
+  font: 800 13px var(--font);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--text-hint);
+  border-bottom: none;
+  padding: 20px 0 6px;
+}
+.info-list li.info-list-heading:first-child { padding-top: 0; }
+
+.info-table-wrap { overflow-x: auto; margin-bottom: 24px; }
+.info-table { width: 100%; border-collapse: collapse; font: 500 14px var(--font); }
+.info-table th, .info-table td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--border); }
+.info-table th { font: 800 12px var(--font); text-transform: uppercase; letter-spacing: .03em; color: var(--text-hint); background: var(--bg-warm); }
+.info-table td:last-child, .info-table th:last-child { text-align: right; white-space: nowrap; }
+.info-table tr.info-table-section th { background: #f2ede2; color: var(--dark); font-size: 12.5px; }
+
+.info-form {
+  background: var(--bg-warm);
+  border-radius: 16px;
+  padding: 26px 28px;
+  margin-top: 8px;
+}
+.info-form label { display: block; font: 700 13.5px var(--font); color: var(--dark); margin-bottom: 6px; }
+.info-form input, .info-form textarea {
+  width: 100%;
+  font: 500 14.5px var(--font);
+  color: var(--dark);
+  background: #fff;
+  border: 1.5px solid var(--border-soft);
+  border-radius: 10px;
+  padding: 11px 14px;
+  margin-bottom: 16px;
+}
+.info-form button {
+  font: 700 14.5px var(--font);
+  color: #fff;
+  background: var(--accent-dark);
+  border: none;
+  border-radius: 10px;
+  padding: 12px 26px;
+  cursor: pointer;
+}
+.info-form button:hover { background: var(--accent); }
+.info-form .info-form-note { font: 500 12.5px/1.5 var(--font); color: var(--text-hint); margin-top: 10px; }
 
 /* Информационные плашки — тот же стиль, что .auth-error на /auth/ */
 #bx-soa-order .alert {

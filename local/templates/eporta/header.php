@@ -13,7 +13,90 @@ if (($_REQUEST["dev_preview"] ?? "") === "x7Qm2pR9vL" && empty($_COOKIE["dev_pre
 	setcookie("dev_preview", "x7Qm2pR9vL", 0, "/");
 }
 
+// Сайт ещё не готов к публичному запуску (данные/контакты не окончательные).
+// Без dev_preview-куки/параметра — заглушка "в разработке" вместо реального контента.
+// У кого кука уже стоит (команда) — видят обычный сайт как раньше.
+$eportaDevAccess = ($_COOKIE["dev_preview"] ?? "") === "x7Qm2pR9vL" || ($_REQUEST["dev_preview"] ?? "") === "x7Qm2pR9vL";
+if (!$eportaDevAccess) {
+	header("HTTP/1.1 503 Service Unavailable");
+	header("Retry-After: 3600");
+	header("X-Robots-Tag: noindex, nofollow");
+	?><!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Сайт готовится к запуску — Eporta</title>
+<style>
+	html,body{height:100%;margin:0;}
+	body{
+		display:flex;align-items:center;justify-content:center;
+		min-height:100vh;padding:24px;box-sizing:border-box;
+		background:#0f0f10;color:#f2f0ec;
+		font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+		text-align:center;
+	}
+	.wrap{max-width:520px;}
+	h1{font-size:26px;font-weight:600;margin:0 0 12px;}
+	p{font-size:15px;line-height:1.5;color:#b7b3ac;margin:0;}
+</style>
+</head>
+<body>
+	<div class="wrap">
+		<h1>Сайт готовится к запуску</h1>
+		<p>Мы обновляем каталог и контактные данные. Загляните чуть позже — скоро здесь будет новый сайт Eporta.</p>
+	</div>
+</body>
+</html>
+<?php
+	die();
+}
+
+// Мега-меню "Каталог": пункты "По стилю"/"По покрытию" ведут на /catalog/ с реальным фильтром
+// (?style[]=ID / ?coating[]=ID), "Тип дверей" — на /catalog/?category=<key> (см.
+// inc/categories.php). Меню строится на клиенте (assets/app.js), где enum-ID свойств
+// недоступны — поэтому резолвим их здесь и прокидываем как window.EPORTA_MEGAMENU.
+\Bitrix\Main\Loader::includeModule("iblock");
+require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/categories.php");
+require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/buyer_info_pages.php");
+function eportaResolveEnumMap($code) {
+	$map = [];
+	$rs = \CIBlockPropertyEnum::GetList(["SORT" => "ASC"], ["IBLOCK_ID" => 19, "CODE" => $code]);
+	while ($e = $rs->Fetch()) { $map[$e["VALUE"]] = (int)$e["ID"]; }
+	return $map;
+}
+$eportaStyleEnum = eportaResolveEnumMap("STYLE");
+$eportaCoatingEnum = eportaResolveEnumMap("COATING");
+$eportaMegaMenuConfig = [
+	"style" => [
+		"Модерн / хай-тек" => $eportaStyleEnum["Модерн"] ?? ($eportaStyleEnum["Хай-тек"] ?? null),
+		"Классика" => $eportaStyleEnum["Классика"] ?? null,
+		"Лофт" => $eportaStyleEnum["Лофт"] ?? null,
+		"Скандинавский" => $eportaStyleEnum["Скандинавский"] ?? null,
+	],
+	"coating" => [
+		"Экошпон" => $eportaCoatingEnum["Экошпон"] ?? null,
+		"Эмаль" => $eportaCoatingEnum["Эмаль"] ?? null,
+		// "Эмалит" в справочнике COATING отсутствует (нет такого значения у товаров) — ссылка
+		// без фильтра, пока в выгрузке не появится соответствующий вариант.
+		"Эмалит" => null,
+		"Натуральный шпон" => $eportaCoatingEnum["Шпон натуральный"] ?? null,
+	],
+	"category" => [
+		"Межкомнатные" => "mkd",
+		"Раздвижные перегородки" => "sliding",
+		"Входные" => "entrance",
+		"Фурнитура" => "hardware",
+	],
+];
+
 $asset = Asset::getInstance();
+$asset->addString('<script>window.EPORTA_MEGAMENU = '.json_encode($eportaMegaMenuConfig, JSON_UNESCAPED_UNICODE).';</script>');
+
+// Сайт-wide CSRF-токен для ajax.php (dw.deluxe, act=addCart/addCompare/compDEL/clearCompare —
+// все требуют check_bitrix_sessid() и id строго через POST-тело, не GET). compare.js раньше
+// слал обычный GET без токена — эндпоинт молча не срабатывал (сессия просто не совпадала).
+$asset->addString('<script>window.BX_SESSID = '.json_encode(bitrix_sessid(), JSON_UNESCAPED_SLASHES).';</script>');
 // Cache-busting через filemtime: nginx отдаёт статику immutable+1y без версионирования
 // (конфиг генерируется ISPmanager, ручную правку не сохранить), поэтому версионируем
 // на стороне PHP через query-параметр — браузер перекачает файл при изменении даты правки.
@@ -82,14 +165,6 @@ if (\Bitrix\Main\Loader::includeModule("dw.deluxe")) {
 <body>
 <?php $APPLICATION->ShowPanel(); ?>
 
-<!-- Тикер -->
-<div class="trust-bar">
-	<span>Бесплатный замер по Москве</span><span class="sep">•</span>
-	<span>Доставка по РФ от 1 дня</span><span class="sep">•</span>
-	<span>Рассрочка 0% до 12 мес.</span><span class="sep">•</span>
-	<span>Гарантия 2 года</span>
-</div>
-
 <!-- Шапка -->
 <div class="site-header">
 	<a href="/" class="logo-wrap">
@@ -106,7 +181,14 @@ if (\Bitrix\Main\Loader::includeModule("dw.deluxe")) {
 		<a href="#">Заказать звонок</a>
 	</div>
 	<div class="header-actions">
-		<a href="<?= $USER->IsAuthorized() ? "/personal/" : "/auth/" ?>" class="btn-account" aria-label="Личный кабинет">
+		<?php
+		// Без явного backurl вход через /auth/ всегда возвращал на дефолтный экран ("Вы
+		// авторизованы" -> кнопка "В личный кабинет"), а не туда, откуда пользователь пришёл
+		// логиниться — раздражало на страницах каталога/товара. auth/index.php уже умеет
+		// редиректить на backurl из запроса (см. его JS), не хватало только передать его сюда.
+		$eportaAuthHref = "/auth/?backurl=".urlencode($_SERVER["REQUEST_URI"]);
+		?>
+		<a href="<?= $USER->IsAuthorized() ? "/personal/" : $eportaAuthHref ?>" class="btn-account" aria-label="Личный кабинет">
 			<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"></path></svg>
 		</a>
 		<a href="/compare/" class="compare-btn" aria-label="Сравнение">
@@ -130,15 +212,25 @@ if (\Bitrix\Main\Loader::includeModule("dw.deluxe")) {
 // и на /catalog/collections/<code>/ (SEF-страница конкретной коллекции внутри того же каталога,
 // см. project_phase_b_data_map, ЭТАП 5) — это самый специфичный префикс, проверяем его первым.
 $eportaCurPath = parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);
+$eportaNavSale = !empty($_GET["sale"]);
+$eportaNavNew = !empty($_GET["new"]);
 $eportaNavCollections = str_starts_with($eportaCurPath, "/collection/") || str_starts_with($eportaCurPath, "/catalog/collections/");
-$eportaNavCatalog = !$eportaNavCollections && str_starts_with($eportaCurPath, "/catalog/");
+$eportaNavCatalog = !$eportaNavCollections && !$eportaNavSale && !$eportaNavNew && str_starts_with($eportaCurPath, "/catalog/");
 ?>
 <!-- Навигация -->
 <div class="cat-nav">
 	<a href="/catalog/" class="<?= $eportaNavCatalog ? "active" : "" ?>">Каталог</a>
 	<a href="/collection/" class="<?= $eportaNavCollections ? "active" : "" ?>">Коллекции</a>
-	<span class="nav-item nav-sale"><span class="dot-red"></span>Распродажа</span>
-	<span class="nav-item nav-new">Новинки<span class="badge-new">NEW</span></span>
+	<a href="/catalog/?sale=1" class="nav-item nav-sale<?= $eportaNavSale ? " active" : "" ?>"><span class="dot-red"></span>Распродажа</a>
+	<a href="/catalog/?new=1" class="nav-item nav-new<?= $eportaNavNew ? " active" : "" ?>">Новинки<span class="badge-new">NEW</span></a>
 	<span class="spacer"></span>
 	<span class="sale-badge"><span class="dot"></span>Акция: рассрочка 0%</span>
+	<div class="buyer-nav" id="buyerNav">
+		<button type="button" class="buyer-nav-toggle" id="buyerNavToggle">Покупателю <i class="buyer-nav-arrow"></i></button>
+		<div class="buyer-nav-dropdown" id="buyerNavDropdown">
+			<?php foreach (eportaBuyerInfoPages() as $eportaBuyerPage): ?>
+				<a href="<?= htmlspecialcharsbx($eportaBuyerPage["href"]) ?>"<?= $eportaCurPath === $eportaBuyerPage["href"] ? ' class="active"' : "" ?>><?= htmlspecialcharsbx($eportaBuyerPage["label"]) ?></a>
+			<?php endforeach; ?>
+		</div>
+	</div>
 </div>

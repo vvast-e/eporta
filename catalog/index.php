@@ -1,7 +1,8 @@
 <?
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
-$APPLICATION->SetPageProperty("title", "Каталог товаров");
-$APPLICATION->SetTitle("Каталог товаров");
+$eportaCatalogPageTitle = !empty($_GET["sale"]) ? "Распродажа" : (!empty($_GET["new"]) ? "Новинки" : "Каталог товаров");
+$APPLICATION->SetPageProperty("title", $eportaCatalogPageTitle);
+$APPLICATION->SetTitle($eportaCatalogPageTitle);
 ?>
 <?
 	//include module
@@ -80,6 +81,39 @@ $APPLICATION->SetTitle("Каталог товаров");
 		$eportaScopeFilter = ["IBLOCK_ID" => 19, "ACTIVE" => "Y"];
 		if ($eportaFilterSectionId) {
 			$eportaScopeFilter["SECTION_ID"] = $eportaFilterSectionId;
+		}
+
+		// Категория (PROPERTY_CATEGORY, строковое свойство — см. inc/categories.php) — привязка
+		// пунктов мега-меню "Тип дверей" и плиток "Каталог по категориям" на главной. Не enum,
+		// поэтому фильтруется по массиву точных строковых значений (ALIASES), а не по ID варианта.
+		require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/categories.php");
+		$eportaCategoryMap = eportaGetCategoryMap();
+		$eportaSelectedCategory = (!empty($_GET["category"]) && isset($eportaCategoryMap[$_GET["category"]]))
+			? $_GET["category"] : null;
+		if ($eportaSelectedCategory) {
+			$eportaScopeFilter["PROPERTY_CATEGORY"] = $eportaCategoryMap[$eportaSelectedCategory]["ALIASES"];
+			$eportaActiveChips[] = ["LABEL" => $eportaCategoryMap[$eportaSelectedCategory]["LABEL"], "REMOVE_KEY" => "category", "REMOVE_VALUE" => null];
+		}
+
+		// "Распродажа" (шапка, /catalog/?sale=1) — те же товары, для которых карточка
+		// показывает бейдж скидки (см. $hasDiscount в catalog.section/.default/template.php).
+		$eportaOnlySale = !empty($_GET["sale"]);
+		if ($eportaOnlySale) {
+			$eportaScopeFilter[">PROPERTY_DISCOUNT"] = 0;
+			$eportaActiveChips[] = ["LABEL" => "Распродажа", "REMOVE_KEY" => "sale", "REMOVE_VALUE" => null];
+		}
+
+		// "Новинки" (шапка, /catalog/?new=1) — те же товары, что дают бейдж "Новинка"
+		// ($isNew = rating <= 0 в том же template.php). Старый CIBlockElement::GetList (в отличие
+		// от D7 ORM) НЕ поддерживает вложенные подфильтры с LOGIC=>OR — такой ключ просто молча
+		// игнорируется, и фильтр не отсекает ничего (было замечено вживую: "Новинки" находили
+		// все 68 товаров). Импортёр eporta всегда пишет RATING (хотя бы 0, см. eportaImportOneProduct
+		// в lib.php), так что в реальных данных свойство не бывает вообще незаполненным — простое
+		// "<=0" достаточно, без подстраховки на "PROPERTY_RATING => false".
+		$eportaOnlyNew = !empty($_GET["new"]);
+		if ($eportaOnlyNew) {
+			$eportaScopeFilter["<=PROPERTY_RATING"] = 0;
+			$eportaActiveChips[] = ["LABEL" => "Новинки", "REMOVE_KEY" => "new", "REMOVE_VALUE" => null];
 		}
 
 		// Свойства-чекбоксы: код свойства => [ query-параметр, подпись, ключ фильтра CIBlockElement ]
@@ -267,6 +301,10 @@ $APPLICATION->SetTitle("Каталог товаров");
 		<div>
 			<?if ($eportaCollectionSection):?>
 			<h2 style="margin:0;font:800 24px 'Manrope';letter-spacing:-0.01em">Товары коллекции <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></h2>
+			<?elseif ($eportaOnlySale):?>
+			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Распродажа</h1>
+			<?elseif ($eportaOnlyNew):?>
+			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Новинки</h1>
 			<?else:?>
 			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Межкомнатные двери</h1>
 			<?endif;?>
@@ -291,8 +329,10 @@ $APPLICATION->SetTitle("Каталог товаров");
 		<?foreach ($eportaActiveChips as $eportaChip):
 			$eportaChipParams = [];
 			parse_str(parse_url($_SERVER["REQUEST_URI"] ?? "", PHP_URL_QUERY) ?: "", $eportaChipParams);
-			if ($eportaChip["REMOVE_VALUE"] === null) {
+			if ($eportaChip["REMOVE_KEY"] === "price") {
 				unset($eportaChipParams["price_min"], $eportaChipParams["price_max"]);
+			} elseif ($eportaChip["REMOVE_VALUE"] === null) {
+				unset($eportaChipParams[$eportaChip["REMOVE_KEY"]]);
 			} else {
 				$eportaChipParams[$eportaChip["REMOVE_KEY"]] = array_values(array_diff((array)($eportaChipParams[$eportaChip["REMOVE_KEY"]] ?? []), [(string)$eportaChip["REMOVE_VALUE"]]));
 				if (empty($eportaChipParams[$eportaChip["REMOVE_KEY"]])) unset($eportaChipParams[$eportaChip["REMOVE_KEY"]]);
@@ -339,7 +379,23 @@ $APPLICATION->SetTitle("Каталог товаров");
 
 		<!-- Сетка товаров: реальные данные IBLOCK 19 (Этап 1, Фаза B), фильтр — этот этап -->
 		<div style="flex:1">
-			<?$arrFilter = $eportaArrFilter;?>
+			<?
+				// FILTER_NAME=>"arrFilter" ниже читает глобальную $arrFilter, а не $eportaArrFilter —
+				// раньше сюда не попадали category/sale/new (они писались только в $eportaScopeFilter,
+				// который используется для счётчиков/диапазона цены, но НЕ передаётся в сам компонент).
+				// Из-за этого "Новинки"/"Распродажа"/категория меняли счётчик "Найдено N" и чипы,
+				// но сетка товаров ниже реально не фильтровалась. Дублируем те же условия сюда.
+				$arrFilter = $eportaArrFilter;
+				if (!empty($eportaScopeFilter["PROPERTY_CATEGORY"])) {
+					$arrFilter["PROPERTY_CATEGORY"] = $eportaScopeFilter["PROPERTY_CATEGORY"];
+				}
+				if (isset($eportaScopeFilter[">PROPERTY_DISCOUNT"])) {
+					$arrFilter[">PROPERTY_DISCOUNT"] = $eportaScopeFilter[">PROPERTY_DISCOUNT"];
+				}
+				if (isset($eportaScopeFilter["<=PROPERTY_RATING"])) {
+					$arrFilter["<=PROPERTY_RATING"] = $eportaScopeFilter["<=PROPERTY_RATING"];
+				}
+			?>
 			<?$APPLICATION->IncludeComponent(
 				"bitrix:catalog.section",
 				".default",
@@ -349,8 +405,12 @@ $APPLICATION->SetTitle("Каталог товаров");
 					"SECTION_ID" => $eportaCollectionSection ? $eportaCollectionSection["ID"] : false,
 					"SECTION_CODE" => "",
 					"SECTION_USER_FIELDS" => [],
-					"ELEMENT_SORT_FIELD" => "sort",
-					"ELEMENT_SORT_ORDER" => "asc",
+					// "Сначала популярные" — реальная сортировка по рейтингу (в выгрузке нет
+					// отдельной колонки хит/популярность), а не декоративный <div> без логики.
+					// Раньше сортировка шла по "sort"/"id" и не учитывала рейтинг вообще —
+					// товары с рейтингом 5 не поднимались выше товаров с рейтингом 0.
+					"ELEMENT_SORT_FIELD" => "PROPERTY_RATING",
+					"ELEMENT_SORT_ORDER" => "desc",
 					"ELEMENT_SORT_FIELD2" => "id",
 					"ELEMENT_SORT_ORDER2" => "desc",
 					"FILTER_NAME" => "arrFilter",

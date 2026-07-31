@@ -321,7 +321,7 @@ $APPLICATION->SetTitle("Страница поиска");
 			["ID" => $eportaPageIds, "ACTIVE" => "Y"],
 			false,
 			false,
-			["ID", "NAME", "DETAIL_PAGE_URL", "PREVIEW_PICTURE", "DETAIL_PICTURE", "CATALOG_PRICE_1", "PROPERTY_RATING", "PROPERTY_VOTE_COUNT", "PROPERTY_PRODUCT_DAY"]
+			["ID", "NAME", "CODE", "DETAIL_PAGE_URL", "PREVIEW_PICTURE", "DETAIL_PICTURE", "CATALOG_PRICE_1", "PROPERTY_RATING", "PROPERTY_DISCOUNT"]
 		);
 		$eportaPageDataById = [];
 		while ($eportaRow = $eportaPageRes->GetNext()) {
@@ -341,31 +341,53 @@ $APPLICATION->SetTitle("Страница поиска");
 	<div style="padding:8px 56px 4px">
 		<div style="display:grid;grid-template-columns:repeat(<?=$eportaLineCount?>,1fr);gap:16px">
 			<?foreach ($eportaPageItems as $eportaItem):
-				$eportaRating = (int)($eportaItem["PROPERTY_RATING_VALUE"] ?? 0);
-				$eportaVoteCount = (int)($eportaItem["PROPERTY_VOTE_COUNT_VALUE"] ?? 0);
+				// Паритет с карточкой каталога (components/bitrix/catalog.section/.default/template.php):
+				// (float) рейтинг (не int — иначе 4.99 обрезается до 4 и мимо порога ХИТ), ХИТ/Новинка
+				// по тому же порогу rating>=4.8 / rating<=0 (а не по пустому PRODUCT_DAY — импорт его
+				// никогда не заполняет, поэтому раньше плашка ХИТ в поиске не показывалась вообще),
+				// зачёркнутая старая цена из свойства DISCOUNT, рабочая ссылка на карточку товара.
+				$eportaRating = (float)($eportaItem["PROPERTY_RATING_VALUE"] ?? 0);
 				$eportaStars = str_repeat("★", max(0, min(5, round($eportaRating)))).str_repeat("☆", 5 - max(0, min(5, round($eportaRating))));
-				$eportaIsHit = !empty($eportaItem["PROPERTY_PRODUCT_DAY_VALUE"]);
-				$eportaPriceVal = $eportaItem["CATALOG_PRICE_1"] ?? null;
+				$eportaIsHit = $eportaRating >= 4.8;
+				$eportaIsNew = $eportaRating <= 0;
+
+				$eportaPriceVal = (float)($eportaItem["CATALOG_PRICE_1"] ?? 0);
+				$eportaHasPrice = ($eportaItem["CATALOG_PRICE_1"] ?? null) !== null && $eportaPriceVal > 0;
+				$eportaDiscountPercent = (float)($eportaItem["PROPERTY_DISCOUNT_VALUE"] ?? 0);
+				$eportaHasDiscount = $eportaHasPrice && $eportaDiscountPercent > 0;
+				$eportaOldPriceVal = $eportaHasDiscount ? round($eportaPriceVal / (1 - $eportaDiscountPercent / 100)) : 0;
+
 				$eportaImgId = $eportaItem["PREVIEW_PICTURE"] ?: $eportaItem["DETAIL_PICTURE"];
 				$eportaImgSrc = $eportaImgId ? \CFile::GetPath($eportaImgId) : $eportaPlaceholderImg;
+
+				$eportaItemUrl = $eportaItem["DETAIL_PAGE_URL"] ?: null;
+				if (!$eportaItemUrl && !empty($eportaItem["CODE"])) {
+					$eportaItemUrl = "/catalog/".$eportaItem["CODE"].".html";
+				}
 			?>
-			<a href="<?=htmlspecialcharsbx($eportaItem["DETAIL_PAGE_URL"])?>" class="product-card">
+			<a href="<?=$eportaItemUrl ? htmlspecialcharsbx($eportaItemUrl) : "javascript:void(0)"?>" class="product-card">
 				<div class="img-wrap">
 					<img src="<?=htmlspecialcharsbx($eportaImgSrc)?>" alt="<?=htmlspecialcharsbx($eportaItem["NAME"])?>">
 					<?if ($eportaIsHit):?><span class="badge hit">ХИТ</span><?endif;?>
+					<?if ($eportaIsNew):?><span class="badge new">Новинка</span><?endif;?>
+					<?if ($eportaHasDiscount):?><span class="badge" style="background:#c2670a;top:<?=($eportaIsHit || $eportaIsNew) ? "44px" : "10px"?>">−<?=round($eportaDiscountPercent)?>%</span><?endif;?>
 				</div>
 				<div class="info">
-					<div class="stars"><?=$eportaStars?> <span><?=$eportaVoteCount?></span></div>
+					<div class="stars"><?=$eportaStars?><?if ($eportaRating > 0):?> <span><?=number_format($eportaRating, 1, ".", "")?></span><?endif;?></div>
 					<div class="name"><?=htmlspecialcharsbx($eportaItem["NAME"])?></div>
 					<div class="price-row">
-						<?if ($eportaPriceVal !== null && $eportaPriceVal !== ""):?>
-							<div class="price"><?=\CCurrencyLang::CurrencyFormat((float)$eportaPriceVal, "RUB", true)?></div>
+						<?if ($eportaHasPrice):?>
+							<?if ($eportaHasDiscount):?>
+								<div><span class="price"><?=\CCurrencyLang::CurrencyFormat($eportaPriceVal, "RUB", true)?></span> <span class="price-old"><?=\CCurrencyLang::CurrencyFormat($eportaOldPriceVal, "RUB", true)?></span></div>
+							<?else:?>
+								<div class="price"><?=\CCurrencyLang::CurrencyFormat($eportaPriceVal, "RUB", true)?></div>
+							<?endif;?>
 						<?else:?>
 							<div class="price">по запросу</div>
 						<?endif;?>
 						<div class="price-row-tools">
 							<button class="btn-compare" onclick="addCompare(event, <?=(int)$eportaItem["ID"]?>)" title="Сравнить">⇄</button>
-							<button class="btn-cart" onclick="event.preventDefault()">В корзину</button>
+							<button class="btn-cart" onclick="addCartAjax(event, <?=(int)$eportaItem["ID"]?>)">В корзину</button>
 						</div>
 					</div>
 				</div>

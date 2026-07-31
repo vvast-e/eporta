@@ -20,6 +20,9 @@ $APPLICATION->SetTitle("Eporta");?> <?
 	// Боевую dresscode-логику (слайдер/подборка/табы) не трогаем — при любом другом
 	// активном шаблоне страница работает как прежде.
 	$isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH) === "eporta";
+	if ($isEportaTemplate) {
+		require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/categories.php");
+	}
 ?>
 <?if ($isEportaTemplate):?>
 
@@ -112,61 +115,92 @@ $APPLICATION->SetTitle("Eporta");?> <?
 	</div>
 	<?endif;?>
 
-	<!-- Каталог по категориям -->
+	<!-- Каталог по категориям: реальные счётчики PROPERTY_CATEGORY, см. inc/categories.php.
+	     Ссылки ведут на /catalog/?category=<key> — фильтр обрабатывается в catalog/index.php. -->
+	<?
+		$eportaHomeCatMkd = eportaCategoryCount("mkd");
+		$eportaHomeCatHidden = eportaCategoryCount("hidden");
+		$eportaHomeCatSliding = eportaCategoryCount("sliding");
+		$eportaHomeCatEntrance = eportaCategoryCount("entrance");
+		$eportaHomeCatArch = eportaCategoryCount("arch");
+		$eportaHomeCatHardware = eportaCategoryCount("hardware");
+		$eportaHomeCatTotal = count(eportaGetCategoryMap());
+	?>
 	<div style="padding:28px 56px 8px">
 		<div class="section-heading">
 			<h2>Каталог по категориям</h2>
-			<a href="/catalog/">Все 12 категорий →</a>
+			<a href="/catalog/">Все <?=$eportaHomeCatTotal?> категорий →</a>
 		</div>
 		<div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1.2fr;grid-auto-rows:168px;gap:12px">
 
 			<!-- Большая плитка: Межкомнатные -->
-			<a href="/catalog/" style="grid-column:1;grid-row:1/span 2;position:relative;border-radius:14px;overflow:hidden;cursor:pointer;display:block">
+			<a href="/catalog/?category=mkd" style="grid-column:1;grid-row:1/span 2;position:relative;border-radius:14px;overflow:hidden;cursor:pointer;display:block">
 				<img src="<?= SITE_TEMPLATE_PATH ?>/assets/img/cat-mezh.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt="Межкомнатные">
 				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 42%,rgba(20,17,12,.72) 100%)"></div>
 				<div style="position:absolute;left:20px;right:20px;bottom:18px;display:flex;align-items:flex-end;justify-content:space-between">
-					<div><div style="font:800 22px 'Manrope';color:#fff;line-height:1.05">Межкомнатные</div><div style="font:600 12.5px 'Manrope';color:rgba(255,255,255,.72);margin-top:4px">2 400 моделей</div></div>
+					<div><div style="font:800 22px 'Manrope';color:#fff;line-height:1.05">Межкомнатные</div><div style="font:600 12.5px 'Manrope';color:rgba(255,255,255,.72);margin-top:4px"><?=$eportaHomeCatMkd?> моделей</div></div>
 					<span style="width:38px;height:38px;border-radius:50%;background:#e8820a;color:#fff;font-size:17px;display:flex;align-items:center;justify-content:center;flex:none">→</span>
 				</div>
 			</a>
 
 			<!-- Пара: Скрытые / Раздвижные -->
-			<a href="/catalog/" style="grid-column:2;grid-row:1;position:relative;border-radius:14px;overflow:hidden;display:block">
+			<a href="/catalog/?category=hidden" style="grid-column:2;grid-row:1;position:relative;border-radius:14px;overflow:hidden;display:block">
 				<img src="<?= SITE_TEMPLATE_PATH ?>/assets/img/cat-skryt.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt="Скрытые">
 				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(20,17,12,.7) 100%)"></div>
-				<div style="position:absolute;left:15px;bottom:13px"><div style="font:700 15.5px 'Manrope';color:#fff">Скрытые</div><div style="font:600 11.5px 'Manrope';color:rgba(255,255,255,.72);margin-top:2px">180</div></div>
+				<div style="position:absolute;left:15px;bottom:13px"><div style="font:700 15.5px 'Manrope';color:#fff">Скрытые</div><div style="font:600 11.5px 'Manrope';color:rgba(255,255,255,.72);margin-top:2px"><?=$eportaHomeCatHidden?></div></div>
 			</a>
-			<a href="/catalog/" style="grid-column:2;grid-row:2;position:relative;border-radius:14px;overflow:hidden;display:block">
+			<a href="/catalog/?category=sliding" style="grid-column:2;grid-row:2;position:relative;border-radius:14px;overflow:hidden;display:block">
 				<img src="<?= SITE_TEMPLATE_PATH ?>/assets/img/cat-razdv.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt="Раздвижные">
 				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(20,17,12,.7) 100%)"></div>
-				<div style="position:absolute;left:15px;bottom:13px"><div style="font:700 15.5px 'Manrope';color:#fff">Раздвижные</div><div style="font:600 11.5px 'Manrope';color:rgba(255,255,255,.72);margin-top:2px">90</div></div>
+				<div style="position:absolute;left:15px;bottom:13px"><div style="font:700 15.5px 'Manrope';color:#fff">Раздвижные</div><div style="font:600 11.5px 'Manrope';color:rgba(255,255,255,.72);margin-top:2px"><?=$eportaHomeCatSliding?></div></div>
 			</a>
 
 			<!-- Пара: Входные / Арки -->
-			<a href="/catalog/" style="grid-column:3;grid-row:1;position:relative;border-radius:14px;overflow:hidden;display:block">
+			<a href="/catalog/?category=entrance" style="grid-column:3;grid-row:1;position:relative;border-radius:14px;overflow:hidden;display:block">
 				<img src="<?= SITE_TEMPLATE_PATH ?>/assets/img/cat-vhod.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt="Входные">
 				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(20,17,12,.7) 100%)"></div>
-				<div style="position:absolute;left:15px;bottom:13px"><div style="font:700 15.5px 'Manrope';color:#fff">Входные</div><div style="font:600 11.5px 'Manrope';color:rgba(255,255,255,.72);margin-top:2px">320</div></div>
+				<div style="position:absolute;left:15px;bottom:13px"><div style="font:700 15.5px 'Manrope';color:#fff">Входные</div><div style="font:600 11.5px 'Manrope';color:rgba(255,255,255,.72);margin-top:2px"><?=$eportaHomeCatEntrance?></div></div>
 			</a>
-			<a href="/catalog/" style="grid-column:3;grid-row:2;position:relative;border-radius:14px;overflow:hidden;display:block">
+			<a href="/catalog/?category=arch" style="grid-column:3;grid-row:2;position:relative;border-radius:14px;overflow:hidden;display:block">
 				<img src="<?= SITE_TEMPLATE_PATH ?>/assets/img/cat-arki.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt="Арки и порталы">
 				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(20,17,12,.7) 100%)"></div>
-				<div style="position:absolute;left:15px;bottom:13px"><div style="font:700 15.5px 'Manrope';color:#fff">Арки и порталы</div><div style="font:600 11.5px 'Manrope';color:rgba(255,255,255,.72);margin-top:2px">60</div></div>
+				<div style="position:absolute;left:15px;bottom:13px"><div style="font:700 15.5px 'Manrope';color:#fff">Арки и порталы</div><div style="font:600 11.5px 'Manrope';color:rgba(255,255,255,.72);margin-top:2px"><?=$eportaHomeCatArch?></div></div>
 			</a>
 
 			<!-- Высокая: Фурнитура -->
-			<a href="/catalog/" style="grid-column:4;grid-row:1/span 2;position:relative;border-radius:14px;overflow:hidden;display:block">
+			<a href="/catalog/?category=hardware" style="grid-column:4;grid-row:1/span 2;position:relative;border-radius:14px;overflow:hidden;display:block">
 				<img src="<?= SITE_TEMPLATE_PATH ?>/assets/img/cat-furn.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt="Фурнитура">
 				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 48%,rgba(20,17,12,.72) 100%)"></div>
 				<div style="position:absolute;left:18px;right:18px;bottom:16px;display:flex;align-items:flex-end;justify-content:space-between">
-					<div><div style="font:800 18px 'Manrope';color:#fff">Фурнитура</div><div style="font:600 12px 'Manrope';color:rgba(255,255,255,.72);margin-top:3px">540 позиций</div></div>
+					<div><div style="font:800 18px 'Manrope';color:#fff">Фурнитура</div><div style="font:600 12px 'Manrope';color:rgba(255,255,255,.72);margin-top:3px"><?=$eportaHomeCatHardware?> позиций</div></div>
 					<span style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.92);color:#1b1a17;font-size:15px;display:flex;align-items:center;justify-content:center;flex:none">→</span>
 				</div>
 			</a>
 		</div>
 	</div>
 
-	<!-- Коллекции фабрики -->
+	<!-- Коллекции фабрики: реальные счётчики ELEMENT_CNT по секциям IBLOCK 19 (раздел 183
+	     "Коллекции", те же 8 ID, что в collection/index.php и catalog/index.php). Стиль/покрытие
+	     в подписи — фиксированное описание серии (не мокап количества), число моделей — реальное. -->
+	<?
+		\Bitrix\Main\Loader::includeModule("iblock");
+		$eportaHomeCollections = [
+			["ID" => 184, "CODE" => "dorsum", "NAME" => "Dorsum", "IMG" => "hit-1.jpg", "DESC" => "Модерн · экошпон"],
+			["ID" => 186, "CODE" => "vilis", "NAME" => "Vilis", "IMG" => "hit-2.jpg", "DESC" => "Скандинавский · экошпон"],
+			["ID" => 189, "CODE" => "actus", "NAME" => "Actus", "IMG" => "hit-5.jpg", "DESC" => "Классика · эмаль"],
+			["ID" => 185, "CODE" => "vitrum", "NAME" => "Vitrum", "IMG" => "hit-6.jpg", "DESC" => "Хай-тек · эмалит"],
+			["ID" => 188, "CODE" => "tabula", "NAME" => "Tabula", "IMG" => "hit-7.jpg", "DESC" => "Лофт · стекло"],
+			["ID" => 190, "CODE" => "lacuna", "NAME" => "Lacuna", "IMG" => "hit-8.jpg", "DESC" => "Натуральный шпон"],
+		];
+		foreach ($eportaHomeCollections as &$eportaHomeColl) {
+			$eportaHomeColl["CNT"] = \CIBlockElement::GetList(
+				[],
+				["IBLOCK_ID" => 19, "SECTION_ID" => $eportaHomeColl["ID"], "ACTIVE" => "Y"],
+				["SECTION_ID"]
+			)->SelectedRowsCount();
+		}
+		unset($eportaHomeColl);
+	?>
 	<div style="padding:26px 56px 4px">
 		<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">
 			<h2 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Коллекции фабрики</h2>
@@ -174,43 +208,13 @@ $APPLICATION->SetTitle("Eporta");?> <?
 		</div>
 		<div style="font:500 13.5px;color:#8a857b;margin-bottom:18px">Серии дверей с единым дизайном — от полотна до фурнитуры</div>
 		<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
-
-			<a href="/catalog/collections/dorsum/" style="position:relative;border-radius:16px;overflow:hidden;cursor:pointer;height:226px;display:block;text-decoration:none">
-				<img src="<?= SITE_TEMPLATE_PATH ?>/assets/img/hit-1.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt="Dorsum">
+			<?foreach ($eportaHomeCollections as $eportaHomeColl):?>
+			<a href="/catalog/collections/<?=$eportaHomeColl["CODE"]?>/" style="position:relative;border-radius:16px;overflow:hidden;cursor:pointer;height:226px;display:block;text-decoration:none">
+				<img src="<?= SITE_TEMPLATE_PATH ?>/assets/img/<?=$eportaHomeColl["IMG"]?>" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt="<?=htmlspecialcharsbx($eportaHomeColl["NAME"])?>">
 				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 38%,rgba(20,17,12,.8) 100%)"></div>
-				<div style="position:absolute;left:20px;right:20px;bottom:18px"><div style="font:800 22px 'Manrope';color:#fff;letter-spacing:.01em">Dorsum</div><div style="font:600 12.5px 'Manrope';color:rgba(255,255,255,.78);margin-top:4px">Модерн · экошпон · 14 моделей</div></div>
+				<div style="position:absolute;left:20px;right:20px;bottom:18px"><div style="font:800 22px 'Manrope';color:#fff;letter-spacing:.01em"><?=htmlspecialcharsbx($eportaHomeColl["NAME"])?></div><div style="font:600 12.5px 'Manrope';color:rgba(255,255,255,.78);margin-top:4px"><?=htmlspecialcharsbx($eportaHomeColl["DESC"])?> · <?=$eportaHomeColl["CNT"]?> <?=($eportaHomeColl["CNT"] % 10 === 1 && $eportaHomeColl["CNT"] % 100 !== 11) ? "модель" : "моделей"?></div></div>
 			</a>
-
-			<a href="/catalog/collections/vilis/" style="position:relative;border-radius:16px;overflow:hidden;cursor:pointer;height:226px;display:block;text-decoration:none">
-				<img src="<?= SITE_TEMPLATE_PATH ?>/assets/img/hit-2.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt="Vilis">
-				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 38%,rgba(20,17,12,.8) 100%)"></div>
-				<div style="position:absolute;left:20px;right:20px;bottom:18px"><div style="font:800 22px 'Manrope';color:#fff;letter-spacing:.01em">Vilis</div><div style="font:600 12.5px 'Manrope';color:rgba(255,255,255,.78);margin-top:4px">Скандинавский · экошпон · 22 модели</div></div>
-			</a>
-
-			<a href="/catalog/collections/actus/" style="position:relative;border-radius:16px;overflow:hidden;cursor:pointer;height:226px;display:block;text-decoration:none">
-				<img src="<?= SITE_TEMPLATE_PATH ?>/assets/img/hit-5.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt="Actus">
-				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 38%,rgba(20,17,12,.8) 100%)"></div>
-				<div style="position:absolute;left:20px;right:20px;bottom:18px"><div style="font:800 22px 'Manrope';color:#fff;letter-spacing:.01em">Actus</div><div style="font:600 12.5px 'Manrope';color:rgba(255,255,255,.78);margin-top:4px">Классика · эмаль · 9 моделей</div></div>
-			</a>
-
-			<a href="/catalog/collections/vitrum/" style="position:relative;border-radius:16px;overflow:hidden;cursor:pointer;height:226px;display:block;text-decoration:none">
-				<img src="<?= SITE_TEMPLATE_PATH ?>/assets/img/hit-6.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt="Vitrum">
-				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 38%,rgba(20,17,12,.8) 100%)"></div>
-				<div style="position:absolute;left:20px;right:20px;bottom:18px"><div style="font:800 22px 'Manrope';color:#fff;letter-spacing:.01em">Vitrum</div><div style="font:600 12.5px 'Manrope';color:rgba(255,255,255,.78);margin-top:4px">Хай-тек · эмалит · 11 моделей</div></div>
-			</a>
-
-			<a href="/catalog/collections/tabula/" style="position:relative;border-radius:16px;overflow:hidden;cursor:pointer;height:226px;display:block;text-decoration:none">
-				<img src="<?= SITE_TEMPLATE_PATH ?>/assets/img/hit-7.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt="Tabula">
-				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 38%,rgba(20,17,12,.8) 100%)"></div>
-				<div style="position:absolute;left:20px;right:20px;bottom:18px"><div style="font:800 22px 'Manrope';color:#fff;letter-spacing:.01em">Tabula</div><div style="font:600 12.5px 'Manrope';color:rgba(255,255,255,.78);margin-top:4px">Лофт · стекло · 7 моделей</div></div>
-			</a>
-
-			<a href="/catalog/collections/lacuna/" style="position:relative;border-radius:16px;overflow:hidden;cursor:pointer;height:226px;display:block;text-decoration:none">
-				<img src="<?= SITE_TEMPLATE_PATH ?>/assets/img/hit-8.jpg" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt="Lacuna">
-				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 38%,rgba(20,17,12,.8) 100%)"></div>
-				<div style="position:absolute;left:20px;right:20px;bottom:18px"><div style="font:800 22px 'Manrope';color:#fff;letter-spacing:.01em">Lacuna</div><div style="font:600 12.5px 'Manrope';color:rgba(255,255,255,.78);margin-top:4px">Натуральный шпон · 6 моделей</div></div>
-			</a>
-
+			<?endforeach;?>
 		</div>
 	</div>
 
@@ -227,19 +231,22 @@ $APPLICATION->SetTitle("Eporta");?> <?
 		</div>
 	</div>
 
-	<!-- Хиты продаж: реальные данные IBLOCK 19, тег OFFERS = "хит продаж" (Этап 3, Фаза B) -->
+	<!-- Хиты продаж: реальные данные IBLOCK 19. В выгрузке из 1С нет отдельной колонки
+	     "хит/спецпредложение" — раньше блок фильтровался по легаси-свойству OFFERS (значения
+	     294/296/297 из старого dresscode), которое импортёр eporta не заполняет, поэтому блок
+	     всегда был пуст. Заменили на RATING >= 4.8 — тот же порог, что даёт плашку "ХИТ" на
+	     карточке (template.php catalog.section:44), так что здесь и там одни и те же товары. -->
 	<div style="padding:26px 56px 16px">
 		<div class="section-heading">
 			<h2>Хиты продаж</h2>
 			<a href="/catalog/">Весь каталог →</a>
 		</div>
 		<?
-			// Те же значения свойства OFFERS, что и в боевом dresscode:offers.product на главной.
 			global $arrEportaHitsFilter;
 			$arrEportaHitsFilter = [
 				"IBLOCK_ID" => 19,
 				"ACTIVE" => "Y",
-				"PROPERTY_OFFERS" => [294, 296, 297],
+				">=PROPERTY_RATING" => 4.8,
 			];
 			$APPLICATION->IncludeComponent(
 				"bitrix:catalog.section",
