@@ -58,6 +58,7 @@ if (!$eportaDevAccess) {
 // недоступны — поэтому резолвим их здесь и прокидываем как window.EPORTA_MEGAMENU.
 \Bitrix\Main\Loader::includeModule("iblock");
 require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/categories.php");
+require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/buyer_info_pages.php");
 function eportaResolveEnumMap($code) {
 	$map = [];
 	$rs = \CIBlockPropertyEnum::GetList(["SORT" => "ASC"], ["IBLOCK_ID" => 19, "CODE" => $code]);
@@ -224,4 +225,12 @@ $eportaNavCatalog = !$eportaNavCollections && !$eportaNavSale && !$eportaNavNew 
 	<a href="/catalog/?new=1" class="nav-item nav-new<?= $eportaNavNew ? " active" : "" ?>">Новинки<span class="badge-new">NEW</span></a>
 	<span class="spacer"></span>
 	<span class="sale-badge"><span class="dot"></span>Акция: рассрочка 0%</span>
+	<div class="buyer-nav" id="buyerNav">
+		<button type="button" class="buyer-nav-toggle" id="buyerNavToggle">Покупателю <i class="buyer-nav-arrow"></i></button>
+		<div class="buyer-nav-dropdown" id="buyerNavDropdown">
+			<?php foreach (eportaBuyerInfoPages() as $eportaBuyerPage): ?>
+				<a href="<?= htmlspecialcharsbx($eportaBuyerPage["href"]) ?>"<?= $eportaCurPath === $eportaBuyerPage["href"] ? ' class="active"' : "" ?>><?= htmlspecialcharsbx($eportaBuyerPage["label"]) ?></a>
+			<?php endforeach; ?>
+		</div>
+	</div>
 </div>

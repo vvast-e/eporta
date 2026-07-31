@@ -128,6 +128,23 @@ document.addEventListener('DOMContentLoaded', function(){
 	menu.addEventListener('mouseleave', closeMenu);
 });
 
+// ---- Дропдаун "Покупателю" (Замер/Доставка/Оплата/Монтаж/Гарантия) ----
+// Клик-тоггл (а не hover, как у мегаменю каталога) — список плоский и короткий, так удобнее
+// на touch-устройствах; закрывается по клику вне блока или повторному клику на кнопку.
+document.addEventListener('DOMContentLoaded', function () {
+	var buyerNav = document.getElementById('buyerNav');
+	var toggle = document.getElementById('buyerNavToggle');
+	if (!buyerNav || !toggle) return;
+
+	toggle.addEventListener('click', function (e) {
+		e.stopPropagation();
+		buyerNav.classList.toggle('open');
+	});
+	document.addEventListener('click', function (e) {
+		if (!buyerNav.contains(e.target)) buyerNav.classList.remove('open');
+	});
+});
+
 // ---- Поиск в шапке (подсказки через search/suggest.php — тот же CSearch, что у страницы
 // /search/, вместо вендорского dw.deluxe act=search (substring/LIKE) — движки больше не
 // расходятся, один и тот же запрос теперь даёт одинаковый набор результатов подсказке
