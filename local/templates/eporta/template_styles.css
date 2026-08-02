@@ -18,7 +18,9 @@
   --text-muted:    #8a857b;
   --text-mid:      #726c62;
   --text-hint:     #a39e95;
-  --pad-x:         56px;   /* горизонтальный отступ контента */
+  /* clamp вместо фикс. 56px — на широких мониторах (2560px+/32") отступ подрастает вместе
+     с шириной вьюпорта, иначе контент "плавает" в пустоте по бокам с узкой рабочей зоной. */
+  --pad-x:         clamp(20px, 3vw, 96px);   /* горизонтальный отступ контента */
   --font:          'Manrope', system-ui, sans-serif;
 }
 
@@ -482,7 +484,7 @@ img { display: block; }
 }
 .product-card:hover { box-shadow: 0 8px 24px rgba(27,26,23,.10); transform: translateY(-2px); }
 .product-card .img-wrap { position: relative; }
-.product-card .img-wrap img { width: 100%; height: 230px; object-fit: contain; background: #f6f4ef; }
+.product-card .img-wrap img { width: 100%; height: clamp(180px, 15vw, 280px); object-fit: contain; background: #f6f4ef; }
 .product-card .badge {
   position: absolute;
   top: 10px;
@@ -513,17 +515,17 @@ img { display: block; }
 .wishlist-remove-btn:hover { color: #e8820a; }
 .wishlist-remove-btn:disabled { opacity: .5; cursor: default; }
 .product-card .info { padding: 12px 13px 14px; }
-.product-card .stars { color: var(--accent); font-size: 11px; letter-spacing: 1px; }
+.product-card .stars { color: var(--accent); font-size: clamp(11px, 0.8vw, 13px); letter-spacing: 1px; }
 .product-card .stars span { color: var(--text-hint); }
-.product-card .name { font: 600 13px/1.3 var(--font); height: 34px; overflow: hidden; margin: 5px 0 8px; }
+.product-card .name { font-family: var(--font); font-weight: 600; font-size: clamp(13px, 0.95vw, 16px); line-height: 1.3; height: 2.6em; overflow: hidden; margin: 5px 0 8px; }
 .product-card .price-row { display: flex; align-items: center; justify-content: space-between; }
-.product-card .price { font: 800 18px var(--font); }
-.product-card .price-old { font: 600 12px var(--font); color: var(--text-hint); text-decoration: line-through; }
+.product-card .price { font-family: var(--font); font-weight: 800; font-size: clamp(18px, 1.3vw, 24px); }
+.product-card .price-old { font-family: var(--font); font-weight: 600; font-size: clamp(12px, 0.85vw, 14px); color: var(--text-hint); text-decoration: line-through; }
 .product-card .btn-cart {
   background: var(--accent);
   color: #fff;
   font-weight: 700;
-  font-size: 12px;
+  font-size: clamp(12px, 0.85vw, 14px);
   padding: 9px 13px;
   border-radius: 9px;
   border: none;
@@ -535,7 +537,7 @@ img { display: block; }
   background: #fff;
   color: var(--dark);
   font-weight: 700;
-  font-size: 12px;
+  font-size: clamp(12px, 0.85vw, 14px);
   padding: 9px 11px;
   border-radius: 9px;
   border: 1.5px solid var(--border);
@@ -545,6 +547,15 @@ img { display: block; }
 }
 .product-card .btn-compare:hover, .product-card .btn-compare.added { border-color: var(--accent); color: var(--accent-dark); }
 .product-card .price-row-tools { display: flex; align-items: center; gap: 8px; }
+
+/* Сетка карточек каталога/коллекций — число колонок задаёт inline custom property
+   --eporta-cols (переключатель 4/5/6 в catalog/index.php), но на узких экранах медиа-запросы
+   ниже её перебивают: планшет/мобильный не должны насильно сжимать карточки под десктопный
+   выбор пользователя. */
+.eporta-product-grid { display: grid; grid-template-columns: repeat(var(--eporta-cols, 4), 1fr); gap: clamp(12px, 1.1vw, 20px); }
+@media (max-width: 1180px) { .eporta-product-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 860px)  { .eporta-product-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px)  { .eporta-product-grid { grid-template-columns: repeat(1, 1fr); } }
 
 /* ========== Кнопки ========== */
 .btn-primary {

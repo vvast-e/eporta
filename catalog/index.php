@@ -29,6 +29,15 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	// Деталь всегда заканчивается на ".html", список — нет.
 	$isEportaProductDetail = $isEportaTemplate && preg_match('~\.html(?:$|\?)~', $_SERVER["REQUEST_URI"] ?? "");
 
+	// Переключатель "N карточек в строке" (4/5/6) — источник истины кука eporta_cols (не GET),
+	// чтобы не тащить параметр через все ссылки фильтров/сортировки/пагинации. PAGE_ELEMENT_COUNT
+	// считаем кратным выбранному числу колонок (3 полных ряда) — иначе последняя страница даёт
+	// неполный ряд и пустое место снизу перед пагинацией/футером.
+	$eportaAllowedCols = [4, 5, 6];
+	$eportaCols = isset($_COOKIE["eporta_cols"]) && in_array((int)$_COOKIE["eporta_cols"], $eportaAllowedCols, true)
+		? (int)$_COOKIE["eporta_cols"] : 4;
+	$eportaPageElementCount = $eportaCols * 3;
+
 	// Этап 5 — Коллекции: ровно 8 дверных коллекций, подразделы раздела 183 "Коллекции" в
 	// IBLOCK 19. URL приходит по штатному SEF-шаблону как /catalog/collections/<code>/
 	// (SECTION_PAGE_URL секции). Список ID зафиксирован явно (см. collection/index.php —
@@ -272,16 +281,16 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 
 	<!-- Хлебные крошки -->
 	<?if ($eportaCollectionSection):?>
-	<div class="breadcrumb" style="padding:12px 56px 0">Главная · <a href="/collection/" style="color:inherit">Коллекции</a> · <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></div>
+	<div class="breadcrumb" style="padding:12px var(--pad-x) 0">Главная · <a href="/collection/" style="color:inherit">Коллекции</a> · <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></div>
 	<?else:?>
-	<div class="breadcrumb" style="padding:12px 56px 0">Главная · Каталог · Межкомнатные</div>
+	<div class="breadcrumb" style="padding:12px var(--pad-x) 0">Главная · Каталог · Межкомнатные</div>
 	<?endif;?>
 
 	<?if ($eportaCollectionSection):
 		$eportaCollBannerSrc = \CFile::GetPath($eportaCollectionSection["DETAIL_PICTURE"] ?: $eportaCollectionSection["PICTURE"]);
 	?>
 	<!-- Баннер коллекции: DETAIL_PICTURE/PICTURE + DESCRIPTION секции IBLOCK 19 -->
-	<div style="position:relative;margin:18px 56px 0;border-radius:22px;overflow:hidden;min-height:220px;background:#e5e0d5<?=$eportaCollBannerSrc ? ";background-image:url('".htmlspecialcharsbx($eportaCollBannerSrc)."');background-size:cover;background-position:center" : ""?>">
+	<div style="position:relative;margin:18px var(--pad-x) 0;border-radius:22px;overflow:hidden;min-height:220px;background:#e5e0d5<?=$eportaCollBannerSrc ? ";background-image:url('".htmlspecialcharsbx($eportaCollBannerSrc)."');background-size:cover;background-position:center" : ""?>">
 		<div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,17,12,.86) 0%,rgba(20,17,12,.5) 55%,rgba(20,17,12,.08) 100%)"></div>
 		<div style="position:relative;padding:36px 40px;max-width:560px">
 			<div style="font:700 12.5px 'Manrope';letter-spacing:.08em;color:#ffd7b0;text-transform:uppercase;margin-bottom:10px">Коллекция фабрики EPORTA</div>
@@ -297,7 +306,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	<?endif;?>
 
 	<!-- Заголовок + сортировка -->
-	<div style="display:flex;align-items:flex-end;justify-content:space-between;padding:8px 56px 4px">
+	<div style="display:flex;align-items:flex-end;justify-content:space-between;padding:8px var(--pad-x) 4px">
 		<div>
 			<?if ($eportaCollectionSection):?>
 			<h2 style="margin:0;font:800 24px 'Manrope';letter-spacing:-0.01em">Товары коллекции <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></h2>
@@ -312,20 +321,23 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		</div>
 		<div style="display:flex;align-items:center;gap:10px">
 			<div style="display:flex;align-items:center;gap:9px;border:1.5px solid #e7e3db;border-radius:10px;padding:10px 14px;font:600 13px 'Manrope';color:#3a3631;cursor:pointer">Сначала популярные <span style="color:#a39e95">▾</span></div>
-			<!-- Переключатель числа карточек в строке (4/5/6) — переключает .eporta-product-grid
-			     через eportaSetGridCols() ниже; выбор хранится в localStorage и подхватывается
-			     на всех страницах каталога/коллекций, где используется тот же catalog.section. -->
+			<!-- Переключатель числа карточек в строке (4/5/6). Источник истины — кука eporta_cols
+			     (см. $eportaCols выше): она же двигает PAGE_ELEMENT_COUNT компонента, поэтому клик
+			     перезагружает страницу — без этого сетка сменится визуально, а размер страницы
+			     останется старым и снизу будет пустое место перед пагинацией. -->
 			<div class="eporta-cols-switch" style="display:flex;border:1.5px solid #e7e3db;border-radius:10px;overflow:hidden">
-				<button type="button" class="eporta-cols-btn" data-cols="4" onclick="eportaSetGridCols(4)" style="width:38px;height:40px;border:none;background:transparent;font:700 13px 'Manrope';color:#8a857b;cursor:pointer">4</button>
-				<button type="button" class="eporta-cols-btn" data-cols="5" onclick="eportaSetGridCols(5)" style="width:38px;height:40px;border:none;border-left:1.5px solid #e7e3db;background:transparent;font:700 13px 'Manrope';color:#8a857b;cursor:pointer">5</button>
-				<button type="button" class="eporta-cols-btn" data-cols="6" onclick="eportaSetGridCols(6)" style="width:38px;height:40px;border:none;border-left:1.5px solid #e7e3db;background:transparent;font:700 13px 'Manrope';color:#8a857b;cursor:pointer">6</button>
+				<?foreach ($eportaAllowedCols as $eportaColOpt):
+					$eportaColActive = $eportaColOpt === $eportaCols;
+				?>
+				<button type="button" class="eporta-cols-btn" data-cols="<?=$eportaColOpt?>" onclick="eportaSetGridCols(<?=$eportaColOpt?>)" style="width:38px;height:40px;border:none;<?=$eportaColOpt !== 4 ? "border-left:1.5px solid #e7e3db;" : ""?>background:<?=$eportaColActive ? "#1b1a17" : "transparent"?>;font:700 13px 'Manrope';color:<?=$eportaColActive ? "#fff" : "#8a857b"?>;cursor:pointer"><?=$eportaColOpt?></button>
+				<?endforeach;?>
 			</div>
 		</div>
 	</div>
 
 	<!-- Активные фильтры: реально применённые GET-параметры -->
 	<?if ($eportaActiveChips):?>
-	<div style="display:flex;align-items:center;gap:9px;padding:14px 56px 6px;flex-wrap:wrap">
+	<div style="display:flex;align-items:center;gap:9px;padding:14px var(--pad-x) 6px;flex-wrap:wrap">
 		<?foreach ($eportaActiveChips as $eportaChip):
 			$eportaChipParams = [];
 			parse_str(parse_url($_SERVER["REQUEST_URI"] ?? "", PHP_URL_QUERY) ?: "", $eportaChipParams);
@@ -346,7 +358,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	<?endif;?>
 
 	<!-- Фильтры + сетка -->
-	<div style="display:flex;gap:22px;padding:8px 56px 28px;align-items:flex-start">
+	<div style="display:flex;gap:22px;padding:8px var(--pad-x) 28px;align-items:flex-start">
 
 		<!-- Боковой фильтр: обычный GET-submit, реальные свойства IBLOCK 19 -->
 		<form method="get" action="" style="flex:none;width:248px">
@@ -416,8 +428,8 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 					"FILTER_NAME" => "arrFilter",
 					"HIDE_NOT_AVAILABLE" => "N",
 					"HIDE_NOT_AVAILABLE_OFFERS" => "N",
-					"PAGE_ELEMENT_COUNT" => "9",
-					"LINE_ELEMENT_COUNT" => "3",
+					"PAGE_ELEMENT_COUNT" => (string)$eportaPageElementCount,
+					"LINE_ELEMENT_COUNT" => (string)$eportaCols,
 					"PROPERTY_CODE" => ["STYLE", "COATING_COLOR", "GLAZING", "MAIN_COLOR", "PRODUCT_DAY", "RATING", "VOTE_COUNT", "CML2_ARTICLE"],
 					"OFFERS_FIELD_CODE" => [],
 					"OFFERS_PROPERTY_CODE" => [],
@@ -465,36 +477,18 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 
 	<script>
 	(function(){
-		// Переключатель "N карточек в строке" — общий для каталога и коллекций, т.к. обе
-		// страницы рендерятся через этот же catalog/index.php. Выбор персистится в
-		// localStorage и переживает переход между страницами/пагинацией.
-		var STORAGE_KEY = "eportaGridCols";
-		var DEFAULT_COLS = 3;
-
-		function applyCols(cols) {
-			document.querySelectorAll(".eporta-product-grid").forEach(function(grid){
-				grid.style.gridTemplateColumns = "repeat(" + cols + ",1fr)";
-			});
-			document.querySelectorAll(".eporta-cols-btn").forEach(function(btn){
-				var active = parseInt(btn.getAttribute("data-cols"), 10) === cols;
-				btn.style.background = active ? "#1b1a17" : "transparent";
-				btn.style.color = active ? "#fff" : "#8a857b";
-			});
-		}
-
+		// Переключатель "N карточек в строке" — общий для каталога и коллекций (обе страницы
+		// рендерятся через этот же catalog/index.php). Кука, а не localStorage: PHP наверху
+		// ($eportaCols) читает её же, чтобы пересчитать PAGE_ELEMENT_COUNT под выбранное число
+		// колонок (полными рядами) — без этого при смене колонок на клиенте размер страницы
+		// остался бы прежним и внизу перед пагинацией появлялось пустое место. Поэтому клик
+		// делает полную перезагрузку, а не мгновенную CSS-подмену.
 		window.eportaSetGridCols = function(cols) {
 			cols = parseInt(cols, 10);
 			if (!cols) return;
-			try { localStorage.setItem(STORAGE_KEY, cols); } catch (e) {}
-			applyCols(cols);
+			document.cookie = "eporta_cols=" + cols + ";path=/;max-age=31536000";
+			location.reload();
 		};
-
-		var saved = DEFAULT_COLS;
-		try {
-			var stored = parseInt(localStorage.getItem(STORAGE_KEY), 10);
-			if (stored) saved = stored;
-		} catch (e) {}
-		applyCols(saved);
 	})();
 	</script>
 
