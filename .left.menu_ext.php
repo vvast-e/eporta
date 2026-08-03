@@ -1,39 +1,42 @@
-<? 
+<?
 if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
 
+global $APPLICATION;
+$aMenuLinksExt = array();
 
-//include module
-\Bitrix\Main\Loader::includeModule("dw.deluxe");
+if(CModule::IncludeModule('iblock'))
+{
+	$arFilter = array(
+		"TYPE" => "catalog",
+		"SITE_ID" => SITE_ID,
+	);
 
-//vars
-$catalogIblockId = null;
-$arPriceCodes = array();
+	$dbIBlock = CIBlock::GetList(array('SORT' => 'ASC', 'ID' => 'ASC'), $arFilter);
+	$dbIBlock = new CIBlockResult($dbIBlock);
 
-//get template settings
-$arTemplateSettings = DwSettings::getInstance()->getCurrentSettings();
-if(!empty($arTemplateSettings)){
-	$catalogIblockId = $arTemplateSettings["TEMPLATE_PRODUCT_IBLOCK_ID"];
-	$arPriceCodes = explode(", ", $arTemplateSettings["TEMPLATE_PRICE_CODES"]);
+	if ($arIBlock = $dbIBlock->GetNext())
+	{
+		if(defined("BX_COMP_MANAGED_CACHE"))
+			$GLOBALS["CACHE_MANAGER"]->RegisterTag("iblock_id_".$arIBlock["ID"]);
+
+		if($arIBlock["ACTIVE"] == "Y")
+		{
+			$aMenuLinksExt = $APPLICATION->IncludeComponent("bitrix:menu.sections", "bootstrap_v4", array(
+				"IS_SEF" => "Y",
+				"SEF_BASE_URL" => "",
+				"SECTION_PAGE_URL" => $arIBlock['SECTION_PAGE_URL'],
+				"DETAIL_PAGE_URL" => $arIBlock['DETAIL_PAGE_URL'],
+				"IBLOCK_TYPE" => $arIBlock['IBLOCK_TYPE_ID'],
+				"IBLOCK_ID" => $arIBlock['ID'],
+				"DEPTH_LEVEL" => "3",
+				"CACHE_TYPE" => "N",
+			), false, Array('HIDE_ICONS' => 'Y'));
+		}
+	}
+
+	if(defined("BX_COMP_MANAGED_CACHE"))
+		$GLOBALS["CACHE_MANAGER"]->RegisterTag("iblock_id_new");
 }
 
-//globals
-global $APPLICATION;
-$aMenuLinksExt = $APPLICATION->IncludeComponent(
-	"dresscode:menu.sections", 
-	"", 
-	array(
-		"IBLOCK_TYPE" => "catalog",
-		"IBLOCK_ID" => $catalogIblockId,
-		"DEPTH_LEVEL" => "3",
-		"CACHE_TYPE" => "A",
-		"CACHE_TIME" => "3600000",
-		"IS_SEF" => "N",
-		"ID" => $_REQUEST["ID"],
-		"SECTION_URL" => ""
-	),
-	false
-); 
-
-//append menu items
-$aMenuLinks = array_merge($aMenuLinks, $aMenuLinksExt); 
+$aMenuLinks = array_merge($aMenuLinks, $aMenuLinksExt);
 ?>

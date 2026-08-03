@@ -1,8 +1,7 @@
-<?
+<?php
 $sSectionName = "Главная страница";
-$arDirProperties = array(
-   "description" => "Готовый интернет-магазин одежды DressCode",
-   "keywords" => "готовый интернет-магазин одежды",
-   "robots" => "index, follow"
-);
-?>
+$arDirProperties = [
+	'description' => 'Мы предлагаем широкий ассортимент качественной одежды по адекватным ценам.',
+	'keywords' => 'женская одежда, мужская одежда, спортивная одежда, тапочки',
+	'robots' => 'index, follow',
+];

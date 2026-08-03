@@ -1,15 +1,8 @@
-<?
+<?if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
 $aMenuLinks = Array(
 	Array(
-		"Главная", 
-		"/index.php", 
-		Array(), 
-		Array(), 
-		"" 
-	),
-	Array(
-		"Услуги", 
-		"services/", 
+		"Как купить", 
+		"about/howto/", 
 		Array(), 
 		Array(), 
 		"" 
@@ -22,18 +15,32 @@ $aMenuLinks = Array(
 		"" 
 	),
 	Array(
-		"Новости", 
-		"news/", 
+		"О магазине", 
+		"about/", 
+		Array(), 
+		Array(), 
+		"" 
+	),	
+	Array(
+		"Гарантия", 
+		"about/guaranty/", 
 		Array(), 
 		Array(), 
 		"" 
 	),
 	Array(
-		"Контакты", 
-		"about/contacts/", 
-		Array(), 
-		Array(), 
-		"" 
-	)
+		"Контакты",
+		"about/contacts/",
+		Array(),
+		Array(),
+		""
+	),
+	Array(
+		"Мой кабинет",
+		"personal/",
+		Array(),
+		Array(),
+		"\$USER->IsAuthorized()"
+	),
 );
 ?>

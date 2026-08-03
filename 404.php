@@ -1,39 +1,77 @@
-<?
+<?php
 include_once($_SERVER['DOCUMENT_ROOT'].'/bitrix/modules/main/include/urlrewrite.php');
+
 CHTTP::SetStatus("404 Not Found");
-@define("ERROR_404", "Y");
+@define("ERROR_404","Y");
+const HIDE_SIDEBAR = true;
+
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
-$APPLICATION->SetPageProperty("tags", "404 ошибка");
-$APPLICATION->SetPageProperty("description", "404 ошибка");
-$APPLICATION->SetPageProperty("keywords_inner", "404 ошибка");
-$APPLICATION->SetPageProperty("title", "404 ошибка");
-$APPLICATION->SetPageProperty("keywords", "404 ошибка");
-$APPLICATION->SetPageProperty("robots", "noindex, nofollow");
-$APPLICATION->AddChainItem("404 ошибка", "");
-?>
-<div id="error404">
-	<div class="wrapper">
-		<a href="<?=SITE_DIR?>" class="errorPic"><img src="<?=SITE_TEMPLATE_PATH?>/images/404.jpg"></a>
-		<h1>Такой страницы не существует</h1>
-		<div class="errorText">начните поиск с <a href="<?=SITE_DIR?>">главной страницы</a> или выберите нужный товар в <a href="<?=SITE_DIR?>catalog/">каталоге</a>:</div>
+
+/** @global CMain $APPLICATION */
+
+$APPLICATION->SetTitle("Страница не найдена");?>
+
+	<div class="bx-404-container">
+		<div class="bx-404-block"><img src="<?=SITE_DIR?>images/404.png" alt=""></div>
+		<div class="bx-404-text-block">Неправильно набран адрес, <br>или такой страницы на сайте больше не существует.</div>
+		<div class="">Вернитесь на <a href="<?=SITE_DIR?>">главную</a> или воспользуйтесь картой сайта.</div>
 	</div>
-	<div id="empty">
-		<div class="wrapper">
-			<?$APPLICATION->IncludeComponent("bitrix:menu", "emptyMenu", Array(
-				"ROOT_MENU_TYPE" => "left",
-					"MENU_CACHE_TYPE" => "N",
-					"MENU_CACHE_TIME" => "3600",
-					"MENU_CACHE_USE_GROUPS" => "Y",
-					"MENU_CACHE_GET_VARS" => "",
-					"MAX_LEVEL" => "1",
-					"CHILD_MENU_TYPE" => "left",
-					"USE_EXT" => "Y",
-					"DELAY" => "N",
-					"ALLOW_MULTI_SELECT" => "N",
-				),
-				false
-			);?>
+	<div class="map-columns row">
+		<div class="col-sm-10 col-sm-offset-1">
+			<div class="bx-maps-title">Карта сайта:</div>
 		</div>
 	</div>
-</div>
-<?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>
+
+	<div class="col-sm-offset-2 col-sm-4">
+		<div class="bx-map-title"><i class="fa fa-leanpub"></i> Каталог</div>
+		<?php
+		$APPLICATION->IncludeComponent(
+			"bitrix:catalog.section.list",
+			"tree",
+			array(
+				"COMPONENT_TEMPLATE" => "tree",
+				"IBLOCK_TYPE" => "catalog",
+				"IBLOCK_ID" => "2",
+				"SECTION_ID" => $_REQUEST["SECTION_ID"],
+				"SECTION_CODE" => "",
+				"COUNT_ELEMENTS" => "Y",
+				"TOP_DEPTH" => "2",
+				"SECTION_FIELDS" => array(
+					0 => "",
+					1 => "",
+				),
+				"SECTION_USER_FIELDS" => array(
+					0 => "",
+					1 => "",
+				),
+				"SECTION_URL" => "",
+				"CACHE_TYPE" => "A",
+				"CACHE_TIME" => "36000000",
+				"CACHE_GROUPS" => "Y",
+				"ADD_SECTIONS_CHAIN" => "Y"
+			),
+			false
+		);
+		?>
+	</div>
+
+	<div class="col-sm-offset-1 col-sm-4">
+		<div class="bx-map-title"><i class="fa fa-info-circle"></i> О магазине</div>
+		<?php
+		$APPLICATION->IncludeComponent(
+			"bitrix:main.map",
+			".default",
+			array(
+				"CACHE_TYPE" => "A",
+				"CACHE_TIME" => "36000000",
+				"SET_TITLE" => "N",
+				"LEVEL" => "3",
+				"COL_NUM" => "2",
+				"SHOW_DESCRIPTION" => "Y",
+				"COMPONENT_TEMPLATE" => ".default"
+			),
+			false
+		);?>
+	</div>
+<?php
+require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");

@@ -1,6 +1,3 @@
 <?
-$sSectionName = "Каталог товаров";
-$arDirProperties = Array(
-
-);
+$sSectionName = "Каталог";
 ?>
