@@ -224,7 +224,6 @@ $eportaNavCatalog = !$eportaNavCollections && !$eportaNavSale && !$eportaNavNew 
 	<a href="/catalog/?sale=1" class="nav-item nav-sale<?= $eportaNavSale ? " active" : "" ?>"><span class="dot-red"></span>Распродажа</a>
 	<a href="/catalog/?new=1" class="nav-item nav-new<?= $eportaNavNew ? " active" : "" ?>">Новинки<span class="badge-new">NEW</span></a>
 	<span class="spacer"></span>
-	<span class="sale-badge"><span class="dot"></span>Акция: рассрочка 0%</span>
 	<div class="buyer-nav" id="buyerNav">
 		<button type="button" class="buyer-nav-toggle" id="buyerNavToggle">Покупателю <i class="buyer-nav-arrow"></i></button>
 		<div class="buyer-nav-dropdown" id="buyerNavDropdown">
