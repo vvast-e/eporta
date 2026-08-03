@@ -24,3 +24,5 @@ aquota.*
 
 .playwright-mcp/
 .claude/
+install.config
+readme.html
