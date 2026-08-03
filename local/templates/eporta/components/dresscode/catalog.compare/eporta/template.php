@@ -31,8 +31,10 @@ uasort($eportaCompareProps, function ($a, $b) { return ($a["SORT"] ?? 500) <=> (
 					<?php foreach ($eportaCompareItems as $arItem): ?>
 						<th class="compare-item-col">
 							<button type="button" class="compare-item-remove" title="Удалить" onclick="removeCompareItem(<?= (int)$arItem["ID"] ?>)">×</button>
-							<?php $photoSrc = $arItem["PICTURE"]["src"] ?? (SITE_TEMPLATE_PATH . "/assets/img/hit-1.jpg"); ?>
-							<img class="compare-item-photo" src="<?= htmlspecialcharsbx($photoSrc) ?>" alt="<?= htmlspecialcharsbx($arItem["NAME"]) ?>">
+							<?php
+							$photoSrc = $arItem["PICTURE"]["src"] ?? (SITE_TEMPLATE_PATH . "/assets/img/hit-1.jpg");
+							eportaPicture($photoSrc, $arItem["NAME"], ["class" => "compare-item-photo", "loading" => "lazy", "decoding" => "async"]);
+							?>
 							<a class="compare-item-name" href="<?= htmlspecialcharsbx($arItem["DETAIL_PAGE_URL"]) ?>"><?= htmlspecialcharsbx($arItem["NAME"]) ?></a>
 							<div class="compare-item-price"><?= !empty($arItem["PRICE"]) ? $arItem["PRICE"] : "по запросу" ?></div>
 							<div class="compare-item-actions">

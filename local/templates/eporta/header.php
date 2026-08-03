@@ -59,6 +59,7 @@ if (!$eportaDevAccess) {
 \Bitrix\Main\Loader::includeModule("iblock");
 require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/categories.php");
 require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/buyer_info_pages.php");
+require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/webp.php");
 function eportaResolveEnumMap($code) {
 	$map = [];
 	$rs = \CIBlockPropertyEnum::GetList(["SORT" => "ASC"], ["IBLOCK_ID" => 19, "CODE" => $code]);
@@ -106,12 +107,15 @@ $asset->addCss($cssPath."?v=".$cssVer);
 $asset->addString('<link rel="preconnect" href="https://fonts.googleapis.com">');
 $asset->addString('<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>');
 $asset->addString('<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">');
+// defer вместо addJs: оба файла целиком обёрнуты в DOMContentLoaded (см. комментарий в
+// app.js), поэтому не блокируют парсинг <head> — раньше отдавались синхронно и были
+// в списке render-blocking запросов (см. project_perf_baseline_2026_08_03).
 $jsPath = SITE_TEMPLATE_PATH."/assets/app.js";
 $jsVer = @filemtime($_SERVER["DOCUMENT_ROOT"].$jsPath) ?: time();
-$asset->addJs($jsPath."?v=".$jsVer);
+$asset->addString('<script src="'.$jsPath.'?v='.$jsVer.'" defer></script>');
 $compareJsPath = SITE_TEMPLATE_PATH."/assets/compare.js";
 $compareJsVer = @filemtime($_SERVER["DOCUMENT_ROOT"].$compareJsPath) ?: time();
-$asset->addJs($compareJsPath."?v=".$compareJsVer);
+$asset->addString('<script src="'.$compareJsPath.'?v='.$compareJsVer.'" defer></script>');
 
 // Счётчик сравнения — реальные данные сессии (не мок, в отличие от счётчика корзины),
 // пересчитывается на каждой загрузке страницы из $_SESSION["COMPARE_LIST"]["ITEMS"].

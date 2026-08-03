@@ -8,6 +8,8 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
     die('Прямой доступ запрещён');
 }
 
+require_once __DIR__ . '/webp_convert.php';
+
 const EPORTA_IMPORT_IBLOCK_ID = 19;
 const EPORTA_IMPORT_COLLECTIONS_SECTION_ID = 183;
 const EPORTA_IMPORT_PRICE_TYPE_ID = 1; // BASE
@@ -465,6 +467,30 @@ function eportaImportDownloadImage(?string $url) {
     return $arFile;
 }
 
+// Генерирует WebP/уменьшенные варианты для DETAIL_PICTURE/PREVIEW_PICTURE/MORE_PHOTO
+// только что сохранённого элемента — file-хэши известны только после Add/Update
+// (CFile сам решает финальный путь в upload/iblock), поэтому раньше это сделать нельзя.
+function eportaImportGenerateWebp(int $elementId): void {
+    $el = CIBlockElement::GetByID($elementId)->GetNext();
+    if (!$el) return;
+
+    $fileIds = [];
+    if (!empty($el['DETAIL_PICTURE'])) $fileIds[] = $el['DETAIL_PICTURE'];
+    if (!empty($el['PREVIEW_PICTURE'])) $fileIds[] = $el['PREVIEW_PICTURE'];
+
+    $props = CIBlockElement::GetProperty(EPORTA_IMPORT_IBLOCK_ID, $elementId, [], ['CODE' => 'MORE_PHOTO']);
+    while ($prop = $props->Fetch()) {
+        if (!empty($prop['VALUE'])) $fileIds[] = $prop['VALUE'];
+    }
+
+    foreach (array_unique($fileIds) as $fileId) {
+        $path = CFile::GetPath((int)$fileId);
+        if ($path) {
+            eportaWebpConvertFile($_SERVER['DOCUMENT_ROOT'] . $path);
+        }
+    }
+}
+
 // Импортирует один товар. Возвращает ['article'=>, 'status'=>created|updated|error, 'message'=>]
 function eportaImportOneProduct(array $p): array {
     $article = $p['article'] ?? '';
@@ -571,6 +597,10 @@ function eportaImportOneProduct(array $p): array {
     if (!$ok) {
         return ['article' => $article, 'status' => 'error', 'message' => $elObj->LAST_ERROR];
     }
+
+    // WebP-варианты для только что сохранённых картинок — некритичная оптимизация
+    // (Этап 2 роадмапа перфа), ошибки тут не должны ронять импорт товара.
+    eportaImportGenerateWebp($elementId);
 
     // Без записи в b_catalog_product элемент — просто карточка инфоблока, а не товар:
     // bitrix:catalog.section не досчитывает для него ни MIN_PRICE, ни PROPERTIES/DISPLAY_PROPERTIES

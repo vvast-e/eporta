@@ -170,15 +170,22 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 	<!-- Галерея -->
 	<div style="flex:1.15;display:flex;flex-direction:column;gap:12px;height:560px">
 		<div style="position:relative;flex:1;min-height:0">
-			<img id="mainPhoto" src="<?= htmlspecialcharsbx($galleryPhotos[0]) ?>" style="width:100%;height:100%;object-fit:contain;background:#f6f4ef;border-radius:16px" alt="<?= htmlspecialcharsbx($arResult["NAME"]) ?>">
+			<?php eportaPicture($galleryPhotos[0], $arResult["NAME"], [
+				"id" => "mainPhoto",
+				"style" => "width:100%;height:100%;object-fit:contain;background:#f6f4ef;border-radius:16px",
+			]); ?>
 			<?php if ($isHit): ?><span style="position:absolute;top:14px;left:14px;background:#e8820a;color:#fff;font:700 11px 'Manrope';padding:6px 12px;border-radius:7px">ХИТ ПРОДАЖ</span><?php endif; ?>
 			<?php if ($isNew): ?><span style="position:absolute;top:14px;left:14px;background:#1f8a4c;color:#fff;font:700 11px 'Manrope';padding:6px 12px;border-radius:7px">НОВИНКА</span><?php endif; ?>
 		</div>
 		<?php if (count($galleryPhotos) > 1): ?>
 		<div style="display:flex;gap:12px;flex:none;height:96px">
-			<?php foreach ($galleryPhotos as $i => $photoSrc): ?>
-				<img src="<?= htmlspecialcharsbx($photoSrc) ?>" class="thumb<?= $i === 0 ? " active-thumb" : "" ?>" onclick="changePhoto(this)" style="width:96px;height:96px;object-fit:contain;background:#f6f4ef;border-radius:10px;border:<?= $i === 0 ? "2px solid #e8820a" : "1.5px solid #e7e3db" ?>;cursor:pointer" alt="">
-			<?php endforeach; ?>
+			<?php foreach ($galleryPhotos as $i => $photoSrc): eportaPicture($photoSrc, "", [
+				"class" => "thumb" . ($i === 0 ? " active-thumb" : ""),
+				"onclick" => "changePhoto(this)",
+				"style" => "width:96px;height:96px;object-fit:contain;background:#f6f4ef;border-radius:10px;border:" . ($i === 0 ? "2px solid #e8820a" : "1.5px solid #e7e3db") . ";cursor:pointer",
+				"loading" => $i === 0 ? "eager" : "lazy",
+				"decoding" => "async",
+			]); endforeach; ?>
 		</div>
 		<?php endif; ?>
 	</div>
@@ -223,7 +230,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 					<div class="eporta-variant-scroll"<?= $eportaColorCarousel ? ' style="width:246px"' : '' ?>>
 						<?php foreach ($eportaColorOptions as $colorName => $variant): ?>
 							<a href="<?= htmlspecialcharsbx($variant["url"]) ?>" class="eporta-variant-item<?= $colorName === $eportaCurrentColor ? " active" : "" ?>" title="<?= htmlspecialcharsbx($colorName) ?>">
-								<?php if ($variant["photo"]): ?><img src="<?= htmlspecialcharsbx($variant["photo"]) ?>" alt="<?= htmlspecialcharsbx($colorName) ?>"><?php else: ?><span class="eporta-variant-noimg"><?= htmlspecialcharsbx(mb_substr($colorName, 0, 1)) ?></span><?php endif; ?>
+								<?php if ($variant["photo"]): eportaPicture($variant["photo"], $colorName, ["loading" => "lazy", "decoding" => "async"]); else: ?><span class="eporta-variant-noimg"><?= htmlspecialcharsbx(mb_substr($colorName, 0, 1)) ?></span><?php endif; ?>
 							</a>
 						<?php endforeach; ?>
 					</div>
@@ -241,7 +248,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 					<div class="eporta-variant-scroll"<?= $eportaGlazingCarousel ? ' style="width:246px"' : '' ?>>
 						<?php foreach ($eportaGlazingOptions as $glazingName => $variant): ?>
 							<a href="<?= htmlspecialcharsbx($variant["url"]) ?>" class="eporta-variant-item<?= $glazingName === $eportaCurrentGlazing ? " active" : "" ?>" title="<?= htmlspecialcharsbx($glazingName) ?>">
-								<?php if ($variant["photo"]): ?><img src="<?= htmlspecialcharsbx($variant["photo"]) ?>" alt="<?= htmlspecialcharsbx($glazingName) ?>"><?php else: ?><span class="eporta-variant-noimg"><?= htmlspecialcharsbx(mb_substr($glazingName, 0, 1)) ?></span><?php endif; ?>
+								<?php if ($variant["photo"]): eportaPicture($variant["photo"], $glazingName, ["loading" => "lazy", "decoding" => "async"]); else: ?><span class="eporta-variant-noimg"><?= htmlspecialcharsbx(mb_substr($glazingName, 0, 1)) ?></span><?php endif; ?>
 							</a>
 						<?php endforeach; ?>
 					</div>

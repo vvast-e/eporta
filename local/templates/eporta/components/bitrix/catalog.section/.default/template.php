@@ -32,7 +32,7 @@ if ($eportaItemIds) {
 }
 ?>
 <div class="eporta-product-grid" style="--eporta-cols:<?=$eportaCols?>">
-<?php foreach ($arResult["ITEMS"] as $arItem):
+<?php $eportaImgIndex = 0; foreach ($arResult["ITEMS"] as $arItem):
 	$eportaExtra = $eportaExtraProps[$arItem["ID"]] ?? ["RATING" => 0, "VOTE_COUNT" => 0, "PRODUCT_DAY" => "", "DISCOUNT" => 0];
 	// (float), не (int) — иначе 4.99 обрезается до 4 и попадает мимо порога ХИТ ниже.
 	$rating = (float)$eportaExtra["RATING"];
@@ -55,6 +55,9 @@ if ($eportaItemIds) {
 	$priceOldPrint = $hasDiscount ? \CCurrencyLang::CurrencyFormat(round($priceValue / (1 - $discountPercent / 100)), $price["CURRENCY"] ?? "RUB") : "";
 
 	$imgSrc = $arItem["PREVIEW_PICTURE"]["SRC"] ?? ($arItem["DETAIL_PICTURE"]["SRC"] ?? $placeholderImg);
+	// Первый ряд карточек — кандидат в LCP, грузим сразу; остальные ниже экрана — lazy.
+	$eportaIsEager = $eportaImgIndex < $eportaCols;
+	$eportaImgIndex++;
 
 	// DETAIL_PAGE_URL остаётся NULL при SEF_MODE=>"N" этого вызова компонента — строим ссылку
 	// сами по CODE элемента. Роутинг детали в catalog/index.php резолвит товар по regex
@@ -66,7 +69,10 @@ if ($eportaItemIds) {
 ?>
 	<a href="<?= $elementUrl ? htmlspecialcharsbx($elementUrl) : "javascript:void(0)" ?>" class="product-card" data-id="<?= (int)$arItem["ID"] ?>">
 		<div class="img-wrap">
-			<img src="<?= htmlspecialcharsbx($imgSrc) ?>" alt="<?= htmlspecialcharsbx($arItem["NAME"]) ?>">
+			<?php eportaPicture($imgSrc, $arItem["NAME"], [
+				"loading" => $eportaIsEager ? "eager" : "lazy",
+				"decoding" => "async",
+			], true); ?>
 			<?php if ($isHit): ?><span class="badge hit">ХИТ</span><?php endif; ?>
 			<?php if ($isNew): ?><span class="badge new">Новинка</span><?php endif; ?>
 			<?php if ($hasDiscount): ?><span class="badge" style="background:#c2670a;top:<?= ($isHit || $isNew) ? "44px" : "10px" ?>">−<?= round($discountPercent) ?>%</span><?php endif; ?>
