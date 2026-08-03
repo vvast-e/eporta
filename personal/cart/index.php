@@ -29,11 +29,11 @@ $isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH
 	// без версионирования (см. память проекта project_deploy_cache_layers) — без ?v=... браузер
 	// (и наш собственный, при повторных проверках) продолжает использовать старую закэшированную
 	// версию скрипта даже после деплоя правок на сервер, пока URL не изменится.
-	$eportaKitJsPath = $_SERVER["DOCUMENT_ROOT"] . SITE_TEMPLATE_PATH . "/assets/kit.js";
-	$eportaCartKitJsPath = $_SERVER["DOCUMENT_ROOT"] . SITE_TEMPLATE_PATH . "/assets/cart-kit.js";
+	$eportaKitJsPath = $_SERVER["DOCUMENT_ROOT"] . SITE_TEMPLATE_PATH . "/assets/kit.min.js";
+	$eportaCartKitJsPath = $_SERVER["DOCUMENT_ROOT"] . SITE_TEMPLATE_PATH . "/assets/cart-kit.min.js";
 	?>
-	<script src="<?=SITE_TEMPLATE_PATH?>/assets/kit.js?v=<?=@filemtime($eportaKitJsPath) ?: time()?>"></script>
-	<script src="<?=SITE_TEMPLATE_PATH?>/assets/cart-kit.js?v=<?=@filemtime($eportaCartKitJsPath) ?: time()?>"></script>
+	<script src="<?=SITE_TEMPLATE_PATH?>/assets/kit.min.js?v=<?=@filemtime($eportaKitJsPath) ?: time()?>"></script>
+	<script src="<?=SITE_TEMPLATE_PATH?>/assets/cart-kit.min.js?v=<?=@filemtime($eportaCartKitJsPath) ?: time()?>"></script>
 	<div style="padding:0 var(--pad-x) 40px">
 		<?$APPLICATION->IncludeComponent(
 			"bitrix:sale.basket.basket",

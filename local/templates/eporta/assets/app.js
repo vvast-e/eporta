@@ -15,9 +15,9 @@ function eportaCartCount() {
 }
 
 // ---- Мегаменю каталога ----
-// EPORTA: скрипт подключается в <head> (Asset::addJs без defer, см. header.php) и выполняется
-// ДО парсинга <body> — обёртка в DOMContentLoaded обязательна для любого блока, читающего DOM
-// на верхнем уровне (без неё document.querySelector(...) вернёт null тихо, без единой ошибки).
+// EPORTA: скрипт подключается в <head> с defer (см. header.php) — обёртка в DOMContentLoaded
+// обязательна для любого блока, читающего DOM на верхнем уровне (без неё document.querySelector(...)
+// вернёт null тихо, без единой ошибки).
 document.addEventListener('DOMContentLoaded', function(){
 	var nav = document.querySelector('.cat-nav');
 	if (!nav) return;

@@ -101,7 +101,7 @@ $asset->addString('<script>window.BX_SESSID = '.json_encode(bitrix_sessid(), JSO
 // Cache-busting через filemtime: nginx отдаёт статику immutable+1y без версионирования
 // (конфиг генерируется ISPmanager, ручную правку не сохранить), поэтому версионируем
 // на стороне PHP через query-параметр — браузер перекачает файл при изменении даты правки.
-$cssPath = SITE_TEMPLATE_PATH."/template_styles.css";
+$cssPath = SITE_TEMPLATE_PATH."/template_styles.min.css";
 $cssVer = @filemtime($_SERVER["DOCUMENT_ROOT"].$cssPath) ?: time();
 $asset->addCss($cssPath."?v=".$cssVer);
 $asset->addString('<link rel="preconnect" href="https://fonts.googleapis.com">');
@@ -110,10 +110,10 @@ $asset->addString('<link href="https://fonts.googleapis.com/css2?family=Manrope:
 // defer вместо addJs: оба файла целиком обёрнуты в DOMContentLoaded (см. комментарий в
 // app.js), поэтому не блокируют парсинг <head> — раньше отдавались синхронно и были
 // в списке render-blocking запросов (см. project_perf_baseline_2026_08_03).
-$jsPath = SITE_TEMPLATE_PATH."/assets/app.js";
+$jsPath = SITE_TEMPLATE_PATH."/assets/app.min.js";
 $jsVer = @filemtime($_SERVER["DOCUMENT_ROOT"].$jsPath) ?: time();
 $asset->addString('<script src="'.$jsPath.'?v='.$jsVer.'" defer></script>');
-$compareJsPath = SITE_TEMPLATE_PATH."/assets/compare.js";
+$compareJsPath = SITE_TEMPLATE_PATH."/assets/compare.min.js";
 $compareJsVer = @filemtime($_SERVER["DOCUMENT_ROOT"].$compareJsPath) ?: time();
 $asset->addString('<script src="'.$compareJsPath.'?v='.$compareJsVer.'" defer></script>');
 

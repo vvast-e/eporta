@@ -380,9 +380,9 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 <?php
 // Cache-busting по mtime: nginx отдаёт /assets/*.js как immutable без версионирования
 // (project_deploy_cache_layers) — без ?v=... браузер не подхватывает правки kit.js после деплоя.
-$eportaKitJsPath = $_SERVER["DOCUMENT_ROOT"] . SITE_TEMPLATE_PATH . "/assets/kit.js";
+$eportaKitJsPath = $_SERVER["DOCUMENT_ROOT"] . SITE_TEMPLATE_PATH . "/assets/kit.min.js";
 ?>
-<script src="<?=SITE_TEMPLATE_PATH?>/assets/kit.js?v=<?=@filemtime($eportaKitJsPath) ?: time()?>"></script>
+<script src="<?=SITE_TEMPLATE_PATH?>/assets/kit.min.js?v=<?=@filemtime($eportaKitJsPath) ?: time()?>"></script>
 <script>
 // ---- Реальная цена товара (Этап 2, Фаза B) ----
 var DOOR_PRICE = <?= (int)$priceValue ?>;
