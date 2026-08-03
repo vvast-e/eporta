@@ -100,7 +100,7 @@ $APPLICATION->SetTitle("Eporta");?> <?
 		$hasHomeBannerSide = count($arHomeBannerSlides["side1"]) >= 1 || count($arHomeBannerSlides["side2"]) >= 1;
 	?>
 	<?if ($hasHomeBannerMain):?>
-	<div style="padding:28px 56px 8px">
+	<div style="padding:28px var(--pad-x) 8px">
 		<?if ($hasHomeBannerSide):?>
 		<div class="home-banner-mosaic">
 			<?renderHomeBannerCarousel($arHomeBannerSlides["main"], "homeBannerMain", "home-banner-carousel hbc-main");?>
@@ -126,12 +126,12 @@ $APPLICATION->SetTitle("Eporta");?> <?
 		$eportaHomeCatHardware = eportaCategoryCount("hardware");
 		$eportaHomeCatTotal = count(eportaGetCategoryMap());
 	?>
-	<div style="padding:28px 56px 8px">
+	<div style="padding:28px var(--pad-x) 8px">
 		<div class="section-heading">
 			<h2>Каталог по категориям</h2>
 			<a href="/catalog/">Все <?=$eportaHomeCatTotal?> категорий →</a>
 		</div>
-		<div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1.2fr;grid-auto-rows:168px;gap:12px">
+		<div class="eporta-mosaic-grid" style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1.2fr;grid-auto-rows:168px;gap:12px">
 
 			<!-- Большая плитка: Межкомнатные -->
 			<a href="/catalog/?category=mkd" style="grid-column:1;grid-row:1/span 2;position:relative;border-radius:14px;overflow:hidden;cursor:pointer;display:block">
@@ -201,13 +201,13 @@ $APPLICATION->SetTitle("Eporta");?> <?
 		}
 		unset($eportaHomeColl);
 	?>
-	<div style="padding:26px 56px 4px">
+	<div style="padding:26px var(--pad-x) 4px">
 		<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">
 			<h2 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Коллекции фабрики</h2>
 			<a href="/collection/" style="font:600 14px;color:#e8820a">Все коллекции →</a>
 		</div>
 		<div style="font:500 13.5px;color:#8a857b;margin-bottom:18px">Серии дверей с единым дизайном — от полотна до фурнитуры</div>
-		<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+		<div class="eporta-tile-grid">
 			<?foreach ($eportaHomeCollections as $eportaHomeColl):?>
 			<a href="/catalog/collections/<?=$eportaHomeColl["CODE"]?>/" style="position:relative;border-radius:16px;overflow:hidden;cursor:pointer;height:226px;display:block;text-decoration:none">
 				<img src="<?= SITE_TEMPLATE_PATH ?>/assets/img/<?=$eportaHomeColl["IMG"]?>" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt="<?=htmlspecialcharsbx($eportaHomeColl["NAME"])?>">
@@ -219,7 +219,7 @@ $APPLICATION->SetTitle("Eporta");?> <?
 	</div>
 
 	<!-- Популярные запросы -->
-	<div style="padding:26px 56px 4px">
+	<div style="padding:26px var(--pad-x) 4px">
 		<div style="font:800 18px 'Manrope';letter-spacing:-0.01em;margin-bottom:14px">Популярные запросы</div>
 		<div style="display:flex;flex-wrap:wrap;gap:10px">
 			<a href="/catalog/" style="font:600 13px 'Manrope';color:#3a3631;background:#f4f1ea;border:1px solid #ece7de;border-radius:999px;padding:9px 16px;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s">Белые двери</a>
@@ -236,7 +236,7 @@ $APPLICATION->SetTitle("Eporta");?> <?
 	     294/296/297 из старого dresscode), которое импортёр eporta не заполняет, поэтому блок
 	     всегда был пуст. Заменили на RATING >= 4.8 — тот же порог, что даёт плашку "ХИТ" на
 	     карточке (template.php catalog.section:44), так что здесь и там одни и те же товары. -->
-	<div style="padding:26px 56px 16px">
+	<div style="padding:26px var(--pad-x) 16px">
 		<div class="section-heading">
 			<h2>Хиты продаж</h2>
 			<a href="/catalog/">Весь каталог →</a>

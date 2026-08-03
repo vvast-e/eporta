@@ -10,10 +10,10 @@ $isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH
 <?if ($isEportaTemplate):?>
 
 	<!-- Хлебные крошки -->
-	<div class="breadcrumb" style="padding:12px 56px 0"><a href="/">Главная</a> · Корзина</div>
+	<div class="breadcrumb" style="padding:12px var(--pad-x) 0"><a href="/">Главная</a> · Корзина</div>
 
 	<!-- Заголовок -->
-	<div style="display:flex;align-items:baseline;justify-content:space-between;padding:10px 56px 4px">
+	<div style="display:flex;align-items:baseline;justify-content:space-between;padding:10px var(--pad-x) 4px">
 		<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Корзина</h1>
 	</div>
 
@@ -34,7 +34,7 @@ $isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH
 	?>
 	<script src="<?=SITE_TEMPLATE_PATH?>/assets/kit.js?v=<?=@filemtime($eportaKitJsPath) ?: time()?>"></script>
 	<script src="<?=SITE_TEMPLATE_PATH?>/assets/cart-kit.js?v=<?=@filemtime($eportaCartKitJsPath) ?: time()?>"></script>
-	<div style="padding:0 56px 40px">
+	<div style="padding:0 var(--pad-x) 40px">
 		<?$APPLICATION->IncludeComponent(
 			"bitrix:sale.basket.basket",
 			"eporta",

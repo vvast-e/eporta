@@ -557,6 +557,32 @@ img { display: block; }
 @media (max-width: 860px)  { .eporta-product-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 560px)  { .eporta-product-grid { grid-template-columns: repeat(1, 1fr); } }
 
+/* Плиточные сетки коллекций (главная "Коллекции фабрики", хаб /collection/) —
+   те же брейкпоинты, что у товарной сетки, чтобы плитки не расползались на узких экранах. */
+.eporta-tile-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media (max-width: 860px) { .eporta-tile-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .eporta-tile-grid { grid-template-columns: repeat(1, 1fr); } }
+
+/* Мозаика категорий на главной — на десктопе 4 колонки с явной раскладкой плиток
+   (grid-column/grid-row в инлайн-стилях), на узких экранах раскладка ломается,
+   поэтому ниже 860px сбрасываем сетку в простой 2-колоночный поток и убираем
+   инлайн-позиционирование через !important (иначе оно перебивает media query). */
+@media (max-width: 860px) {
+  .eporta-mosaic-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    grid-auto-rows: 168px !important;
+  }
+  .eporta-mosaic-grid > a {
+    grid-column: auto !important;
+    grid-row: auto !important;
+  }
+}
+@media (max-width: 560px) {
+  .eporta-mosaic-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* ========== Кнопки ========== */
 .btn-primary {
   background: var(--accent);

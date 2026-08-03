@@ -5,13 +5,13 @@ $this->setFrameMode(true);
 global $APPLICATION, $arrFilter;
 ?>
 <?php if ($arResult["SHOW_TEMPLATE"] === false): ?>
-	<div style="padding:40px 56px 80px;text-align:center">
+	<div style="padding:40px var(--pad-x) 80px;text-align:center">
 		<div style="font:600 18px 'Manrope';color:#3d3a35;margin-bottom:8px">В избранном пока пусто</div>
 		<div style="font:400 14px 'Manrope';color:#8a857b;margin-bottom:20px">Добавляйте понравившиеся двери — так проще к ним вернуться</div>
 		<a href="/catalog/" style="display:inline-block;padding:12px 28px;background:#e8820a;color:#fff;border-radius:12px;font:600 14px 'Manrope';text-decoration:none">Перейти в каталог</a>
 	</div>
 <?php else: ?>
-	<div id="wishlistGrid" style="padding:8px 56px 28px">
+	<div id="wishlistGrid" style="padding:8px var(--pad-x) 28px">
 		<?php $APPLICATION->IncludeComponent(
 			"bitrix:catalog.section",
 			".default",

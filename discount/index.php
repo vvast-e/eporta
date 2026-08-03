@@ -1,5 +1,5 @@
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
-$APPLICATION->SetTitle("Уцененные товары");?><div style="padding:24px 56px 4px"><h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Уцененные товары</h1></div>
+$APPLICATION->SetTitle("Уцененные товары");?><div style="padding:24px var(--pad-x) 4px"><h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Уцененные товары</h1></div>
 <?
 	//include module
 	\Bitrix\Main\Loader::includeModule("dw.deluxe");

@@ -165,7 +165,7 @@ global $arrFilterEportaSimilar;
 $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 ?>
 
-<div style="display:flex;gap:30px;padding:14px 56px 30px;align-items:flex-start">
+<div style="display:flex;gap:30px;padding:14px var(--pad-x) 30px;align-items:flex-start">
 
 	<!-- Галерея -->
 	<div style="flex:1.15;display:flex;flex-direction:column;gap:12px;height:560px">
@@ -290,7 +290,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 </div>
 
 <!-- Описание + характеристики -->
-<div style="padding:26px 56px 6px">
+<div style="padding:26px var(--pad-x) 6px">
 	<div style="display:flex;gap:36px">
 		<div style="flex:1.1">
 			<h2 style="margin:0 0 12px;font:800 20px 'Manrope';letter-spacing:-0.01em">Описание</h2>
@@ -323,7 +323,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 
 <?php if ($eportaSectionId): ?>
 <!-- Похожие двери: тот же раздел IBLOCK 19, исключая текущий товар -->
-<div style="padding:24px 56px 36px">
+<div style="padding:24px var(--pad-x) 36px">
 	<h2 style="margin:0 0 16px;font:800 20px 'Manrope';letter-spacing:-0.01em">Похожие двери</h2>
 	<?$APPLICATION->IncludeComponent(
 		"bitrix:catalog.section",

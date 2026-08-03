@@ -194,7 +194,7 @@ $APPLICATION->SetTitle("Страница поиска");
 			return $eportaBasePath.($params ? "?".http_build_query($params) : "");
 		};
 	?>
-	<div style="padding:20px 56px 4px">
+	<div style="padding:20px var(--pad-x) 4px">
 		<form method="get" action="/search/" style="display:flex;align-items:center;gap:12px;max-width:640px;border:1.5px solid var(--border-soft, #e7e3db);border-radius:14px;padding:6px 6px 6px 18px;margin-bottom:16px">
 			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a39e95" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M21 21l-4.3-4.3"></path></svg>
 			<input type="text" name="q" value="<?=htmlspecialcharsbx($eportaQuery)?>" style="flex:1;border:none;outline:none;font:600 15px 'Manrope';background:transparent">
@@ -249,7 +249,7 @@ $APPLICATION->SetTitle("Страница поиска");
 		endif;
 	?>
 	<?if ($eportaHasChips):?>
-	<div id="eportaChipRow" style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 8px;padding:14px 56px 4px">
+	<div id="eportaChipRow" style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 8px;padding:14px var(--pad-x) 4px">
 		<?=$eportaChipsMarkup?>
 	</div>
 
@@ -338,8 +338,8 @@ $APPLICATION->SetTitle("Страница поиска");
 		\Bitrix\Main\Loader::includeModule("currency");
 		$eportaPlaceholderImg = SITE_TEMPLATE_PATH."/assets/img/hit-1.jpg";
 	?>
-	<div style="padding:8px 56px 4px">
-		<div style="display:grid;grid-template-columns:repeat(<?=$eportaLineCount?>,1fr);gap:16px">
+	<div style="padding:8px var(--pad-x) 4px">
+		<div class="eporta-product-grid" style="--eporta-cols:<?=$eportaLineCount?>">
 			<?foreach ($eportaPageItems as $eportaItem):
 				// Паритет с карточкой каталога (components/bitrix/catalog.section/.default/template.php):
 				// (float) рейтинг (не int — иначе 4.99 обрезается до 4 и мимо порога ХИТ), ХИТ/Новинка

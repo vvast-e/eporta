@@ -5,11 +5,11 @@ if ($arResult["SHOW_TEMPLATE"] === false) return;
 
 global $APPLICATION, $arrFilter;
 ?>
-<div style="padding:0 56px 4px">
+<div style="padding:0 var(--pad-x) 4px">
 	<div style="font:500 13px;color:#8a857b">Найдено <?= count($arResult["ITEMS"]) ?> моделей</div>
 </div>
 
-<div style="padding:8px 56px 28px">
+<div style="padding:8px var(--pad-x) 28px">
 	<?php $APPLICATION->IncludeComponent(
 		"bitrix:catalog.section",
 		".default",
