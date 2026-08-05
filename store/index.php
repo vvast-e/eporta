@@ -1,9 +1,14 @@
 <?
 require($_SERVER["DOCUMENT_ROOT"]."/bitrix/header.php");
 $APPLICATION->SetTitle("Склады");
+
+// Дев-превью нового шаблона eporta: карта магазинов (Этап 4). Боевой bootstrap_v4
+// не трогаем — при любом другом активном шаблоне страница работает как прежде.
+$isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH) === "eporta";
+$storeComponentTemplate = $isEportaTemplate ? "eporta" : "bootstrap_v4";
 ?><?$APPLICATION->IncludeComponent(
 	"bitrix:catalog.store",
-	"bootstrap_v4",
+	$storeComponentTemplate,
 	Array(
 		"SEF_MODE" => "Y",
 		"PHONE" => "N",
