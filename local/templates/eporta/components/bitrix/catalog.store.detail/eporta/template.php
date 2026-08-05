@@ -29,7 +29,7 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)
 				<h1 class="store-detail-title"><?=htmlspecialcharsbx($arResult["TITLE"])?></h1>
 			<?php endif; ?>
 			<?php if ($arResult["DESCRIPTION"]): ?>
-				<p class="store-detail-desc"><?=$arResult["DESCRIPTION"]?></p>
+				<p class="store-detail-desc"><?=htmlspecialcharsbx($arResult["DESCRIPTION"])?></p>
 			<?php endif; ?>
 			<?php if ($arResult["ADDRESS"]): ?>
 				<div class="store-detail-row">
