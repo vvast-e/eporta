@@ -104,9 +104,8 @@ $asset->addString('<script>window.BX_SESSID = '.json_encode(bitrix_sessid(), JSO
 $cssPath = SITE_TEMPLATE_PATH."/template_styles.min.css";
 $cssVer = @filemtime($_SERVER["DOCUMENT_ROOT"].$cssPath) ?: time();
 $asset->addCss($cssPath."?v=".$cssVer);
-$asset->addString('<link rel="preconnect" href="https://fonts.googleapis.com">');
-$asset->addString('<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>');
-$asset->addString('<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">');
+// Manrope теперь локальный (@font-face в template_styles.css) — Google Fonts <link>
+// убран целиком, см. комментарий в CSS (Этап 5 перфоманса, 2026-08-05).
 // defer вместо addJs: оба файла целиком обёрнуты в DOMContentLoaded (см. комментарий в
 // app.js), поэтому не блокируют парсинг <head> — раньше отдавались синхронно и были
 // в списке render-blocking запросов (см. project_perf_baseline_2026_08_03).
