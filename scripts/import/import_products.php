@@ -196,8 +196,14 @@ foreach ($products as $p) {
         'NAME' => composeName($p, $article),
         'ACTIVE' => 'Y',
         'IBLOCK_SECTION_ID' => $sectionId,
+        // full_desc/short_desc из 1С — реальная HTML-разметка (<p>...</p> и т.п.), а не
+        // обычный текст. Без явного TEXT_TYPE=>"html" Bitrix хранит поле как "text" и на
+        // выводе экранирует теги (видны буквально как &lt;p&gt;) — см. project_audit_issues,
+        // фикс двойного экранирования описания в карточке товара.
         'PREVIEW_TEXT' => $p['short_desc'] ?? '',
+        'PREVIEW_TEXT_TYPE' => 'html',
         'DETAIL_TEXT' => $p['full_desc'] ?? '',
+        'DETAIL_TEXT_TYPE' => 'html',
         'PROPERTY_VALUES' => $propertyValues,
     ];
 

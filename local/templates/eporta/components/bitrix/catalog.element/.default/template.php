@@ -309,11 +309,22 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 	<div style="display:flex;gap:36px">
 		<div style="flex:1.1">
 			<h2 style="margin:0 0 12px;font:800 20px 'Manrope';letter-spacing:-0.01em">Описание</h2>
-			<p style="margin:0;font:400 14.5px/1.6 'Manrope';color:#3a3631"><?php
+			<div style="font:400 14.5px/1.6 'Manrope';color:#3a3631"><?php
 				// Подробное описание (DETAIL_TEXT) в приоритете, PREVIEW_TEXT — краткое, только как фолбэк.
-				$description = trim(strip_tags($arResult["DETAIL_TEXT"] ?? $arResult["PREVIEW_TEXT"] ?? ""));
-				echo $description !== "" ? nl2br(htmlspecialcharsbx($description)) : "Описание уточняется у менеджера.";
-			?></p>
+				// Оба поля из 1С-импорта — настоящая HTML-разметка (<p>, и т.п.), с 09.08 импортёр
+				// пишет их с TEXT_TYPE=>"html" (см. import_products.php) — для такого типа Bitrix
+				// отдаёт значение уже готовым к выводу как есть, без экранирования.
+				// У элементов, заведённых раньше (TEXT_TYPE ещё "text"), Bitrix наоборот
+				// html-экранирует реальные теги на выводе (получалось видимое "&lt;p&gt;") —
+				// для них декодируем сущности обратно, только для этого случая, не вслепую.
+				$eportaUseDetail = ($arResult["DETAIL_TEXT"] ?? "") !== "";
+				$description = trim($eportaUseDetail ? $arResult["DETAIL_TEXT"] : ($arResult["PREVIEW_TEXT"] ?? ""));
+				$descriptionType = $eportaUseDetail ? ($arResult["DETAIL_TEXT_TYPE"] ?? "text") : ($arResult["PREVIEW_TEXT_TYPE"] ?? "text");
+				if ($description !== "" && $descriptionType !== "html") {
+					$description = html_entity_decode($description, ENT_QUOTES, "UTF-8");
+				}
+				echo $description !== "" ? $description : "<p>Описание уточняется у менеджера.</p>";
+			?></div>
 		</div>
 		<div style="flex:1">
 			<h2 style="margin:0 0 12px;font:800 20px 'Manrope';letter-spacing:-0.01em">Характеристики</h2>
