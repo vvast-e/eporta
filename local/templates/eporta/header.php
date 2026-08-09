@@ -103,9 +103,27 @@ $asset->addString('<script>window.BX_SESSID = '.json_encode(bitrix_sessid(), JSO
 // на стороне PHP через query-параметр — браузер перекачает файл при изменении даты правки.
 $cssPath = SITE_TEMPLATE_PATH."/template_styles.min.css";
 $cssVer = @filemtime($_SERVER["DOCUMENT_ROOT"].$cssPath) ?: time();
-$asset->addCss($cssPath."?v=".$cssVer);
 // Manrope теперь локальный (@font-face в template_styles.css) — Google Fonts <link>
 // убран целиком, см. комментарий в CSS (Этап 5 перфоманса, 2026-08-05).
+//
+// Критический CSS (Этап 6 перфоманса, 2026-08-09): раньше template_styles.min.css
+// (58КБ) грузился блокирующим <link rel="stylesheet"> — Lighthouse считал это
+// render-blocking запросом, задерживающим первую отрисовку (в т.ч. LCP-баннер на
+// главной). Теперь: (1) critical.min.css (шрифт/токены/ресет/шапка/нав/карусель
+// баннера, ~10КБ — см. комментарий в critical.css) инлайнится прямо в <head>, чтобы
+// above-the-fold отрисовался без сетевого запроса; (2) полный CSS грузится
+// неблокирующим способом через rel="preload"+onload (стандартный паттерн loadCSS) —
+// браузер начинает качать его сразу же параллельно с остальным, но не задерживает
+// рендер, пока не будет применён. <noscript> — фолбэк на случай отключённого JS.
+$criticalCssPath = SITE_TEMPLATE_PATH."/critical.min.css";
+$criticalCss = @file_get_contents($_SERVER["DOCUMENT_ROOT"].$criticalCssPath);
+if ($criticalCss !== false) {
+	$asset->addString('<style>'.$criticalCss.'</style>');
+}
+$asset->addString(
+	'<link rel="preload" href="'.$cssPath.'?v='.$cssVer.'" as="style" onload="this.onload=null;this.rel=\'stylesheet\'">'
+	.'<noscript><link rel="stylesheet" href="'.$cssPath.'?v='.$cssVer.'"></noscript>'
+);
 // defer вместо addJs: оба файла целиком обёрнуты в DOMContentLoaded (см. комментарий в
 // app.js), поэтому не блокируют парсинг <head> — раньше отдавались синхронно и были
 // в списке render-blocking запросов (см. project_perf_baseline_2026_08_03).

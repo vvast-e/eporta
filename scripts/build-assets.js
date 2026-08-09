@@ -6,7 +6,7 @@ const path = require("path");
 
 const TPL = path.join(__dirname, "..", "local", "templates", "eporta");
 
-const CSS_FILES = ["template_styles.css"];
+const CSS_FILES = ["template_styles.css", "critical.css"];
 const JS_FILES = ["app.js", "cart-kit.js", "compare.js", "kit.js"];
 
 async function build() {
