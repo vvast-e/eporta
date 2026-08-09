@@ -82,8 +82,21 @@ $APPLICATION->SetTitle("Eporta");?> <?
 			?>
 			<div class="<?= $cssClass ?>" id="<?= htmlspecialcharsbx($htmlId) ?>">
 				<div class="hbc-track">
-					<?foreach ($arSlides as $arSlide):?>
-					<a href="<?= htmlspecialcharsbx($arSlide["LINK"]) ?>" class="hbc-slide" style="background-image:url(<?= htmlspecialcharsbx($arSlide["IMAGE"]) ?>)">
+					<?foreach ($arSlides as $eportaSlideIndex => $arSlide):?>
+					<?
+						// Первый слайд каждой карусели виден без скролла сразу при загрузке — именно он
+						// LCP-кандидат Lighthouse. Как background-image в CSS он был НЕ виден preload-
+						// сканеру браузера (тот парсит только HTML, до применения CSSOM не знает про
+						// картинку) и Lighthouse требовал fetchpriority=high, которого у CSS-фона в
+						// принципе не бывает. Поэтому первый слайд — обычный <img fetchpriority="high">
+						// прямо в HTML (без loading=lazy — по умолчанию и так eager), остальные слайды
+						// (не видны до пролистывания) остаются на background-image, как раньше.
+						$eportaSlideIsFirst = ($eportaSlideIndex === 0);
+					?>
+					<a href="<?= htmlspecialcharsbx($arSlide["LINK"]) ?>" class="hbc-slide"<?= $eportaSlideIsFirst ? "" : ' style="background-image:url('.htmlspecialcharsbx($arSlide["IMAGE"]).')"' ?>>
+						<?if ($eportaSlideIsFirst):?>
+						<img src="<?= htmlspecialcharsbx($arSlide["IMAGE"]) ?>" alt="" fetchpriority="high" class="hbc-slide-img">
+						<?endif;?>
 						<div class="hbc-slide-overlay"></div>
 						<div class="hbc-slide-content">
 							<div class="hbc-title"><?= htmlspecialcharsbx($arSlide["TITLE"]) ?></div>
