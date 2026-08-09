@@ -58,6 +58,12 @@ $isNew = $rating <= 0;
 $article = eportaPropText($eportaDirectProps, "CML2_ARTICLE");
 $discountPercent = (float)eportaPropText($eportaDirectProps, "DISCOUNT");
 
+// Гарантия/наличие/срок поставки — реальные свойства IBLOCK 19 (см.
+// ensure_iblock19_properties.php), раньше в шаблоне были захардкожены.
+$eportaWarranty = eportaPropText($eportaDirectProps, "WARRANTY");
+$eportaAvailability = eportaPropText($eportaDirectProps, "AVAILABILITY");
+$eportaLeadTime = eportaPropText($eportaDirectProps, "LEAD_TIME");
+
 // Реальное добавление в корзину: официальный compatible-mode механизм
 // bitrix:catalog.element (см. ACTION_VARIABLE="action"/PRODUCT_ID_VARIABLE="id"
 // в catalog/index.php). ~ADD_URL_TEMPLATE — СЫРОЙ (не HTML-экранированный) URL
@@ -200,7 +206,9 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 			<?php else: ?>
 				<span style="font:600 13px;color:#8a857b">Пока нет отзывов</span>
 			<?php endif; ?>
-			<span style="font:700 12px;color:#1f8a4c;padding:5px 10px;border-radius:7px;background:#eaf6ee">● В наличии</span>
+			<?php if ($eportaAvailability !== ""): ?>
+			<span style="font:700 12px;color:#1f8a4c;padding:5px 10px;border-radius:7px;background:#eaf6ee">● <?= htmlspecialcharsbx($eportaAvailability) ?></span>
+			<?php endif; ?>
 			<?php if ($article !== ""): ?><span style="font:500 12.5px;color:#b3aea4">арт. <span id="articleNum"><?= htmlspecialcharsbx($article) ?></span></span><?php endif; ?>
 		</div>
 
@@ -290,8 +298,8 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 		</div>
 
 		<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:14px;font:600 12.5px 'Manrope';color:#5f5a51">
-			<span style="font:700 12.5px 'Manrope';color:#c2670a;background:#fbecd9;border-radius:8px;padding:7px 11px">Доставка 1–3 дня</span>
-			<span>✓ Гарантия 2 года</span><span>✓ Возврат 14 дней</span><span>✓ Замер бесплатно</span>
+			<?php if ($eportaLeadTime !== ""): ?><span style="font:700 12.5px 'Manrope';color:#c2670a;background:#fbecd9;border-radius:8px;padding:7px 11px">Доставка <?= htmlspecialcharsbx($eportaLeadTime) ?></span><?php endif; ?>
+			<?php if ($eportaWarranty !== ""): ?><span>✓ Гарантия <?= htmlspecialcharsbx($eportaWarranty) ?></span><?php endif; ?><span>✓ Возврат 14 дней</span><span>✓ Замер бесплатно</span>
 		</div>
 	</div>
 </div>
@@ -302,7 +310,8 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 		<div style="flex:1.1">
 			<h2 style="margin:0 0 12px;font:800 20px 'Manrope';letter-spacing:-0.01em">Описание</h2>
 			<p style="margin:0;font:400 14.5px/1.6 'Manrope';color:#3a3631"><?php
-				$description = trim(strip_tags($arResult["PREVIEW_TEXT"] ?? $arResult["DETAIL_TEXT"] ?? ""));
+				// Подробное описание (DETAIL_TEXT) в приоритете, PREVIEW_TEXT — краткое, только как фолбэк.
+				$description = trim(strip_tags($arResult["DETAIL_TEXT"] ?? $arResult["PREVIEW_TEXT"] ?? ""));
 				echo $description !== "" ? nl2br(htmlspecialcharsbx($description)) : "Описание уточняется у менеджера.";
 			?></p>
 		</div>
@@ -313,6 +322,10 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 				// в переключаемые селекторы выше (count > 1) — там они хорошо видны и так.
 				$specs = [
 					"Стиль" => eportaPropText($eportaDirectProps, "STYLE"),
+					"Вид двери" => eportaPropText($eportaDirectProps, "DOOR_TYPE"),
+					"Открывание" => eportaPropText($eportaDirectProps, "OPEN_TYPE"),
+					"Конструкция" => eportaPropText($eportaDirectProps, "CONSTRUCTION"),
+					"Материал" => eportaPropText($eportaDirectProps, "MATERIAL"),
 					"Покрытие" => eportaPropText($eportaDirectProps, "COATING"),
 					"Цвет покрытия" => count($eportaColorOptions) > 1 ? "" : eportaPropText($eportaDirectProps, "COATING_COLOR"),
 					"Остекление" => count($eportaGlazingOptions) > 1 ? "" : eportaPropText($eportaDirectProps, "GLAZING"),
