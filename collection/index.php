@@ -17,14 +17,14 @@ $APPLICATION->SetTitle("Коллекции фабрики EPORTA");
 		$arPriceCodes = explode(", ", $arTemplateSettings["TEMPLATE_PRICE_CODES"]);
 	}
 
-	// Этап 5 — Коллекции: ровно 8 дверных коллекций, подразделы раздела 183 "Коллекции" в
-	// IBLOCK 19 (Dorsum/Vitrum/Vilis/Vetus/Tabula/Actus/Lacuna/Invi, коды ниже). Список
-	// зафиксирован явно — фильтр CIBlockSection::GetList по IBLOCK_SECTION_ID не работает как
-	// ожидалось (возвращает вообще все секции инфоблока), поэтому не полагаемся на него, а
-	// берём только эти 8 ID напрямую, чтобы на хабе не всплыли посторонние разделы (фурнитура,
-	// цвета и т.п.).
+	// Этап 5 — Коллекции: подразделы раздела 183 "Коллекции" в IBLOCK 19
+	// (Dorsum/Vitrum/Vilis/Vetus/Tabula/Actus/Lacuna/Invi + Dorsum-F/Dorsum-Eco, добавлены
+	// 2026-08-10 скриптом scripts/add_collections_dorsum_f_eco.php). Список зафиксирован явно —
+	// фильтр CIBlockSection::GetList по IBLOCK_SECTION_ID не работает как ожидалось (возвращает
+	// вообще все секции инфоблока), поэтому не полагаемся на него, а берём только эти ID
+	// напрямую, чтобы на хабе не всплыли посторонние разделы (фурнитура, цвета и т.п.).
 	$isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH) === "eporta";
-	$eportaCollectionIds = [184, 185, 186, 187, 188, 189, 190, 191];
+	$eportaCollectionIds = [184, 185, 186, 187, 188, 189, 190, 191, 193, 194];
 	$eportaCollections = [];
 	if ($isEportaTemplate) {
 		\Bitrix\Main\Loader::includeModule("iblock");
