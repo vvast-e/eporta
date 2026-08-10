@@ -4,6 +4,8 @@ $APPLICATION->SetPageProperty("description", "Eporta");
 $APPLICATION->SetTitle("Eporta");?> <?
 	//include module
 	\Bitrix\Main\Loader::includeModule("dw.deluxe");
+	\Bitrix\Main\Loader::includeModule("iblock");
+	require_once($_SERVER["DOCUMENT_ROOT"]."/local/admin_tools/eporta_banners/lib.php");
 
 	//vars
 	$catalogIblockId = null;
@@ -154,7 +156,7 @@ $APPLICATION->SetTitle("Eporta");?> <?
 
 			<!-- Большая плитка: Межкомнатные -->
 			<a href="/catalog/?category=mkd" style="grid-column:1;grid-row:1/span 2;position:relative;border-radius:14px;overflow:hidden;cursor:pointer;display:block">
-				<?php eportaPicture(SITE_TEMPLATE_PATH . "/assets/img/cat-mezh.jpg", "Межкомнатные", ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
+				<?php eportaPicture(eportaBannersResolveImage("cat_mkd", SITE_TEMPLATE_PATH . "/assets/img/cat-mezh.jpg"), "Межкомнатные", ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
 				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 42%,rgba(20,17,12,.72) 100%)"></div>
 				<div style="position:absolute;left:20px;right:20px;bottom:18px;display:flex;align-items:flex-end;justify-content:space-between">
 					<div><div style="font:800 22px 'Manrope';color:#fff;line-height:1.05">Межкомнатные</div><div style="font:600 12.5px 'Manrope';color:rgba(255,255,255,.72);margin-top:4px"><?=$eportaHomeCatMkd?> моделей</div></div>
@@ -164,31 +166,31 @@ $APPLICATION->SetTitle("Eporta");?> <?
 
 			<!-- Пара: Скрытые / Раздвижные -->
 			<a href="/catalog/?category=hidden" style="grid-column:2;grid-row:1;position:relative;border-radius:14px;overflow:hidden;display:block">
-				<?php eportaPicture(SITE_TEMPLATE_PATH . "/assets/img/cat-skryt.jpg", "Скрытые", ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
+				<?php eportaPicture(eportaBannersResolveImage("cat_hidden", SITE_TEMPLATE_PATH . "/assets/img/cat-skryt.jpg"), "Скрытые", ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
 				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(20,17,12,.7) 100%)"></div>
 				<div style="position:absolute;left:15px;bottom:13px"><div style="font:700 15.5px 'Manrope';color:#fff">Скрытые</div><div style="font:600 11.5px 'Manrope';color:rgba(255,255,255,.72);margin-top:2px"><?=$eportaHomeCatHidden?></div></div>
 			</a>
 			<a href="/catalog/?category=sliding" style="grid-column:2;grid-row:2;position:relative;border-radius:14px;overflow:hidden;display:block">
-				<?php eportaPicture(SITE_TEMPLATE_PATH . "/assets/img/cat-razdv.jpg", "Раздвижные", ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
+				<?php eportaPicture(eportaBannersResolveImage("cat_sliding", SITE_TEMPLATE_PATH . "/assets/img/cat-razdv.jpg"), "Раздвижные", ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
 				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(20,17,12,.7) 100%)"></div>
 				<div style="position:absolute;left:15px;bottom:13px"><div style="font:700 15.5px 'Manrope';color:#fff">Раздвижные</div><div style="font:600 11.5px 'Manrope';color:rgba(255,255,255,.72);margin-top:2px"><?=$eportaHomeCatSliding?></div></div>
 			</a>
 
 			<!-- Пара: Входные / Арки -->
 			<a href="/catalog/?category=entrance" style="grid-column:3;grid-row:1;position:relative;border-radius:14px;overflow:hidden;display:block">
-				<?php eportaPicture(SITE_TEMPLATE_PATH . "/assets/img/cat-vhod.jpg", "Входные", ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
+				<?php eportaPicture(eportaBannersResolveImage("cat_entrance", SITE_TEMPLATE_PATH . "/assets/img/cat-vhod.jpg"), "Входные", ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
 				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(20,17,12,.7) 100%)"></div>
 				<div style="position:absolute;left:15px;bottom:13px"><div style="font:700 15.5px 'Manrope';color:#fff">Входные</div><div style="font:600 11.5px 'Manrope';color:rgba(255,255,255,.72);margin-top:2px"><?=$eportaHomeCatEntrance?></div></div>
 			</a>
 			<a href="/catalog/?category=arch" style="grid-column:3;grid-row:2;position:relative;border-radius:14px;overflow:hidden;display:block">
-				<?php eportaPicture(SITE_TEMPLATE_PATH . "/assets/img/cat-arki.jpg", "Арки и порталы", ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
+				<?php eportaPicture(eportaBannersResolveImage("cat_arch", SITE_TEMPLATE_PATH . "/assets/img/cat-arki.jpg"), "Арки и порталы", ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
 				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(20,17,12,.7) 100%)"></div>
 				<div style="position:absolute;left:15px;bottom:13px"><div style="font:700 15.5px 'Manrope';color:#fff">Арки и порталы</div><div style="font:600 11.5px 'Manrope';color:rgba(255,255,255,.72);margin-top:2px"><?=$eportaHomeCatArch?></div></div>
 			</a>
 
 			<!-- Высокая: Фурнитура -->
 			<a href="/catalog/?category=hardware" style="grid-column:4;grid-row:1/span 2;position:relative;border-radius:14px;overflow:hidden;display:block">
-				<?php eportaPicture(SITE_TEMPLATE_PATH . "/assets/img/cat-furn.jpg", "Фурнитура", ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
+				<?php eportaPicture(eportaBannersResolveImage("cat_hardware", SITE_TEMPLATE_PATH . "/assets/img/cat-furn.jpg"), "Фурнитура", ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
 				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 48%,rgba(20,17,12,.72) 100%)"></div>
 				<div style="position:absolute;left:18px;right:18px;bottom:16px;display:flex;align-items:flex-end;justify-content:space-between">
 					<div><div style="font:800 18px 'Manrope';color:#fff">Фурнитура</div><div style="font:600 12px 'Manrope';color:rgba(255,255,255,.72);margin-top:3px"><?=$eportaHomeCatHardware?> позиций</div></div>
@@ -204,12 +206,12 @@ $APPLICATION->SetTitle("Eporta");?> <?
 	<?
 		\Bitrix\Main\Loader::includeModule("iblock");
 		$eportaHomeCollections = [
-			["ID" => 184, "CODE" => "dorsum", "NAME" => "Dorsum", "IMG" => "hit-1.jpg", "DESC" => "Модерн · экошпон"],
-			["ID" => 186, "CODE" => "vilis", "NAME" => "Vilis", "IMG" => "hit-2.jpg", "DESC" => "Скандинавский · экошпон"],
-			["ID" => 189, "CODE" => "actus", "NAME" => "Actus", "IMG" => "hit-5.jpg", "DESC" => "Классика · эмаль"],
-			["ID" => 185, "CODE" => "vitrum", "NAME" => "Vitrum", "IMG" => "hit-6.jpg", "DESC" => "Хай-тек · эмалит"],
-			["ID" => 188, "CODE" => "tabula", "NAME" => "Tabula", "IMG" => "hit-7.jpg", "DESC" => "Лофт · стекло"],
-			["ID" => 190, "CODE" => "lacuna", "NAME" => "Lacuna", "IMG" => "hit-8.jpg", "DESC" => "Натуральный шпон"],
+			["ID" => 184, "CODE" => "dorsum", "NAME" => "Dorsum", "SLOT" => "coll_dorsum", "IMG" => "hit-1.jpg", "DESC" => "Модерн · экошпон"],
+			["ID" => 186, "CODE" => "vilis", "NAME" => "Vilis", "SLOT" => "coll_vilis", "IMG" => "hit-2.jpg", "DESC" => "Скандинавский · экошпон"],
+			["ID" => 189, "CODE" => "actus", "NAME" => "Actus", "SLOT" => "coll_actus", "IMG" => "hit-5.jpg", "DESC" => "Классика · эмаль"],
+			["ID" => 185, "CODE" => "vitrum", "NAME" => "Vitrum", "SLOT" => "coll_vitrum", "IMG" => "hit-6.jpg", "DESC" => "Хай-тек · эмалит"],
+			["ID" => 188, "CODE" => "tabula", "NAME" => "Tabula", "SLOT" => "coll_tabula", "IMG" => "hit-7.jpg", "DESC" => "Лофт · стекло"],
+			["ID" => 190, "CODE" => "lacuna", "NAME" => "Lacuna", "SLOT" => "coll_lacuna", "IMG" => "hit-8.jpg", "DESC" => "Натуральный шпон"],
 		];
 		foreach ($eportaHomeCollections as &$eportaHomeColl) {
 			$eportaHomeColl["CNT"] = \CIBlockElement::GetList(
@@ -229,7 +231,7 @@ $APPLICATION->SetTitle("Eporta");?> <?
 		<div class="eporta-tile-grid">
 			<?foreach ($eportaHomeCollections as $eportaHomeColl):?>
 			<a href="/catalog/collections/<?=$eportaHomeColl["CODE"]?>/" style="position:relative;border-radius:16px;overflow:hidden;cursor:pointer;height:226px;display:block;text-decoration:none">
-				<?php eportaPicture(SITE_TEMPLATE_PATH . "/assets/img/" . $eportaHomeColl["IMG"], $eportaHomeColl["NAME"], ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
+				<?php eportaPicture(eportaBannersResolveImage($eportaHomeColl["SLOT"], SITE_TEMPLATE_PATH . "/assets/img/" . $eportaHomeColl["IMG"]), $eportaHomeColl["NAME"], ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
 				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 38%,rgba(20,17,12,.8) 100%)"></div>
 				<div style="position:absolute;left:20px;right:20px;bottom:18px"><div style="font:800 22px 'Manrope';color:#fff;letter-spacing:.01em"><?=htmlspecialcharsbx($eportaHomeColl["NAME"])?></div><div style="font:600 12.5px 'Manrope';color:rgba(255,255,255,.78);margin-top:4px"><?=htmlspecialcharsbx($eportaHomeColl["DESC"])?> · <?=$eportaHomeColl["CNT"]?> <?=($eportaHomeColl["CNT"] % 10 === 1 && $eportaHomeColl["CNT"] % 100 !== 11) ? "модель" : "моделей"?></div></div>
 			</a>

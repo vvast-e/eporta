@@ -28,6 +28,10 @@ $query = trim((string)\Bitrix\Main\Context::getCurrent()->getRequest()->get("nam
 $items = [];
 
 if ($catalogIblockId && $query !== "" && mb_strlen($query) > 1) {
+	// Артикул — сначала (см. eportaFindArticleMatches в local/php_interface/init.php),
+	// CSearch добирает остальное до лимита в 5, без дублей.
+	$foundIds = eportaFindArticleMatches($query, (int)$catalogIblockId, 5);
+
 	$obSearch = new CSearch;
 	$obSearch->Search(
 		[
@@ -39,14 +43,12 @@ if ($catalogIblockId && $query !== "" && mb_strlen($query) > 1) {
 		[],
 		["STEMMING" => "N"]
 	);
-	$foundIds = [];
 	while ($searchItem = $obSearch->fetch()) {
-		if (is_numeric($searchItem["ITEM_ID"])) {
-			$foundIds[] = (int)$searchItem["ITEM_ID"];
-		}
-		// Подсказка — только топ-5, дальше не имеет смысла тянуть данные по всем найденным.
 		if (count($foundIds) >= 5) {
 			break;
+		}
+		if (is_numeric($searchItem["ITEM_ID"]) && !in_array((int)$searchItem["ITEM_ID"], $foundIds, true)) {
+			$foundIds[] = (int)$searchItem["ITEM_ID"];
 		}
 	}
 

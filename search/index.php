@@ -35,6 +35,13 @@ $APPLICATION->SetTitle("Страница поиска");
 	$eportaQuery = trim((string)\Bitrix\Main\Context::getCurrent()->getRequest()->get("q"));
 	$eportaFoundIds = [];
 
+	// Артикул — сначала (см. eportaFindArticleMatches в local/php_interface/init.php); ключи
+	// массива = ID, значения тоже ID, порядок вставки сохраняется даже если CSearch ниже
+	// найдёт тот же ID повторно (переприсвоение существующего ключа не двигает его позицию).
+	foreach (eportaFindArticleMatches($eportaQuery, (int)$catalogIblockId) as $eportaArticleId) {
+		$eportaFoundIds[$eportaArticleId] = $eportaArticleId;
+	}
+
 	if ($eportaQuery !== "" && mb_strlen($eportaQuery) > 1) {
 		$obSearch = new CSearch;
 		$obSearch->Search(

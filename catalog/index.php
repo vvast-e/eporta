@@ -29,22 +29,38 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	// Деталь всегда заканчивается на ".html", список — нет.
 	$isEportaProductDetail = $isEportaTemplate && preg_match('~\.html(?:$|\?)~', $_SERVER["REQUEST_URI"] ?? "");
 
-	// Переключатель "N карточек в строке" (4/5/6) — источник истины кука eporta_cols (не GET),
-	// чтобы не тащить параметр через все ссылки фильтров/сортировки/пагинации. PAGE_ELEMENT_COUNT
-	// считаем кратным выбранному числу колонок (3 полных ряда) — иначе последняя страница даёт
-	// неполный ряд и пустое место снизу перед пагинацией/футером.
-	$eportaAllowedCols = [4, 5, 6];
-	$eportaCols = isset($_COOKIE["eporta_cols"]) && in_array((int)$_COOKIE["eporta_cols"], $eportaAllowedCols, true)
-		? (int)$_COOKIE["eporta_cols"] : 4;
+	// Число карточек в строке зафиксировано — сетка адаптивная (CSS-брейкпоинты в
+	// template_styles.css), выбор "4/5/6" был лишним контролом поверх уже готового адаптива.
+	// PAGE_ELEMENT_COUNT остаётся кратным этому числу (3 полных ряда), чтобы на последней
+	// странице не было неполного ряда и пустого места перед пагинацией/футером.
+	$eportaCols = 4;
 	$eportaPageElementCount = $eportaCols * 3;
 
-	// Этап 5 — Коллекции: ровно 8 дверных коллекций, подразделы раздела 183 "Коллекции" в
-	// IBLOCK 19. URL приходит по штатному SEF-шаблону как /catalog/collections/<code>/
-	// (SECTION_PAGE_URL секции). Список ID зафиксирован явно (см. collection/index.php —
-	// фильтр CIBlockSection::GetList по IBLOCK_SECTION_ID не работает как ожидалось, возвращает
-	// вообще все секции инфоблока), поэтому матчим CODE только среди этих 8 ID — иначе обычный
-	// раздел каталога с тем же кодом сегмента URL мог бы случайно попасть под резолвер коллекции.
-	$eportaCollectionIds = [184, 185, 186, 187, 188, 189, 190, 191];
+	// Вид отображения — плитка/список, источник истины кука eporta_view (аналогично тому,
+	// как раньше хранился eporta_cols): визуальный режим, бэкенд не трогает.
+	$eportaView = ($_COOKIE["eporta_view"] ?? "") === "list" ? "list" : "grid";
+
+	// Сортировка — GET-параметр sort с whitelist (по образцу per_page в search/index.php),
+	// значение реально прокидывается в ELEMENT_SORT_FIELD/ORDER компонента ниже. Раньше здесь
+	// был декоративный <div>"Сначала популярные"</div> без списка опций и без обработчика —
+	// сортировка была всегда одна и переключить её было нельзя.
+	$eportaSortOptions = [
+		"popular" => ["LABEL" => "Сначала популярные", "FIELD" => "PROPERTY_RATING", "ORDER" => "DESC"],
+		"price_asc" => ["LABEL" => "Сначала дешевле", "FIELD" => "CATALOG_PRICE_1", "ORDER" => "ASC"],
+		"price_desc" => ["LABEL" => "Сначала дороже", "FIELD" => "CATALOG_PRICE_1", "ORDER" => "DESC"],
+		"new" => ["LABEL" => "Сначала новые", "FIELD" => "ID", "ORDER" => "DESC"],
+		"name" => ["LABEL" => "По названию", "FIELD" => "NAME", "ORDER" => "ASC"],
+	];
+	$eportaSort = isset($_GET["sort"]) && isset($eportaSortOptions[$_GET["sort"]]) ? $_GET["sort"] : "popular";
+
+	// Этап 5 — Коллекции: подразделы раздела 183 "Коллекции" в IBLOCK 19 (плюс Dorsum-F/
+	// Dorsum-Eco, добавлены 2026-08-10 — см. collection/index.php). URL приходит по штатному
+	// SEF-шаблону как /catalog/collections/<code>/ (SECTION_PAGE_URL секции). Список ID
+	// зафиксирован явно (фильтр CIBlockSection::GetList по IBLOCK_SECTION_ID не работает как
+	// ожидалось, возвращает вообще все секции инфоблока), поэтому матчим CODE только среди этих
+	// ID — иначе обычный раздел каталога с тем же кодом сегмента URL мог бы случайно попасть
+	// под резолвер коллекции.
+	$eportaCollectionIds = [184, 185, 186, 187, 188, 189, 190, 191, 193, 194];
 	$eportaCollectionSection = null;
 	if ($isEportaTemplate && !$isEportaProductDetail) {
 		$eportaReqPath = parse_url($_SERVER["REQUEST_URI"] ?? "", PHP_URL_PATH);
@@ -212,7 +228,33 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			$eportaActiveChips[] = ["LABEL" => number_format($eportaPriceSelMin, 0, "", " ")." – ".number_format($eportaPriceSelMax, 0, "", " ")." ₽", "REMOVE_KEY" => "price", "REMOVE_VALUE" => null];
 		}
 
-		$eportaFoundCount = \CIBlockElement::GetList([], $eportaScopeFilter + $eportaArrFilter, false, false, ["ID"])->SelectedRowsCount();
+		// Схлопывание модели: без этого одна модель со множеством цветов (в выгрузке каждый
+		// цвет — отдельный элемент, см. eportaImportComposeName) занимает всю страницу выдачи
+		// своими же вариантами, а остальные модели пользователю не видны (жалоба: "одна модель
+		// вывалилась на первую страницу во всех цветах"). Лёгкий пред-запрос ID+MODEL с тем же
+		// фильтром, что и у самой сетки ниже (включая SECTION_ID коллекции, если открыта
+		// коллекция), группировка по MODEL, один представитель на группу — его ID уходит и в
+		// счётчик "Найдено N моделей"/кнопку фильтра, и в arrFilter["ID"] сетки товаров ниже
+		// (переменная $eportaRepresentativeIds переиспользуется там). Представитель выбирается
+		// детерминированно-псевдослучайно (crc32 от модели+дня) — "случайный цвет", но
+		// стабильный в пределах суток, иначе пагинация "плывёт" между переходами по страницам.
+		$eportaGroupFilter = $eportaScopeFilter + $eportaArrFilter + ["IBLOCK_ID" => 19, "ACTIVE" => "Y"];
+		if ($eportaCollectionSection) {
+			$eportaGroupFilter["SECTION_ID"] = $eportaCollectionSection["ID"];
+		}
+		$eportaModelGroupsRes = CIBlockElement::GetList([], $eportaGroupFilter, false, false, ["ID", "PROPERTY_MODEL"]);
+		$eportaModelGroups = [];
+		while ($eportaGroupRow = $eportaModelGroupsRes->Fetch()) {
+			$eportaGroupKey = $eportaGroupRow["PROPERTY_MODEL_VALUE"] ?: ("__id_" . $eportaGroupRow["ID"]);
+			$eportaModelGroups[$eportaGroupKey][] = (int)$eportaGroupRow["ID"];
+		}
+		$eportaRepresentativeIds = [];
+		$eportaDailySeed = date("Y-m-d");
+		foreach ($eportaModelGroups as $eportaGroupKey => $eportaGroupIds) {
+			sort($eportaGroupIds);
+			$eportaRepresentativeIds[] = $eportaGroupIds[crc32($eportaGroupKey . $eportaDailySeed) % count($eportaGroupIds)];
+		}
+		$eportaFoundCount = count($eportaRepresentativeIds);
 
 		// URL "Сбросить всё" — текущий путь без query-строки.
 		$eportaResetUrl = parse_url($_SERVER["REQUEST_URI"] ?? "", PHP_URL_PATH);
@@ -320,17 +362,34 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			<div style="font:500 13px;color:#8a857b;margin-top:5px">Найдено <?=$eportaFoundCount?> моделей</div>
 		</div>
 		<div style="display:flex;align-items:center;gap:10px">
-			<div style="display:flex;align-items:center;gap:9px;border:1.5px solid #e7e3db;border-radius:10px;padding:10px 14px;font:600 13px 'Manrope';color:#3a3631;cursor:pointer">Сначала популярные <span style="color:#a39e95">▾</span></div>
-			<!-- Переключатель числа карточек в строке (4/5/6). Источник истины — кука eporta_cols
-			     (см. $eportaCols выше): она же двигает PAGE_ELEMENT_COUNT компонента, поэтому клик
-			     перезагружает страницу — без этого сетка сменится визуально, а размер страницы
-			     останется старым и снизу будет пустое место перед пагинацией. -->
-			<div class="eporta-cols-switch" style="display:flex;border:1.5px solid #e7e3db;border-radius:10px;overflow:hidden">
-				<?foreach ($eportaAllowedCols as $eportaColOpt):
-					$eportaColActive = $eportaColOpt === $eportaCols;
-				?>
-				<button type="button" class="eporta-cols-btn" data-cols="<?=$eportaColOpt?>" onclick="eportaSetGridCols(<?=$eportaColOpt?>)" style="width:38px;height:40px;border:none;<?=$eportaColOpt !== 4 ? "border-left:1.5px solid #e7e3db;" : ""?>background:<?=$eportaColActive ? "#1b1a17" : "transparent"?>;font:700 13px 'Manrope';color:<?=$eportaColActive ? "#fff" : "#8a857b"?>;cursor:pointer"><?=$eportaColOpt?></button>
-				<?endforeach;?>
+			<!-- Сортировка: реальный dropdown ($eportaSortOptions), значение уходит в GET ?sort=
+			     и прокидывается в ELEMENT_SORT_FIELD/ORDER компонента ниже. <details>/<summary> —
+			     без зависимости от JS-библиотек (в шаблоне их нет). -->
+			<details class="eporta-sort-dd">
+				<summary><?=htmlspecialcharsbx($eportaSortOptions[$eportaSort]["LABEL"])?> <span style="color:#a39e95">▾</span></summary>
+				<div class="eporta-sort-dd-menu">
+					<?foreach ($eportaSortOptions as $eportaSortKey => $eportaSortOpt):
+						$eportaSortParams = $_GET;
+						unset($eportaSortParams["PAGEN_1"]);
+						if ($eportaSortKey === "popular") {
+							unset($eportaSortParams["sort"]);
+						} else {
+							$eportaSortParams["sort"] = $eportaSortKey;
+						}
+						$eportaSortUrl = ($_SERVER["PHP_SELF"] ?? "").($eportaSortParams ? "?".http_build_query($eportaSortParams) : "");
+					?>
+					<a href="<?=htmlspecialcharsbx($eportaSortUrl)?>" class="<?=$eportaSortKey === $eportaSort ? "active" : ""?>"><?=htmlspecialcharsbx($eportaSortOpt["LABEL"])?></a>
+					<?endforeach;?>
+				</div>
+			</details>
+			<!-- Переключатель плитка/список — визуальный (кука eporta_view), бэкенд не меняет. -->
+			<div class="eporta-view-switch">
+				<button type="button" class="eporta-view-btn<?=$eportaView === "grid" ? " active" : ""?>" data-view="grid" onclick="eportaSetView('grid')" title="Плитка" aria-label="Плитка">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect></svg>
+				</button>
+				<button type="button" class="eporta-view-btn<?=$eportaView === "list" ? " active" : ""?>" data-view="list" onclick="eportaSetView('list')" title="Список" aria-label="Список">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+				</button>
 			</div>
 		</div>
 	</div>
@@ -407,6 +466,10 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 				if (isset($eportaScopeFilter["<=PROPERTY_RATING"])) {
 					$arrFilter["<=PROPERTY_RATING"] = $eportaScopeFilter["<=PROPERTY_RATING"];
 				}
+				// $eportaRepresentativeIds — см. вычисление выше (схлопывание модели, рядом с
+				// $eportaFoundCount), один и тот же набор ID должен использоваться и в счётчике
+				// в шапке, и здесь в самой сетке — иначе они разъедутся.
+				$arrFilter["ID"] = $eportaRepresentativeIds ?: [0];
 			?>
 			<?$APPLICATION->IncludeComponent(
 				"bitrix:catalog.section",
@@ -417,12 +480,12 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 					"SECTION_ID" => $eportaCollectionSection ? $eportaCollectionSection["ID"] : false,
 					"SECTION_CODE" => "",
 					"SECTION_USER_FIELDS" => [],
-					// "Сначала популярные" — реальная сортировка по рейтингу (в выгрузке нет
-					// отдельной колонки хит/популярность), а не декоративный <div> без логики.
-					// Раньше сортировка шла по "sort"/"id" и не учитывала рейтинг вообще —
-					// товары с рейтингом 5 не поднимались выше товаров с рейтингом 0.
-					"ELEMENT_SORT_FIELD" => "PROPERTY_RATING",
-					"ELEMENT_SORT_ORDER" => "desc",
+					// Сортировка — управляется дропдауном выше ($eportaSort/$eportaSortOptions),
+					// вместо захардкоженного "всегда популярные". CATALOG_PRICE_1 как поле
+					// сортировки уже используется в этом файле для диапазона цены (см. выше),
+					// работает и как ELEMENT_SORT_FIELD компонента.
+					"ELEMENT_SORT_FIELD" => $eportaSortOptions[$eportaSort]["FIELD"],
+					"ELEMENT_SORT_ORDER" => $eportaSortOptions[$eportaSort]["ORDER"],
 					"ELEMENT_SORT_FIELD2" => "id",
 					"ELEMENT_SORT_ORDER2" => "desc",
 					"FILTER_NAME" => "arrFilter",
@@ -477,17 +540,18 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 
 	<script>
 	(function(){
-		// Переключатель "N карточек в строке" — общий для каталога и коллекций (обе страницы
-		// рендерятся через этот же catalog/index.php). Кука, а не localStorage: PHP наверху
-		// ($eportaCols) читает её же, чтобы пересчитать PAGE_ELEMENT_COUNT под выбранное число
-		// колонок (полными рядами) — без этого при смене колонок на клиенте размер страницы
-		// остался бы прежним и внизу перед пагинацией появлялось пустое место. Поэтому клик
-		// делает полную перезагрузку, а не мгновенную CSS-подмену.
-		window.eportaSetGridCols = function(cols) {
-			cols = parseInt(cols, 10);
-			if (!cols) return;
-			document.cookie = "eporta_cols=" + cols + ";path=/;max-age=31536000";
-			location.reload();
+		// Плитка/список — переключаем класс на уже отрисованной сетке сразу (без перезагрузки),
+		// кука eporta_view нужна только для того, чтобы следующая загруженная страница/пагинация
+		// сразу отрендерилась в выбранном виде (см. чтение куки в catalog.section/.default/template.php).
+		window.eportaSetView = function(view) {
+			view = view === "list" ? "list" : "grid";
+			document.cookie = "eporta_view=" + view + ";path=/;max-age=31536000";
+			document.querySelectorAll(".eporta-product-grid").forEach(function(grid){
+				grid.classList.toggle("eporta-product-grid--list", view === "list");
+			});
+			document.querySelectorAll(".eporta-view-btn").forEach(function(btn){
+				btn.classList.toggle("active", btn.getAttribute("data-view") === view);
+			});
 		};
 	})();
 	</script>

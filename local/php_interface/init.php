@@ -44,6 +44,48 @@ function eportaOnIBlockElementSaveGenerateWebp(&$arFields) {
     }
 }
 
+// Поиск по артикулу (CML2_ARTICLE) — общий хелпер для search/index.php и search/suggest.php,
+// чтобы страница поиска и подсказки в шапке не расходились в результатах (та же причина,
+// по которой suggest.php был переписан на CSearch — см. его комментарий). Артикул отмечен
+// SEARCHABLE=N по умолчанию (вендорское свойство CML2_ARTICLE не индексируется), а
+// переиндексация полнотекстового поиска — тяжёлая и не мгновенная операция, поэтому здесь —
+// прямой точный/частичный поиск по свойству, а не ожидание индекса CSearch.
+// Возвращает ID элементов по убыванию релевантности: сначала точное совпадение артикула,
+// затем частичное (артикул содержит запрос), без дублей.
+function eportaFindArticleMatches(string $query, int $iblockId, int $limit = 50): array {
+    $query = trim($query);
+    if ($query === '' || $iblockId <= 0 || !CModule::IncludeModule('iblock')) {
+        return [];
+    }
+    $ids = [];
+
+    $exactRes = CIBlockElement::GetList(
+        [],
+        ['IBLOCK_ID' => $iblockId, 'ACTIVE' => 'Y', 'PROPERTY_CML2_ARTICLE' => $query],
+        false,
+        ['nTopCount' => $limit],
+        ['ID']
+    );
+    while ($row = $exactRes->Fetch()) {
+        $ids[(int)$row['ID']] = true;
+    }
+
+    if (count($ids) < $limit) {
+        $partialRes = CIBlockElement::GetList(
+            [],
+            ['IBLOCK_ID' => $iblockId, 'ACTIVE' => 'Y', '%PROPERTY_CML2_ARTICLE' => $query],
+            false,
+            ['nTopCount' => $limit],
+            ['ID']
+        );
+        while ($row = $partialRes->Fetch()) {
+            $ids[(int)$row['ID']] = true;
+        }
+    }
+
+    return array_slice(array_keys($ids), 0, $limit);
+}
+
 function eportaOnBuildGlobalMenu(&$aGlobalMenu, &$aModuleMenu) {
     global $USER;
     if (!CModule::IncludeModule('iblock')) {
@@ -62,5 +104,16 @@ function eportaOnBuildGlobalMenu(&$aGlobalMenu, &$aModuleMenu) {
         'items_id' => 'menu_eporta_import',
         'url' => '/local/admin_tools/eporta_import/',
         'more_url' => ['/local/admin_tools/eporta_import/'],
+    ];
+    $aModuleMenu[] = [
+        'parent_menu' => 'global_menu_content',
+        'sort' => 710,
+        'text' => 'Баннеры главной (категории/коллекции)',
+        'title' => 'Замена картинок плиток "Каталог по категориям" и "Коллекции фабрики"',
+        'icon' => 'iblock_menu_icon',
+        'page_icon' => 'iblock_menu_icon',
+        'items_id' => 'menu_eporta_banners',
+        'url' => '/local/admin_tools/eporta_banners/',
+        'more_url' => ['/local/admin_tools/eporta_banners/'],
     ];
 }

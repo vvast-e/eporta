@@ -584,13 +584,76 @@ img { display: block; }
 .product-card .price-row-tools { display: flex; align-items: center; gap: 8px; }
 
 /* Сетка карточек каталога/коллекций — число колонок задаёт inline custom property
-   --eporta-cols (переключатель 4/5/6 в catalog/index.php), но на узких экранах медиа-запросы
-   ниже её перебивают: планшет/мобильный не должны насильно сжимать карточки под десктопный
-   выбор пользователя. */
+   --eporta-cols (константа 4 в catalog/index.php, ручной селектор 4/5/6 убран — сетка и так
+   адаптивная), медиа-запросы ниже дожимают её на узких экранах. */
 .eporta-product-grid { display: grid; grid-template-columns: repeat(var(--eporta-cols, 4), 1fr); gap: clamp(12px, 1.1vw, 20px); }
 @media (max-width: 1180px) { .eporta-product-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 860px)  { .eporta-product-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 560px)  { .eporta-product-grid { grid-template-columns: repeat(1, 1fr); } }
+
+/* Карточка товара: внешняя .product-card — не ссылка (внутри неё теперь два independent-а:
+   .product-card-link на сам товар и свотчи цвета — каждый свотч тоже ссылка, но на ДРУГОЙ
+   товар, вложенные <a> невалидны, поэтому основная ссылка вынесена в дочерний блок). */
+.product-card-link { display: block; text-decoration: none; color: inherit; }
+
+/* Свотчи цвета под карточкой (схлопывание модели в каталоге — см. catalog/index.php): один
+   элемент выдачи на модель, остальные цвета доступны кружками-миниатюрами, ведущими на
+   соответствующий товар. Тот же паттерн уже был на детальной странице
+   (catalog.element/.default/template.php), здесь — компактный вариант под ценой. */
+.product-swatches { display: flex; align-items: center; gap: 6px; padding: 0 13px 12px; flex-wrap: wrap; }
+.product-swatches .swatch {
+  width: 20px; height: 20px; border-radius: 50%; flex: none;
+  background-size: cover; background-position: center; background-color: #f3f1ec;
+  border: 1.5px solid #fff; box-shadow: 0 0 0 1px var(--border, #e7e3db);
+}
+.product-swatches .swatch:hover { box-shadow: 0 0 0 1.5px var(--accent, #e8820a); }
+.product-swatches .swatch-more { font: 700 11px 'Manrope'; color: #8a857b; }
+
+/* Режим "Список" (переключатель плитка/список над каталогом) — карточка в строку вместо
+   плитки: картинка слева фиксированной ширины, инфо справа. Работает поверх той же разметки
+   .product-card, без изменений в PHP-шаблоне карточки. */
+.eporta-product-grid--list { grid-template-columns: 1fr !important; gap: 10px; }
+.eporta-product-grid--list .product-card { display: flex; align-items: center; gap: 12px; }
+.eporta-product-grid--list .product-card-link { display: flex; align-items: stretch; gap: 16px; flex: 1; min-width: 0; }
+.eporta-product-grid--list .product-card .img-wrap { flex: none; width: 160px; aspect-ratio: 1; }
+.eporta-product-grid--list .product-card .info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+.eporta-product-grid--list .product-swatches { flex: none; padding: 0 13px 0 0; max-width: 140px; }
+@media (max-width: 560px) {
+  .eporta-product-grid--list .product-card-link { flex-direction: row; }
+  .eporta-product-grid--list .product-card .img-wrap { width: 96px; }
+  .eporta-product-grid--list .product-swatches { display: none; }
+}
+
+/* Дропдаун сортировки (заменяет мок-<div> "Сначала популярные"): нативный <details>/<summary>,
+   без JS-библиотек. summary — сам контрол, открытие рисует список ссылок абсолютным блоком. */
+.eporta-sort-dd { position: relative; }
+.eporta-sort-dd > summary {
+  display: flex; align-items: center; gap: 9px; list-style: none; cursor: pointer;
+  border: 1.5px solid #e7e3db; border-radius: 10px; padding: 10px 14px;
+  font: 600 13px 'Manrope'; color: #3a3631; white-space: nowrap;
+}
+.eporta-sort-dd > summary::-webkit-details-marker { display: none; }
+.eporta-sort-dd[open] > summary { border-color: #c2bdb2; }
+.eporta-sort-dd-menu {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 20; min-width: 200px;
+  background: #fff; border: 1.5px solid #e7e3db; border-radius: 12px; padding: 6px;
+  box-shadow: 0 12px 28px rgba(20,18,14,.12);
+}
+.eporta-sort-dd-menu a {
+  display: block; padding: 9px 12px; border-radius: 8px; text-decoration: none;
+  font: 600 13px 'Manrope'; color: #3a3631;
+}
+.eporta-sort-dd-menu a:hover { background: #f3f1ec; }
+.eporta-sort-dd-menu a.active { background: #1b1a17; color: #fff; }
+
+/* Переключатель плитка/список — та же визуальная оболочка, что был у 4/5/6. */
+.eporta-view-switch { display: flex; border: 1.5px solid #e7e3db; border-radius: 10px; overflow: hidden; }
+.eporta-view-btn {
+  width: 40px; height: 40px; border: none; background: transparent; color: #8a857b;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.eporta-view-btn + .eporta-view-btn { border-left: 1.5px solid #e7e3db; }
+.eporta-view-btn.active { background: #1b1a17; color: #fff; }
 
 /* Плиточные сетки коллекций (главная "Коллекции фабрики", хаб /collection/) —
    те же брейкпоинты, что у товарной сетки, чтобы плитки не расползались на узких экранах. */
