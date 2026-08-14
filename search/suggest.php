@@ -53,12 +53,16 @@ if ($catalogIblockId && $query !== "" && mb_strlen($query) > 1) {
 	}
 
 	if ($foundIds) {
+		// CODE — нужен для фоллбэка ссылки ниже: DETAIL_PAGE_URL иногда приходит с
+		// неподставленным макросом "#ELEMENT_CODE#" (SEF-шаблон компонента не резолвит его
+		// вне компонента bitrix:catalog.*), браузер трактует такую ссылку как якорь и клик
+		// по подсказке никуда не ведёт — см. тот же фоллбэк в search/index.php.
 		$res = \CIBlockElement::GetList(
 			[],
 			["ID" => $foundIds, "ACTIVE" => "Y", "IBLOCK_ID" => (int)$catalogIblockId],
 			false,
 			false,
-			["ID", "NAME", "DETAIL_PAGE_URL", "PREVIEW_PICTURE", "DETAIL_PICTURE", "CATALOG_PRICE_1"]
+			["ID", "NAME", "CODE", "DETAIL_PAGE_URL", "PREVIEW_PICTURE", "DETAIL_PICTURE", "CATALOG_PRICE_1"]
 		);
 		$dataById = [];
 		while ($row = $res->GetNext()) {
@@ -72,13 +76,26 @@ if ($catalogIblockId && $query !== "" && mb_strlen($query) > 1) {
 			$row = $dataById[$id];
 			$imgId = $row["PREVIEW_PICTURE"] ?: $row["DETAIL_PICTURE"];
 			$priceVal = $row["CATALOG_PRICE_1"] ?? null;
+
+			$url = $row["DETAIL_PAGE_URL"] ?? "";
+			if ($url === "" || strpos($url, "#") !== false) {
+				$url = $row["CODE"] ? "/catalog/" . $row["CODE"] . ".html" : "";
+			}
+			if ($url === "") {
+				continue;
+			}
+
 			$items[] = [
 				"ID" => $id,
 				"NAME" => $row["NAME"],
-				"DETAIL_PAGE_URL" => $row["DETAIL_PAGE_URL"],
+				"DETAIL_PAGE_URL" => $url,
 				"DETAIL_PICTURE" => $imgId ? \CFile::GetPath($imgId) : "",
+				// CurrencyFormat(..., true) отдаёт HTML-сущности (&nbsp;/&#8381;) — годится для
+				// вставки через innerHTML, но JS (assets/app.js) кладёт значение через
+				// textContent, поэтому сущности раньше показывались как есть. Декодируем здесь,
+				// чтобы контракт ответа остался "готовая строка для textContent".
 				"PRICE" => ($priceVal !== null && $priceVal !== "")
-					? \CCurrencyLang::CurrencyFormat((float)$priceVal, "RUB", true)
+					? html_entity_decode(\CCurrencyLang::CurrencyFormat((float)$priceVal, "RUB", true), ENT_QUOTES | ENT_HTML5, "UTF-8")
 					: "",
 			];
 		}

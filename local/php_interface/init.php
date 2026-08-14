@@ -52,6 +52,23 @@ function eportaOnIBlockElementSaveGenerateWebp(&$arFields) {
 // прямой точный/частичный поиск по свойству, а не ожидание индекса CSearch.
 // Возвращает ID элементов по убыванию релевантности: сначала точное совпадение артикула,
 // затем частичное (артикул содержит запрос), без дублей.
+// Склонение числительных для русских подписей ("N товар/товара/товаров") — используется в
+// каталоге (catalog/index.php, подпись "Найдено N товаров (M моделей)").
+function eportaPluralRu(int $n, string $one, string $few, string $many): string {
+    $n = abs($n) % 100;
+    $n1 = $n % 10;
+    if ($n > 10 && $n < 20) {
+        return $many;
+    }
+    if ($n1 > 1 && $n1 < 5) {
+        return $few;
+    }
+    if ($n1 === 1) {
+        return $one;
+    }
+    return $many;
+}
+
 function eportaFindArticleMatches(string $query, int $iblockId, int $limit = 50): array {
     $query = trim($query);
     if ($query === '' || $iblockId <= 0 || !CModule::IncludeModule('iblock')) {
