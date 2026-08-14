@@ -15,9 +15,9 @@ if (empty($arParams["TEMPLATE_TELEPHONE_1"]) && \Bitrix\Main\Loader::includeModu
 	<div class="f-logo">EPORTA</div>
 	<nav>
 		<a href="/catalog/">Каталог</a>
-		<a href="/about/delivery/">Доставка</a>
-		<a href="/discount/">Оплата</a>
-		<a href="/about/guaranty/">Гарантия</a>
+		<a href="/dostavka/">Доставка</a>
+		<a href="/oplata/">Оплата</a>
+		<a href="/garantiya/">Гарантия</a>
 		<a href="/about/contacts/">Контакты</a>
 	</nav>
 	<div class="f-phone"><?= htmlspecialcharsbx($templatePhone) ?></div>

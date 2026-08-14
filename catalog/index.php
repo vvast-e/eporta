@@ -29,6 +29,11 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	// Деталь всегда заканчивается на ".html", список — нет.
 	$isEportaProductDetail = $isEportaTemplate && preg_match('~\.html(?:$|\?)~', $_SERVER["REQUEST_URI"] ?? "");
 
+	// Бесконечная подгрузка: ?eporta_ajax=grid&PAGEN_1=N — тот же список/фильтр/сортировка,
+	// что и обычный запрос страницы, но в ответ уходит только фрагмент сетки+пейджера
+	// (см. короткое замыкание перед выводом HTML ниже), без хедера/сайдбара/подвала.
+	$eportaIsAjaxGrid = $isEportaTemplate && !$isEportaProductDetail && ($_GET["eporta_ajax"] ?? "") === "grid";
+
 	// Число карточек в строке зафиксировано — сетка адаптивная (CSS-брейкпоинты в
 	// template_styles.css), выбор "4/5/6" был лишним контролом поверх уже готового адаптива.
 	// PAGE_ELEMENT_COUNT остаётся кратным этому числу (3 полных ряда), чтобы на последней
@@ -228,36 +233,223 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			$eportaActiveChips[] = ["LABEL" => number_format($eportaPriceSelMin, 0, "", " ")." – ".number_format($eportaPriceSelMax, 0, "", " ")." ₽", "REMOVE_KEY" => "price", "REMOVE_VALUE" => null];
 		}
 
-		// Схлопывание модели: без этого одна модель со множеством цветов (в выгрузке каждый
-		// цвет — отдельный элемент, см. eportaImportComposeName) занимает всю страницу выдачи
-		// своими же вариантами, а остальные модели пользователю не видны (жалоба: "одна модель
-		// вывалилась на первую страницу во всех цветах"). Лёгкий пред-запрос ID+MODEL с тем же
-		// фильтром, что и у самой сетки ниже (включая SECTION_ID коллекции, если открыта
-		// коллекция), группировка по MODEL, один представитель на группу — его ID уходит и в
-		// счётчик "Найдено N моделей"/кнопку фильтра, и в arrFilter["ID"] сетки товаров ниже
-		// (переменная $eportaRepresentativeIds переиспользуется там). Представитель выбирается
-		// детерминированно-псевдослучайно (crc32 от модели+дня) — "случайный цвет", но
-		// стабильный в пределах суток, иначе пагинация "плывёт" между переходами по страницам.
+		// Раскладка "круговая по моделям": раньше здесь схлопывали выдачу до одного
+		// представителя на модель (иначе одна модель со множеством цветов — в выгрузке каждый
+		// цвет отдельный элемент, см. eportaImportComposeName — занимала всю страницу своими же
+		// вариантами), но это ПРЯТАЛО остальные цвета из каталога вовсе. По решению пользователя:
+		// показываем ВСЕ товары (ничего не скрываем), а очерёдность строим так, чтобы первые
+		// страницы показывали максимум РАЗНЫХ моделей, а не все цвета одной подряд. Лёгкий
+		// пред-запрос ID+MODEL с тем же фильтром, что и у сетки (включая SECTION_ID коллекции),
+		// плюс поле текущей сортировки — группируем по MODEL, внутри каждой группы сортируем по
+		// выбранному критерию ($eportaSort), группы тоже упорядочиваем по лучшему товару в них
+		// (тем же критерием). Затем round-robin: раунд 1 — по одному (лучшему) товару из каждой
+		// модели, раунд 2 — по второму и т.д. Ничего не теряется, просто сначала показываются
+		// разные модели, а повторные цвета одной модели уходят дальше по списку/страницам.
 		$eportaGroupFilter = $eportaScopeFilter + $eportaArrFilter + ["IBLOCK_ID" => 19, "ACTIVE" => "Y"];
 		if ($eportaCollectionSection) {
 			$eportaGroupFilter["SECTION_ID"] = $eportaCollectionSection["ID"];
 		}
-		$eportaModelGroupsRes = CIBlockElement::GetList([], $eportaGroupFilter, false, false, ["ID", "PROPERTY_MODEL"]);
+		$eportaSortField = $eportaSortOptions[$eportaSort]["FIELD"];
+		$eportaSortOrder = $eportaSortOptions[$eportaSort]["ORDER"];
+		$eportaGroupSelect = ["ID", "PROPERTY_MODEL"];
+		if ($eportaSortField === "PROPERTY_RATING") {
+			$eportaGroupSelect[] = "PROPERTY_RATING";
+		} elseif ($eportaSortField === "CATALOG_PRICE_1") {
+			$eportaGroupSelect[] = "CATALOG_PRICE_1";
+		} elseif ($eportaSortField === "NAME") {
+			$eportaGroupSelect[] = "NAME";
+		}
+		$eportaModelGroupsRes = CIBlockElement::GetList([], $eportaGroupFilter, false, false, $eportaGroupSelect);
 		$eportaModelGroups = [];
 		while ($eportaGroupRow = $eportaModelGroupsRes->Fetch()) {
 			$eportaGroupKey = $eportaGroupRow["PROPERTY_MODEL_VALUE"] ?: ("__id_" . $eportaGroupRow["ID"]);
-			$eportaModelGroups[$eportaGroupKey][] = (int)$eportaGroupRow["ID"];
+			if ($eportaSortField === "PROPERTY_RATING") {
+				$eportaSortVal = (float)($eportaGroupRow["PROPERTY_RATING_VALUE"] ?? 0);
+			} elseif ($eportaSortField === "CATALOG_PRICE_1") {
+				$eportaSortVal = (float)($eportaGroupRow["CATALOG_PRICE_1"] ?? 0);
+			} elseif ($eportaSortField === "NAME") {
+				$eportaSortVal = (string)($eportaGroupRow["NAME"] ?? "");
+			} else {
+				$eportaSortVal = (int)$eportaGroupRow["ID"];
+			}
+			$eportaModelGroups[$eportaGroupKey][] = ["ID" => (int)$eportaGroupRow["ID"], "SORT" => $eportaSortVal];
 		}
-		$eportaRepresentativeIds = [];
-		$eportaDailySeed = date("Y-m-d");
-		foreach ($eportaModelGroups as $eportaGroupKey => $eportaGroupIds) {
-			sort($eportaGroupIds);
-			$eportaRepresentativeIds[] = $eportaGroupIds[crc32($eportaGroupKey . $eportaDailySeed) % count($eportaGroupIds)];
+
+		// Компаратор по выбранной сортировке, с ID как стабильным тай-брейком (иначе порядок
+		// "плывёт" между запросами при равных значениях — важно для пагинации).
+		$eportaSortCmp = function ($a, $b) use ($eportaSortOrder) {
+			if ($a["SORT"] === $b["SORT"]) {
+				return $b["ID"] <=> $a["ID"];
+			}
+			$cmp = $a["SORT"] <=> $b["SORT"];
+			return $eportaSortOrder === "ASC" ? $cmp : -$cmp;
+		};
+		foreach ($eportaModelGroups as &$eportaGroupItems) {
+			usort($eportaGroupItems, $eportaSortCmp);
 		}
-		$eportaFoundCount = count($eportaRepresentativeIds);
+		unset($eportaGroupItems);
+		// Сами модели тоже упорядочиваем по их лучшему товару — модели-лидеры выбранной
+		// сортировки идут в раскладке первыми среди "раунда 1".
+		uasort($eportaModelGroups, function ($eportaGroupA, $eportaGroupB) use ($eportaSortCmp) {
+			return $eportaSortCmp($eportaGroupA[0], $eportaGroupB[0]);
+		});
+
+		$eportaOrderedIds = [];
+		$eportaMaxGroupSize = $eportaModelGroups ? max(array_map("count", $eportaModelGroups)) : 0;
+		for ($eportaRound = 0; $eportaRound < $eportaMaxGroupSize; $eportaRound++) {
+			foreach ($eportaModelGroups as $eportaGroupItems) {
+				if (isset($eportaGroupItems[$eportaRound])) {
+					$eportaOrderedIds[] = $eportaGroupItems[$eportaRound]["ID"];
+				}
+			}
+		}
+		$eportaModelCount = count($eportaModelGroups);
+		$eportaFoundCount = count($eportaOrderedIds);
+
+		// Пагинация — своя (не компонентная): bitrix:catalog.section всегда пересортировывает
+		// выборку по ELEMENT_SORT_FIELD, наш круговой порядок в $eportaOrderedIds потерялся бы.
+		// Тот же приём, что в search/index.php — нарезаем ID текущей страницы сами, компоненту
+		// ниже отдаём готовый список ID (arrFilter["ID"]), его собственный пейджер отключаем.
+		$eportaTotalPages = max(1, (int)ceil($eportaFoundCount / $eportaPageElementCount));
+		$eportaCurPage = max(1, min($eportaTotalPages, (int)($_GET["PAGEN_1"] ?? 1)));
+		$eportaPageIds = array_slice($eportaOrderedIds, ($eportaCurPage - 1) * $eportaPageElementCount, $eportaPageElementCount);
 
 		// URL "Сбросить всё" — текущий путь без query-строки.
 		$eportaResetUrl = parse_url($_SERVER["REQUEST_URI"] ?? "", PHP_URL_PATH);
+
+		// Ссылка на конкретную страницу каталога (сохраняет остальные GET-параметры — фильтры,
+		// сортировку), используется и обычным пейджером, и JS-подгрузкой (см. ниже).
+		$eportaCatalogPageUrl = function ($eportaPage) use ($eportaResetUrl) {
+			$eportaParams = $_GET;
+			unset($eportaParams["eporta_ajax"]);
+			if ($eportaPage > 1) {
+				$eportaParams["PAGEN_1"] = $eportaPage;
+			} else {
+				unset($eportaParams["PAGEN_1"]);
+			}
+			return $eportaResetUrl . ($eportaParams ? "?" . http_build_query($eportaParams) : "");
+		};
+
+		// Сетка товаров — общая функция для обычного рендера страницы и AJAX-подгрузки (см.
+		// короткое замыкание ниже, ?eporta_ajax=grid), чтобы не дублировать параметры компонента.
+		// FILTER_NAME=>"arrFilter" ниже читает ГЛОБАЛЬНУЮ переменную "arrFilter" — обязательно
+		// global, иначе компонент её не увидит (в отличие от вызова на верхнем уровне скрипта,
+		// внутри функции локальная переменная не совпадает с глобальной).
+		function eportaRenderCatalogGrid($eportaIds, $eportaSectionId, $eportaSortField, $eportaSortOrder, $eportaColsArg, $eportaPageElementCountArg) {
+			global $arrFilter, $APPLICATION;
+			// $eportaIds уже полностью отфильтрован (категория/распродажа/новинки/чекбоксы/цена/
+			// коллекция — см. $eportaGroupFilter выше), доп. условия компоненту не нужны.
+			$arrFilter = ["ID" => $eportaIds ?: [0]];
+			$APPLICATION->IncludeComponent(
+				"bitrix:catalog.section",
+				".default",
+				[
+					"IBLOCK_TYPE" => "catalog",
+					"IBLOCK_ID" => "19",
+					"SECTION_ID" => $eportaSectionId,
+					"SECTION_CODE" => "",
+					"SECTION_USER_FIELDS" => [],
+					// Сортировка внутри страницы — так же управляется дропдауном ($eportaSort);
+					// реальную раскладку "все модели вперемешку" даёт уже готовый порядок $eportaIds,
+					// это поле лишь стабилизирует порядок внутри одной страницы компонента.
+					"ELEMENT_SORT_FIELD" => $eportaSortField,
+					"ELEMENT_SORT_ORDER" => $eportaSortOrder,
+					"ELEMENT_SORT_FIELD2" => "id",
+					"ELEMENT_SORT_ORDER2" => "desc",
+					"FILTER_NAME" => "arrFilter",
+					"HIDE_NOT_AVAILABLE" => "N",
+					"HIDE_NOT_AVAILABLE_OFFERS" => "N",
+					"PAGE_ELEMENT_COUNT" => (string)$eportaPageElementCountArg,
+					"LINE_ELEMENT_COUNT" => (string)$eportaColsArg,
+					"PROPERTY_CODE" => ["STYLE", "COATING_COLOR", "GLAZING", "MAIN_COLOR", "PRODUCT_DAY", "RATING", "VOTE_COUNT", "CML2_ARTICLE"],
+					"OFFERS_FIELD_CODE" => [],
+					"OFFERS_PROPERTY_CODE" => [],
+					"BACKGROUND_IMAGE" => "-",
+					"LABEL_PROP" => "-",
+					"PRODUCT_SUBSCRIPTION" => "N",
+					"SHOW_DISCOUNT_PERCENT" => "Y",
+					"SHOW_OLD_PRICE" => "Y",
+					"PRICE_CODE" => ["BASE"],
+					"USE_PRICE_COUNT" => "N",
+					"SHOW_PRICE_COUNT" => "1",
+					"PRICE_VAT_INCLUDE" => "Y",
+					"CONVERT_CURRENCY" => "N",
+					"BASKET_URL" => "/personal/cart/",
+					"ACTION_VARIABLE" => "action",
+					"PRODUCT_ID_VARIABLE" => "id",
+					"PRODUCT_QUANTITY_VARIABLE" => "quantity",
+					"ADD_PROPERTIES_TO_BASKET" => "Y",
+					"PRODUCT_PROPS_VARIABLE" => "prop",
+					"PARTIAL_PRODUCT_PROPERTIES" => "N",
+					"USE_PRODUCT_QUANTITY" => "N",
+					"CACHE_TYPE" => "A",
+					"CACHE_TIME" => "3600",
+					"CACHE_GROUPS" => "N",
+					"CACHE_FILTER" => "Y",
+					"DISPLAY_COMPARE" => "N",
+					"SET_TITLE" => "N",
+					"SET_STATUS_404" => "N",
+					"SEF_MODE" => "N",
+					// Свой пейджер рендерится отдельно (eportaRenderCatalogPager) — компонентный
+					// отключаем, иначе он бы пересчитывал страницы по PAGE_ELEMENT_COUNT от полного
+					// arrFilter, а не от уже нарезанного вручную $eportaIds.
+					"DISPLAY_TOP_PAGER" => "N",
+					"DISPLAY_BOTTOM_PAGER" => "N",
+					"ADD_SECTIONS_CHAIN" => "N",
+					"COMPATIBLE_MODE" => "Y",
+					"AJAX_MODE" => "N",
+					"TEMPLATE_THEME" => "site",
+				],
+				false
+			);
+		}
+
+		// Свой пейджер (компонентный отключён выше) — та же разметка/классы .bx-pagination, что
+		// на /search/ (search/index.php), стили уже есть в template_styles.css. data-атрибуты —
+		// для JS-подгрузки при скролле (assets/app.js), не влияют на обычные ссылки-переходы.
+		function eportaRenderCatalogPager($eportaCurPageArg, $eportaTotalPagesArg, callable $eportaUrlFn) {
+			if ($eportaTotalPagesArg <= 1) {
+				return;
+			}
+			$eportaPagerWindow = 2;
+			$eportaPagerFrom = max(1, $eportaCurPageArg - $eportaPagerWindow);
+			$eportaPagerTo = min($eportaTotalPagesArg, $eportaCurPageArg + $eportaPagerWindow);
+			?>
+			<div class="bx-pagination" id="eportaCatalogPager" data-cur-page="<?=$eportaCurPageArg?>" data-total-pages="<?=$eportaTotalPagesArg?>" data-next-url="<?=$eportaCurPageArg < $eportaTotalPagesArg ? htmlspecialcharsbx($eportaUrlFn($eportaCurPageArg + 1)) : ""?>">
+				<div class="bx-pagination-container">
+					<ul>
+						<?if ($eportaCurPageArg > 1):?>
+						<li class="bx-pag-prev"><a href="<?=htmlspecialcharsbx($eportaUrlFn($eportaCurPageArg - 1))?>"><span>Назад</span></a></li>
+						<?else:?>
+						<li class="bx-pag-prev"><span>Назад</span></li>
+						<?endif;?>
+
+						<?if ($eportaPagerFrom > 1):?>
+						<li><a href="<?=htmlspecialcharsbx($eportaUrlFn(1))?>"><span>1</span></a></li>
+						<?endif;?>
+
+						<?for ($eportaP = $eportaPagerFrom; $eportaP <= $eportaPagerTo; $eportaP++):?>
+							<?if ($eportaP == $eportaCurPageArg):?>
+							<li class="bx-active"><span><?=$eportaP?></span></li>
+							<?else:?>
+							<li><a href="<?=htmlspecialcharsbx($eportaUrlFn($eportaP))?>"><span><?=$eportaP?></span></a></li>
+							<?endif;?>
+						<?endfor;?>
+
+						<?if ($eportaPagerTo < $eportaTotalPagesArg):?>
+						<li><a href="<?=htmlspecialcharsbx($eportaUrlFn($eportaTotalPagesArg))?>"><span><?=$eportaTotalPagesArg?></span></a></li>
+						<?endif;?>
+
+						<?if ($eportaCurPageArg < $eportaTotalPagesArg):?>
+						<li class="bx-pag-next"><a href="<?=htmlspecialcharsbx($eportaUrlFn($eportaCurPageArg + 1))?>"><span>Вперед</span></a></li>
+						<?else:?>
+						<li class="bx-pag-next"><span>Вперед</span></li>
+						<?endif;?>
+					</ul>
+				</div>
+			</div>
+			<?php
+		}
 	}
 ?>
 <?if ($isEportaProductDetail):?>
@@ -321,6 +513,25 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 
 <?elseif ($isEportaTemplate):?>
 
+	<?php if ($eportaIsAjaxGrid):
+		// Бесконечная подгрузка: только фрагмент сетки+пейджера, без хедера/сайдбара/футера.
+		// RestartBuffer сбрасывает всё, что core Bitrix уже вывел в буфер до этой точки
+		// (шапка/нав из header.php) — обычный приём для ajax-эндпоинтов внутри страниц движка.
+		$APPLICATION->RestartBuffer();
+		header("Content-Type: text/html; charset=UTF-8");
+		header("Cache-Control: no-store");
+		eportaRenderCatalogGrid(
+			$eportaPageIds ?: [0],
+			$eportaCollectionSection ? $eportaCollectionSection["ID"] : false,
+			$eportaSortOptions[$eportaSort]["FIELD"],
+			$eportaSortOptions[$eportaSort]["ORDER"],
+			$eportaCols,
+			$eportaPageElementCount
+		);
+		eportaRenderCatalogPager($eportaCurPage, $eportaTotalPages, $eportaCatalogPageUrl);
+		die();
+	endif; ?>
+
 	<!-- Хлебные крошки -->
 	<?if ($eportaCollectionSection):?>
 	<div class="breadcrumb" style="padding:12px var(--pad-x) 0">Главная · <a href="/collection/" style="color:inherit">Коллекции</a> · <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></div>
@@ -359,7 +570,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			<?else:?>
 			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Межкомнатные двери</h1>
 			<?endif;?>
-			<div style="font:500 13px;color:#8a857b;margin-top:5px">Найдено <?=$eportaFoundCount?> моделей</div>
+			<div style="font:500 13px;color:#8a857b;margin-top:5px">Найдено <?=$eportaFoundCount?> <?=eportaPluralRu($eportaFoundCount, "товар", "товара", "товаров")?> (<?=$eportaModelCount?> <?=eportaPluralRu($eportaModelCount, "модель", "модели", "моделей")?>)</div>
 		</div>
 		<div style="display:flex;align-items:center;gap:10px">
 			<!-- Сортировка: реальный dropdown ($eportaSortOptions), значение уходит в GET ?sort=
@@ -445,96 +656,27 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			</div>
 			<?endforeach;?>
 
-			<button type="submit" style="width:100%;background:#e8820a;color:#fff;font:700 14px 'Manrope';padding:13px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 8px 20px rgba(232,130,10,.28)">Показать <?=$eportaFoundCount?> моделей</button>
+			<button type="submit" style="width:100%;background:#e8820a;color:#fff;font:700 14px 'Manrope';padding:13px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 8px 20px rgba(232,130,10,.28)">Показать <?=$eportaFoundCount?> <?=eportaPluralRu($eportaFoundCount, "товар", "товара", "товаров")?></button>
 		</form>
 
-		<!-- Сетка товаров: реальные данные IBLOCK 19 (Этап 1, Фаза B), фильтр — этот этап -->
-		<div style="flex:1">
-			<?
-				// FILTER_NAME=>"arrFilter" ниже читает глобальную $arrFilter, а не $eportaArrFilter —
-				// раньше сюда не попадали category/sale/new (они писались только в $eportaScopeFilter,
-				// который используется для счётчиков/диапазона цены, но НЕ передаётся в сам компонент).
-				// Из-за этого "Новинки"/"Распродажа"/категория меняли счётчик "Найдено N" и чипы,
-				// но сетка товаров ниже реально не фильтровалась. Дублируем те же условия сюда.
-				$arrFilter = $eportaArrFilter;
-				if (!empty($eportaScopeFilter["PROPERTY_CATEGORY"])) {
-					$arrFilter["PROPERTY_CATEGORY"] = $eportaScopeFilter["PROPERTY_CATEGORY"];
-				}
-				if (isset($eportaScopeFilter[">PROPERTY_DISCOUNT"])) {
-					$arrFilter[">PROPERTY_DISCOUNT"] = $eportaScopeFilter[">PROPERTY_DISCOUNT"];
-				}
-				if (isset($eportaScopeFilter["<=PROPERTY_RATING"])) {
-					$arrFilter["<=PROPERTY_RATING"] = $eportaScopeFilter["<=PROPERTY_RATING"];
-				}
-				// $eportaRepresentativeIds — см. вычисление выше (схлопывание модели, рядом с
-				// $eportaFoundCount), один и тот же набор ID должен использоваться и в счётчике
-				// в шапке, и здесь в самой сетке — иначе они разъедутся.
-				$arrFilter["ID"] = $eportaRepresentativeIds ?: [0];
-			?>
-			<?$APPLICATION->IncludeComponent(
-				"bitrix:catalog.section",
-				".default",
-				[
-					"IBLOCK_TYPE" => "catalog",
-					"IBLOCK_ID" => "19",
-					"SECTION_ID" => $eportaCollectionSection ? $eportaCollectionSection["ID"] : false,
-					"SECTION_CODE" => "",
-					"SECTION_USER_FIELDS" => [],
-					// Сортировка — управляется дропдауном выше ($eportaSort/$eportaSortOptions),
-					// вместо захардкоженного "всегда популярные". CATALOG_PRICE_1 как поле
-					// сортировки уже используется в этом файле для диапазона цены (см. выше),
-					// работает и как ELEMENT_SORT_FIELD компонента.
-					"ELEMENT_SORT_FIELD" => $eportaSortOptions[$eportaSort]["FIELD"],
-					"ELEMENT_SORT_ORDER" => $eportaSortOptions[$eportaSort]["ORDER"],
-					"ELEMENT_SORT_FIELD2" => "id",
-					"ELEMENT_SORT_ORDER2" => "desc",
-					"FILTER_NAME" => "arrFilter",
-					"HIDE_NOT_AVAILABLE" => "N",
-					"HIDE_NOT_AVAILABLE_OFFERS" => "N",
-					"PAGE_ELEMENT_COUNT" => (string)$eportaPageElementCount,
-					"LINE_ELEMENT_COUNT" => (string)$eportaCols,
-					"PROPERTY_CODE" => ["STYLE", "COATING_COLOR", "GLAZING", "MAIN_COLOR", "PRODUCT_DAY", "RATING", "VOTE_COUNT", "CML2_ARTICLE"],
-					"OFFERS_FIELD_CODE" => [],
-					"OFFERS_PROPERTY_CODE" => [],
-					"BACKGROUND_IMAGE" => "-",
-					"LABEL_PROP" => "-",
-					"PRODUCT_SUBSCRIPTION" => "N",
-					"SHOW_DISCOUNT_PERCENT" => "Y",
-					"SHOW_OLD_PRICE" => "Y",
-					"PRICE_CODE" => ["BASE"],
-					"USE_PRICE_COUNT" => "N",
-					"SHOW_PRICE_COUNT" => "1",
-					"PRICE_VAT_INCLUDE" => "Y",
-					"CONVERT_CURRENCY" => "N",
-					"BASKET_URL" => "/personal/cart/",
-					"ACTION_VARIABLE" => "action",
-					"PRODUCT_ID_VARIABLE" => "id",
-					"PRODUCT_QUANTITY_VARIABLE" => "quantity",
-					"ADD_PROPERTIES_TO_BASKET" => "Y",
-					"PRODUCT_PROPS_VARIABLE" => "prop",
-					"PARTIAL_PRODUCT_PROPERTIES" => "N",
-					"USE_PRODUCT_QUANTITY" => "N",
-					"CACHE_TYPE" => "A",
-					"CACHE_TIME" => "3600",
-					"CACHE_GROUPS" => "N",
-					"CACHE_FILTER" => "Y",
-					"DISPLAY_COMPARE" => "N",
-					"SET_TITLE" => "N",
-					"SET_STATUS_404" => "N",
-					"SEF_MODE" => "N",
-					"PAGER_TEMPLATE" => "round",
-					"DISPLAY_TOP_PAGER" => "N",
-					"DISPLAY_BOTTOM_PAGER" => "Y",
-					"PAGER_TITLE" => "Товары",
-					"PAGER_SHOW_ALWAYS" => "N",
-					"PAGER_SHOW_ALL" => "N",
-					"ADD_SECTIONS_CHAIN" => "N",
-					"COMPATIBLE_MODE" => "Y",
-					"AJAX_MODE" => "N",
-					"TEMPLATE_THEME" => "site",
-				],
-				false
-			);?>
+		<!-- Сетка товаров: реальные данные IBLOCK 19. Раскладка "круговая по моделям" и
+		     пагинация посчитаны выше ($eportaPageIds/$eportaCurPage/$eportaTotalPages), рендерят
+		     их eportaRenderCatalogGrid/eportaRenderCatalogPager — те же функции, что использует
+		     AJAX-подгрузка (короткое замыкание в начале eporta-ветки), без дублирования кода. -->
+		<div style="flex:1" id="eportaCatalogGrid">
+			<?php eportaRenderCatalogGrid(
+				$eportaPageIds ?: [0],
+				$eportaCollectionSection ? $eportaCollectionSection["ID"] : false,
+				$eportaSortOptions[$eportaSort]["FIELD"],
+				$eportaSortOptions[$eportaSort]["ORDER"],
+				$eportaCols,
+				$eportaPageElementCount
+			); ?>
+			<?php eportaRenderCatalogPager($eportaCurPage, $eportaTotalPages, $eportaCatalogPageUrl); ?>
+			<!-- Сторож для автоподгрузки: как только попадает в область видимости при скролле,
+			     assets/app.js подгружает следующую страницу и дописывает карточки в сетку выше.
+			     Обычные ссылки пейджера (.bx-pagination) остаются рабочими без JS. -->
+			<div id="eportaCatalogSentinel" style="height:1px"></div>
 		</div>
 	</div>
 
