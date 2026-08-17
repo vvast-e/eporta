@@ -56,7 +56,8 @@ $collSlots = array_filter($slots, fn($c) => str_starts_with($c, 'coll_'), ARRAY_
     .slot-card .badge.custom { background: #2f9e44; }
     .slot-card .badge.fallback { background: #868e96; }
     .slot-card .body { padding: 10px 12px 12px; }
-    .slot-card .label { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+    .slot-card .label { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .slot-card .size-hint { font-size: 11px; color: #888; margin-bottom: 8px; }
     .slot-card input[type=file] { font-size: 11px; width: 100%; margin-bottom: 8px; }
     .slot-card button { background: #2b6cb0; color: #fff; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; width: 100%; }
     .slot-card button:disabled { background: #999; cursor: default; }
@@ -69,8 +70,9 @@ $collSlots = array_filter($slots, fn($c) => str_starts_with($c, 'coll_'), ARRAY_
 <h1>Баннеры главной страницы</h1>
 <p class="hint">
     Замена картинок для плиток блоков «Каталог по категориям» и «Коллекции фабрики» на главной.
-    Пока картинка не залита — используется текущая (фабричная) картинка шаблона. Рекомендуемое
-    соотношение сторон — как у плитки на главной (примерно 16:10), формат JPG/PNG, до 8 МБ.
+    Пока картинка не залита — используется текущая (фабричная) картинка шаблона. Формат JPG/PNG,
+    до 8 МБ. Вывод везде через object-fit:cover (обрезка по контейнеру), поэтому важнее соблюсти
+    пропорцию, чем точный размер в пикселях — рекомендация под каждой плиткой ниже.
 </p>
 
 <h2>Каталог по категориям</h2>
@@ -99,6 +101,7 @@ $collSlots = array_filter($slots, fn($c) => str_starts_with($c, 'coll_'), ARRAY_
                 '</div>' +
                 '<div class="body">' +
                     '<div class="label">' + slot.label + '</div>' +
+                    '<div class="size-hint">' + (slot.size || '') + '</div>' +
                     '<input type="file" accept=".jpg,.jpeg,.png">' +
                     '<button type="button">Заменить</button>' +
                     '<div class="status"></div>' +

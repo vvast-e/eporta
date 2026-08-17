@@ -20,20 +20,24 @@ const EPORTA_BANNERS_PERMISSION_IBLOCK_ID = 19;
 // Слоты плиток главной — код (=XML_ID enum PLACEMENT, см. scripts/add_slider27_home_slots.php),
 // человекочитаемая подпись и путь к файлу-фолбэку (текущий хардкод в index.php), который
 // используется, пока для слота не залита картинка через эту админку.
+// 'size' — рекомендация по размеру для конкретной формы плитки на главной (см. index.php:
+// cat_mkd/cat_hardware — высокие плитки на 2 строки грида, cat_hidden/cat_sliding/cat_entrance/
+// cat_arch — низкие широкие плитки-пары, coll_* — широкие плитки фикс. высоты 226px). Вывод
+// везде через object-fit:cover, поэтому важнее пропорция, чем точный пиксельный размер.
 function eportaBannersSlots(): array {
     return [
-        'cat_mkd' => ['label' => 'Категория: Межкомнатные', 'fallback' => 'cat-mezh.jpg'],
-        'cat_hidden' => ['label' => 'Категория: Скрытые', 'fallback' => 'cat-skryt.jpg'],
-        'cat_sliding' => ['label' => 'Категория: Раздвижные', 'fallback' => 'cat-razdv.jpg'],
-        'cat_entrance' => ['label' => 'Категория: Входные', 'fallback' => 'cat-vhod.jpg'],
-        'cat_arch' => ['label' => 'Категория: Арки и порталы', 'fallback' => 'cat-arki.jpg'],
-        'cat_hardware' => ['label' => 'Категория: Фурнитура', 'fallback' => 'cat-furn.jpg'],
-        'coll_dorsum' => ['label' => 'Коллекция: Dorsum', 'fallback' => 'hit-1.jpg'],
-        'coll_vilis' => ['label' => 'Коллекция: Vilis', 'fallback' => 'hit-2.jpg'],
-        'coll_actus' => ['label' => 'Коллекция: Actus', 'fallback' => 'hit-5.jpg'],
-        'coll_vitrum' => ['label' => 'Коллекция: Vitrum', 'fallback' => 'hit-6.jpg'],
-        'coll_tabula' => ['label' => 'Коллекция: Tabula', 'fallback' => 'hit-7.jpg'],
-        'coll_lacuna' => ['label' => 'Коллекция: Lacuna', 'fallback' => 'hit-8.jpg'],
+        'cat_mkd' => ['label' => 'Категория: Межкомнатные', 'fallback' => 'cat-mezh.jpg', 'size' => 'высокая плитка, портрет — рекомендуется ~800×1100 px'],
+        'cat_hidden' => ['label' => 'Категория: Скрытые', 'fallback' => 'cat-skryt.jpg', 'size' => 'широкая низкая плитка — рекомендуется ~900×550 px'],
+        'cat_sliding' => ['label' => 'Категория: Раздвижные', 'fallback' => 'cat-razdv.jpg', 'size' => 'широкая низкая плитка — рекомендуется ~900×550 px'],
+        'cat_entrance' => ['label' => 'Категория: Входные', 'fallback' => 'cat-vhod.jpg', 'size' => 'широкая низкая плитка — рекомендуется ~900×550 px'],
+        'cat_arch' => ['label' => 'Категория: Арки и порталы', 'fallback' => 'cat-arki.jpg', 'size' => 'широкая низкая плитка — рекомендуется ~900×550 px'],
+        'cat_hardware' => ['label' => 'Категория: Фурнитура', 'fallback' => 'cat-furn.jpg', 'size' => 'высокая плитка, портрет — рекомендуется ~800×1100 px'],
+        'coll_dorsum' => ['label' => 'Коллекция: Dorsum', 'fallback' => 'hit-1.jpg', 'size' => 'широкая плитка (высота ~226px в вёрстке) — рекомендуется ~1200×450 px'],
+        'coll_vilis' => ['label' => 'Коллекция: Vilis', 'fallback' => 'hit-2.jpg', 'size' => 'широкая плитка (высота ~226px в вёрстке) — рекомендуется ~1200×450 px'],
+        'coll_actus' => ['label' => 'Коллекция: Actus', 'fallback' => 'hit-5.jpg', 'size' => 'широкая плитка (высота ~226px в вёрстке) — рекомендуется ~1200×450 px'],
+        'coll_vitrum' => ['label' => 'Коллекция: Vitrum', 'fallback' => 'hit-6.jpg', 'size' => 'широкая плитка (высота ~226px в вёрстке) — рекомендуется ~1200×450 px'],
+        'coll_tabula' => ['label' => 'Коллекция: Tabula', 'fallback' => 'hit-7.jpg', 'size' => 'широкая плитка (высота ~226px в вёрстке) — рекомендуется ~1200×450 px'],
+        'coll_lacuna' => ['label' => 'Коллекция: Lacuna', 'fallback' => 'hit-8.jpg', 'size' => 'широкая плитка (высота ~226px в вёрстке) — рекомендуется ~1200×450 px'],
     ];
 }
 
