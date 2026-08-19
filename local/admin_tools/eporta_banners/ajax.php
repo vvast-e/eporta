@@ -78,6 +78,14 @@ $fields = [
     'PREVIEW_PICTURE' => $fileArray,
     'PROPERTY_VALUES' => ['PLACEMENT' => $slotCode],
 ];
+// Кладём в раздел "Плитки главной", если он уже заведён (add_iblock27_tiles_section.php) — иначе
+// этот элемент неотличим в общем списке ИБ 27 от слайдов главной карусели и попадает туда как
+// слайд (см. index.php: пропуск слайдов с чужим PLACEMENT). На разбор PLACEMENT самой плиткой
+// (eportaBannersResolveImage) раздел не влияет — тот фильтрует по PLACEMENT, не по разделу.
+$tilesSectionId = eportaBannersTilesSectionId();
+if ($tilesSectionId) {
+    $fields['IBLOCK_SECTION_ID'] = $tilesSectionId;
+}
 
 if ($existing) {
     $ok = $elObj->Update((int)$existing['ID'], $fields);
