@@ -450,6 +450,20 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			</div>
 			<?php
 		}
+
+		// Кнопка "Показать ещё" — общая для обычного рендера страницы и AJAX-подгрузки (см.
+		// eportaIsAjaxGrid ниже), как и eportaRenderCatalogGrid/eportaRenderCatalogPager. Раньше
+		// была захардкожена только в обычном рендере — AJAX-ответ её не содержал, поэтому JS
+		// (app.js) не находил #eportaCatalogLoadMore в подгруженном фрагменте и удалял кнопку
+		// после первого клика, даже если следующая страница ещё есть.
+		function eportaRenderCatalogLoadMoreBtn($eportaCurPageArg, $eportaTotalPagesArg) {
+			if ($eportaCurPageArg >= $eportaTotalPagesArg) {
+				return;
+			}
+			?>
+			<button type="button" id="eportaCatalogLoadMore" style="display:block;margin:20px auto 0;padding:13px 32px;background:#fff;color:#2b2620;font:700 14px 'Manrope';border:1.6px solid #e7e3db;border-radius:12px;cursor:pointer">Показать ещё</button>
+			<?php
+		}
 	}
 ?>
 <?if ($isEportaProductDetail):?>
@@ -529,6 +543,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			$eportaPageElementCount
 		);
 		eportaRenderCatalogPager($eportaCurPage, $eportaTotalPages, $eportaCatalogPageUrl);
+		eportaRenderCatalogLoadMoreBtn($eportaCurPage, $eportaTotalPages);
 		die();
 	endif; ?>
 
@@ -587,7 +602,13 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 						} else {
 							$eportaSortParams["sort"] = $eportaSortKey;
 						}
-						$eportaSortUrl = ($_SERVER["PHP_SELF"] ?? "").($eportaSortParams ? "?".http_build_query($eportaSortParams) : "");
+						// $eportaResetUrl — реальный SEF-путь текущей страницы (parse_url(REQUEST_URI))
+						// того же вычисления, что и у пейджера/сброса фильтров ниже. PHP_SELF отдаёт
+						// физический путь исполняемого скрипта (/catalog/index.php) — на любой
+						// SEF-странице каталога (категория, коллекция) это НЕ совпадает с адресной
+						// строкой, и ссылка сортировки вела на URL, не покрытый urlrewrite (404) —
+						// воспроизводилось не у всех, а только при заходе не через /catalog/ напрямую.
+						$eportaSortUrl = $eportaResetUrl.($eportaSortParams ? "?".http_build_query($eportaSortParams) : "");
 					?>
 					<a href="<?=htmlspecialcharsbx($eportaSortUrl)?>" class="<?=$eportaSortKey === $eportaSort ? "active" : ""?>"><?=htmlspecialcharsbx($eportaSortOpt["LABEL"])?></a>
 					<?endforeach;?>
@@ -673,14 +694,15 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 				$eportaPageElementCount
 			); ?>
 			<?php eportaRenderCatalogPager($eportaCurPage, $eportaTotalPages, $eportaCatalogPageUrl); ?>
-			<!-- Кнопка "Показать ещё": по клику assets/app.js подгружает следующую страницу и
-			     дописывает карточки в сетку выше, не трогая URL/историю (раньше это была
-			     автоподгрузка по скроллу с history.replaceState — при обновлении страницы или
-			     возврате "назад" открывало последнюю подгруженную страницу пагинации). Обычные
-			     ссылки пейджера (.bx-pagination) остаются рабочими без JS. -->
-			<?php if ($eportaCurPage < $eportaTotalPages): ?>
-			<button type="button" id="eportaCatalogLoadMore" style="display:block;margin:20px auto 0;padding:13px 32px;background:#fff;color:#2b2620;font:700 14px 'Manrope';border:1.6px solid #e7e3db;border-radius:12px;cursor:pointer">Показать ещё</button>
-			<?php endif; ?>
+			<!-- Кнопка "Показать ещё" (eportaRenderCatalogLoadMoreBtn — общая с AJAX-подгрузкой
+			     выше, иначе ответ ?eporta_ajax=grid её не содержит и JS удаляет кнопку после
+			     первого клика, даже если следующая страница ещё есть): по клику assets/app.js
+			     подгружает следующую страницу и дописывает карточки в сетку выше, не трогая
+			     URL/историю (раньше это была автоподгрузка по скроллу с history.replaceState —
+			     при обновлении страницы или возврате "назад" открывало последнюю подгруженную
+			     страницу пагинации). Обычные ссылки пейджера (.bx-pagination) остаются рабочими
+			     без JS. -->
+			<?php eportaRenderCatalogLoadMoreBtn($eportaCurPage, $eportaTotalPages); ?>
 		</div>
 	</div>
 
