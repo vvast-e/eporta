@@ -58,9 +58,19 @@ $APPLICATION->SetTitle("Eporta");?> <?
 			if (empty($arSlideFields["DETAIL_PICTURE"])) {
 				continue;
 			}
-			$slidePlacement = $arPlacementXmlIdByEnumId[$arSlideFields["PROPERTY_PLACEMENT_ENUM_ID"]] ?? "main";
-			if (!isset($arHomeBannerSlides[$slidePlacement])) {
+			// Тот же IBLOCK 27 хранит и слайды карусели (PLACEMENT main/side1/side2), и слотовые
+			// баннеры плиток "Категории"/"Коллекции" (PLACEMENT cat_*/coll_*, заливаются через
+			// local/admin_tools/eporta_banners/ — см. eportaBannersSlots() в lib.php). Слайды без
+			// PLACEMENT вообще (старые, до PLACEMENT) идут в "main", как и раньше; слайды с чужим
+			// (не main/side1/side2) PLACEMENT — это слотовые баннеры, их сюда не подмешиваем.
+			$enumIdSet = $arSlideFields["PROPERTY_PLACEMENT_ENUM_ID"] ?? null;
+			if ($enumIdSet === null || $enumIdSet === false || $enumIdSet === "") {
 				$slidePlacement = "main";
+			} else {
+				$slidePlacement = $arPlacementXmlIdByEnumId[$enumIdSet] ?? "main";
+				if (!isset($arHomeBannerSlides[$slidePlacement])) {
+					continue;
+				}
 			}
 			// WebP уже готов заранее (scripts/import/convert_webp.php проходит весь upload/iblock
 			// целиком, включая инфоблок баннеров 27 — не только товары IBLOCK 19), здесь просто

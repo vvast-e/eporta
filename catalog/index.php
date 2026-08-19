@@ -673,10 +673,14 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 				$eportaPageElementCount
 			); ?>
 			<?php eportaRenderCatalogPager($eportaCurPage, $eportaTotalPages, $eportaCatalogPageUrl); ?>
-			<!-- Сторож для автоподгрузки: как только попадает в область видимости при скролле,
-			     assets/app.js подгружает следующую страницу и дописывает карточки в сетку выше.
-			     Обычные ссылки пейджера (.bx-pagination) остаются рабочими без JS. -->
-			<div id="eportaCatalogSentinel" style="height:1px"></div>
+			<!-- Кнопка "Показать ещё": по клику assets/app.js подгружает следующую страницу и
+			     дописывает карточки в сетку выше, не трогая URL/историю (раньше это была
+			     автоподгрузка по скроллу с history.replaceState — при обновлении страницы или
+			     возврате "назад" открывало последнюю подгруженную страницу пагинации). Обычные
+			     ссылки пейджера (.bx-pagination) остаются рабочими без JS. -->
+			<?php if ($eportaCurPage < $eportaTotalPages): ?>
+			<button type="button" id="eportaCatalogLoadMore" style="display:block;margin:20px auto 0;padding:13px 32px;background:#fff;color:#2b2620;font:700 14px 'Manrope';border:1.6px solid #e7e3db;border-radius:12px;cursor:pointer">Показать ещё</button>
+			<?php endif; ?>
 		</div>
 	</div>
 

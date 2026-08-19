@@ -105,8 +105,10 @@ if (!empty($arResult["MORE_PHOTO"]) && is_array($arResult["MORE_PHOTO"])) {
 $eportaModel = eportaPropText($eportaDirectProps, "MODEL");
 $eportaCurrentColor = eportaPropText($eportaDirectProps, "COATING_COLOR");
 $eportaCurrentGlazing = eportaPropText($eportaDirectProps, "GLAZING");
+$eportaCurrentEdge = eportaPropText($eportaDirectProps, "EDGE");
 $eportaColorOptions = [];
 $eportaGlazingOptions = [];
+$eportaEdgeOptions = [];
 
 if ($eportaModel !== "") {
 	$eportaVariantsRes = CIBlockElement::GetList(
@@ -114,7 +116,7 @@ if ($eportaModel !== "") {
 		["IBLOCK_ID" => 19, "PROPERTY_MODEL" => $eportaModel, "ACTIVE" => "Y"],
 		false,
 		false,
-		["ID", "CODE", "PROPERTY_COATING_COLOR", "PROPERTY_GLAZING", "DETAIL_PAGE_URL", "PREVIEW_PICTURE"]
+		["ID", "CODE", "PROPERTY_COATING_COLOR", "PROPERTY_GLAZING", "PROPERTY_EDGE", "DETAIL_PAGE_URL", "PREVIEW_PICTURE"]
 	);
 	$eportaVariants = [];
 	while ($v = $eportaVariantsRes->GetNext()) {
@@ -125,31 +127,53 @@ if ($eportaModel !== "") {
 			"id" => (int)$v["ID"],
 				"color" => (string)($v["PROPERTY_COATING_COLOR_VALUE"] ?? ""),
 			"glazing" => (string)($v["PROPERTY_GLAZING_VALUE"] ?? ""),
+			"edge" => (string)($v["PROPERTY_EDGE_VALUE"] ?? ""),
 			"url" => $v["DETAIL_PAGE_URL"] ?: ($v["CODE"] ? "/catalog/" . $v["CODE"] . ".html" : ""),
 			"photo" => $v["PREVIEW_PICTURE"] ? CFile::GetPath($v["PREVIEW_PICTURE"]) : "",
 		];
 	}
 	$eportaCurrentId = (int)$arResult["ID"];
-	// Для каждого значения оси — сам текущий товар (если это и есть этот вариант), иначе
-	// вариант с текущим значением второй оси, иначе первый попавшийся с этим значением.
-	foreach ($eportaVariants as $v) {
-		if ($v["color"] === "") continue;
-		$existing = $eportaColorOptions[$v["color"]] ?? null;
-		$better = !$existing
-			|| $v["id"] === $eportaCurrentId
-			|| ($existing["id"] !== $eportaCurrentId && $v["glazing"] === $eportaCurrentGlazing && $existing["glazing"] !== $eportaCurrentGlazing);
-		if ($better) $eportaColorOptions[$v["color"]] = $v;
-	}
-	foreach ($eportaVariants as $v) {
-		if ($v["glazing"] === "") continue;
-		$existing = $eportaGlazingOptions[$v["glazing"]] ?? null;
-		$better = !$existing
-			|| $v["id"] === $eportaCurrentId
-			|| ($existing["id"] !== $eportaCurrentId && $v["color"] === $eportaCurrentColor && $existing["color"] !== $eportaCurrentColor);
-		if ($better) $eportaGlazingOptions[$v["glazing"]] = $v;
-	}
+	// Для каждого значения оси — сам текущий товар (если это и есть этот вариант), иначе вариант,
+	// совпадающий с текущим товаром по большему числу остальных осей, иначе первый попавшийся
+	// с этим значением. $eportaOtherAxesMatch считает совпадения по осям, отличным от $axisKey.
+	$eportaOtherAxesMatch = function ($v, $axisKey) use ($eportaCurrentColor, $eportaCurrentGlazing, $eportaCurrentEdge) {
+		$score = 0;
+		if ($axisKey !== "color" && $v["color"] === $eportaCurrentColor) $score++;
+		if ($axisKey !== "glazing" && $v["glazing"] === $eportaCurrentGlazing) $score++;
+		if ($axisKey !== "edge" && $v["edge"] === $eportaCurrentEdge) $score++;
+		return $score;
+	};
+	$eportaBuildAxisOptions = function ($axisKey) use ($eportaVariants, $eportaCurrentId, $eportaOtherAxesMatch) {
+		$options = [];
+		$bestScore = [];
+		foreach ($eportaVariants as $v) {
+			$value = $v[$axisKey];
+			if ($value === "") continue;
+			$existing = $options[$value] ?? null;
+			if (!$existing) {
+				$options[$value] = $v;
+				$bestScore[$value] = $eportaOtherAxesMatch($v, $axisKey);
+				continue;
+			}
+			if ($existing["id"] === $eportaCurrentId) continue;
+			if ($v["id"] === $eportaCurrentId) {
+				$options[$value] = $v;
+				$bestScore[$value] = $eportaOtherAxesMatch($v, $axisKey);
+				continue;
+			}
+			$score = $eportaOtherAxesMatch($v, $axisKey);
+			if ($score > $bestScore[$value]) {
+				$options[$value] = $v;
+				$bestScore[$value] = $score;
+			}
+		}
+		return $options;
+	};
+	$eportaColorOptions = $eportaBuildAxisOptions("color");
+	$eportaGlazingOptions = $eportaBuildAxisOptions("glazing");
+	$eportaEdgeOptions = $eportaBuildAxisOptions("edge");
 }
-$eportaShowVariantSelectors = count($eportaColorOptions) > 1 || count($eportaGlazingOptions) > 1;
+$eportaShowVariantSelectors = count($eportaColorOptions) > 1 || count($eportaGlazingOptions) > 1 || count($eportaEdgeOptions) > 1;
 
 // Размеры (свойство SIZES, многозначное): значение "ШxВ" или "ШxВ:надбавка" — формат-задел
 // под будущую выгрузку, надбавка пока в основном 0 (демо-данные без пересчёта).
@@ -187,6 +211,10 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 		<div style="display:flex;gap:12px;flex:none;height:96px">
 			<?php foreach ($galleryPhotos as $i => $photoSrc): eportaPicture($photoSrc, "", [
 				"class" => "thumb" . ($i === 0 ? " active-thumb" : ""),
+				// changePhoto() ниже читает и src, и data-webp — без этого клик менял бы только
+				// <img src>, а соседний <source type=webp> у главного фото (приоритетнее img в
+				// <picture>) оставался бы от предыдущего снимка, визуально ничего не менялось.
+				"data-webp" => eportaWebpVariant($photoSrc) ?: "",
 				"onclick" => "changePhoto(this)",
 				"style" => "width:96px;height:96px;object-fit:contain;background:#f6f4ef;border-radius:10px;border:" . ($i === 0 ? "2px solid #e8820a" : "1.5px solid #e7e3db") . ";cursor:pointer",
 				"loading" => $i === 0 ? "eager" : "lazy",
@@ -261,6 +289,24 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 						<?php endforeach; ?>
 					</div>
 					<?php if ($eportaGlazingCarousel): ?><button type="button" class="eporta-variant-nav" onclick="eportaScrollVariants(this,1)" aria-label="Вперёд">›</button><?php endif; ?>
+				</div>
+			</div>
+			<?php endif; ?>
+			<?php if (count($eportaEdgeOptions) > 1):
+				$eportaEdgeCarousel = count($eportaEdgeOptions) > 5;
+			?>
+			<div>
+				<div class="swatch-label"><span class="sl-name">Кромка:</span><span class="sl-val"><?= htmlspecialcharsbx($eportaCurrentEdge) ?></span></div>
+				<div class="eporta-variant-row">
+					<?php if ($eportaEdgeCarousel): ?><button type="button" class="eporta-variant-nav" onclick="eportaScrollVariants(this,-1)" aria-label="Назад">‹</button><?php endif; ?>
+					<div class="eporta-variant-scroll"<?= $eportaEdgeCarousel ? ' style="width:246px"' : '' ?>>
+						<?php foreach ($eportaEdgeOptions as $edgeName => $variant): ?>
+							<a href="<?= htmlspecialcharsbx($variant["url"]) ?>" class="eporta-variant-item<?= $edgeName === $eportaCurrentEdge ? " active" : "" ?>" title="<?= htmlspecialcharsbx($edgeName) ?>">
+								<?php if ($variant["photo"]): eportaPicture($variant["photo"], $edgeName, ["loading" => "lazy", "decoding" => "async"]); else: ?><span class="eporta-variant-noimg"><?= htmlspecialcharsbx(mb_substr($edgeName, 0, 1)) ?></span><?php endif; ?>
+							</a>
+						<?php endforeach; ?>
+					</div>
+					<?php if ($eportaEdgeCarousel): ?><button type="button" class="eporta-variant-nav" onclick="eportaScrollVariants(this,1)" aria-label="Вперёд">›</button><?php endif; ?>
 				</div>
 			</div>
 			<?php endif; ?>
@@ -340,6 +386,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 					"Покрытие" => eportaPropText($eportaDirectProps, "COATING"),
 					"Цвет покрытия" => count($eportaColorOptions) > 1 ? "" : eportaPropText($eportaDirectProps, "COATING_COLOR"),
 					"Остекление" => count($eportaGlazingOptions) > 1 ? "" : eportaPropText($eportaDirectProps, "GLAZING"),
+					"Кромка" => count($eportaEdgeOptions) > 1 ? "" : eportaPropText($eportaDirectProps, "EDGE"),
 					"Основной цвет" => eportaPropText($eportaDirectProps, "MAIN_COLOR"),
 					"Шумоизоляция" => eportaPropText($eportaDirectProps, "NOISE_ISOLATION"),
 					"Огнестойкость" => eportaPropText($eportaDirectProps, "FIRE_RESISTANCE"),
@@ -458,7 +505,25 @@ function eportaSyncBasketSize() {
 }
 
 function changePhoto(img) {
-	document.getElementById('mainPhoto').src = img.src;
+	var mainImg = document.getElementById('mainPhoto');
+	// <source type=webp> в <picture> главного фото приоритетнее <img src> в браузере — меняя
+	// только img.src, фото визуально не менялось бы, пока не обновим source тоже.
+	var mainPicture = mainImg.closest('picture');
+	var mainSource = mainPicture ? mainPicture.querySelector('source[type="image/webp"]') : null;
+	var webp = img.getAttribute('data-webp');
+	if (mainSource) {
+		if (webp) {
+			mainSource.setAttribute('srcset', webp);
+		} else {
+			mainSource.remove();
+		}
+	} else if (webp && mainPicture) {
+		var newSource = document.createElement('source');
+		newSource.setAttribute('type', 'image/webp');
+		newSource.setAttribute('srcset', webp);
+		mainPicture.insertBefore(newSource, mainImg);
+	}
+	mainImg.src = img.src;
 	document.querySelectorAll('.thumb').forEach(function(t){ t.style.border = '1.5px solid #e7e3db'; t.classList.remove('active-thumb'); });
 	img.style.border = '2px solid #e8820a';
 	img.classList.add('active-thumb');

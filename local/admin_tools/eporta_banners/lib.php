@@ -16,6 +16,28 @@ const EPORTA_BANNERS_IBLOCK_ID = 27;
 // Право на редактирование баннеров привязано к тому же IBLOCK 19 (каталог), что и импорт —
 // это те же контент-менеджеры, отдельной модели прав заводить не требовалось.
 const EPORTA_BANNERS_PERMISSION_IBLOCK_ID = 19;
+// Раздел ИБ 27, в который заводятся слотовые баннеры плиток (в отличие от слайдов главной
+// карусели, которые лежат вне разделов) — заведён scripts/add_iblock27_tiles_section.php.
+// Отдельно от главной карусели (index.php), чтобы карусель не подхватывала эти элементы как
+// свои слайды. Резолвится по CODE (не хардкодим ID — раздел может отличаться между окружениями).
+const EPORTA_BANNERS_TILES_SECTION_CODE = 'home_tiles';
+
+// ID раздела "Плитки главной" — false, если ещё не заведён (см. add_iblock27_tiles_section.php).
+// Кэш на запрос: используется и при чтении слотов, и при загрузке новой картинки.
+function eportaBannersTilesSectionId() {
+    static $sectionId = null;
+    if ($sectionId === null) {
+        $res = CIBlockSection::GetList(
+            [],
+            ['IBLOCK_ID' => EPORTA_BANNERS_IBLOCK_ID, 'CODE' => EPORTA_BANNERS_TILES_SECTION_CODE],
+            false,
+            ['ID']
+        );
+        $section = $res->Fetch();
+        $sectionId = $section ? (int)$section['ID'] : false;
+    }
+    return $sectionId;
+}
 
 // Слоты плиток главной — код (=XML_ID enum PLACEMENT, см. scripts/add_slider27_home_slots.php),
 // человекочитаемая подпись и путь к файлу-фолбэку (текущий хардкод в index.php), который

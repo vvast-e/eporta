@@ -288,15 +288,15 @@ document.addEventListener('DOMContentLoaded', function () {
 	}
 });
 
-// ---- Каталог: бесконечная подгрузка (catalog/index.php, ?eporta_ajax=grid) ----
+// ---- Каталог: подгрузка по кнопке "Показать ещё" (catalog/index.php, ?eporta_ajax=grid) ----
 // Прогрессивное улучшение поверх обычной пейджинации (.bx-pagination) — она остаётся рабочей
-// без JS. IntersectionObserver на "стороже" ниже сетки: как только он попадает в вьюпорт при
-// скролле, подгружаем следующую страницу и дописываем карточки в конец текущей сетки, затем
-// подставляем новый пейджер (в нём — актуальный data-next-url) и подтягиваем сторож ниже.
+// без JS. Раньше это была автоподгрузка по скроллу (IntersectionObserver) с
+// history.replaceState на каждую подгруженную страницу — из-за этого обновление страницы или
+// переход "назад" открывали последнюю подгруженную страницу, а не ту, на которой был
+// пользователь. Кнопка URL/историю не трогает вовсе.
 document.addEventListener('DOMContentLoaded', function () {
 	var wrap = document.getElementById('eportaCatalogGrid');
-	var sentinel = document.getElementById('eportaCatalogSentinel');
-	if (!wrap || !sentinel || typeof IntersectionObserver === 'undefined') return;
+	if (!wrap) return;
 
 	var loading = false;
 
@@ -306,12 +306,17 @@ document.addEventListener('DOMContentLoaded', function () {
 	function currentPager() {
 		return document.getElementById('eportaCatalogPager');
 	}
+	function currentLoadMoreBtn() {
+		return document.getElementById('eportaCatalogLoadMore');
+	}
 
 	function loadNext() {
 		var pager = currentPager();
 		var nextUrl = pager ? pager.getAttribute('data-next-url') : '';
 		if (loading || !nextUrl) return;
 		loading = true;
+		var btn = currentLoadMoreBtn();
+		if (btn) btn.disabled = true;
 
 		var url = nextUrl + (nextUrl.indexOf('?') === -1 ? '?' : '&') + 'eporta_ajax=grid';
 		fetch(url, { credentials: 'same-origin' })
@@ -320,6 +325,7 @@ document.addEventListener('DOMContentLoaded', function () {
 				var doc = new DOMParser().parseFromString(html, 'text/html');
 				var newGrid = doc.querySelector('.eporta-product-grid');
 				var newPager = doc.getElementById('eportaCatalogPager');
+				var newLoadMoreBtn = doc.getElementById('eportaCatalogLoadMore');
 				var grid = currentGrid();
 				if (newGrid && grid) {
 					// Дописываем карточки в конец текущей сетки, не заменяя её целиком — так не
@@ -336,17 +342,25 @@ document.addEventListener('DOMContentLoaded', function () {
 						oldPager.remove();
 					}
 				}
-				if (nextUrl) {
-					history.replaceState(null, '', nextUrl);
+				btn = currentLoadMoreBtn();
+				if (btn) {
+					if (newLoadMoreBtn) {
+						btn.disabled = false;
+					} else {
+						// Последняя страница — кнопку убираем.
+						btn.remove();
+					}
 				}
 				loading = false;
 			})
-			.catch(function () { loading = false; });
+			.catch(function () {
+				loading = false;
+				var btnRetry = currentLoadMoreBtn();
+				if (btnRetry) btnRetry.disabled = false;
+			});
 	}
 
-	new IntersectionObserver(function (entries) {
-		entries.forEach(function (entry) {
-			if (entry.isIntersecting) loadNext();
-		});
-	}, { rootMargin: '600px 0px' }).observe(sentinel);
+	wrap.addEventListener('click', function (e) {
+		if (e.target && e.target.id === 'eportaCatalogLoadMore') loadNext();
+	});
 });
