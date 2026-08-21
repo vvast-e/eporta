@@ -86,18 +86,6 @@ $hasDiscount = $price && $discountPercent > 0 && $priceValue > 0;
 $priceOldValue = $hasDiscount ? round($priceValue / (1 - $discountPercent / 100)) : $priceValue;
 $priceOldValuePrint = $hasDiscount ? \CCurrencyLang::CurrencyFormat($priceOldValue, $price["CURRENCY"] ?? "RUB") : "";
 
-// Галерея: основное фото + MORE_PHOTO (на большинстве товаров — одно доп. фото или ни одного).
-$mainPhotoSrc = $arResult["DETAIL_PICTURE"]["SRC"] ?? ($arResult["PREVIEW_PICTURE"]["SRC"] ?? $placeholderImg);
-$galleryPhotos = [$mainPhotoSrc];
-if (!empty($arResult["MORE_PHOTO"]) && is_array($arResult["MORE_PHOTO"])) {
-	foreach ($arResult["MORE_PHOTO"] as $morePhoto) {
-		$src = $morePhoto["SRC"] ?? null;
-		if ($src && !in_array($src, $galleryPhotos, true)) {
-			$galleryPhotos[] = $src;
-		}
-	}
-}
-
 // Варианты модели (цвет покрытия/остекление): группировка по свойству MODEL — задел под
 // будущую выгрузку из 1С (project_import_table_v2, колонка "Модель"), сейчас MODEL заполнен
 // вручную демо-затравкой на Dorsum 1 (см. план "transient-swimming-ullman"). Каждый вариант —
@@ -175,6 +163,24 @@ if ($eportaModel !== "") {
 }
 $eportaShowVariantSelectors = count($eportaColorOptions) > 1 || count($eportaGlazingOptions) > 1 || count($eportaEdgeOptions) > 1;
 
+// Галерея: основное фото + MORE_PHOTO (на большинстве товаров — одно доп. фото или ни одного).
+// Раньше при отсутствии DETAIL_PICTURE/PREVIEW_PICTURE (пробел в исходниках импорта — см.
+// арт. 0593) сюда подставлялся общий плейсхолдер hit-1.jpg — визуально "случайная" дверь,
+// никак не помеченная как отсутствующее фото. Теперь для такого товара явно показываем
+// "Нет фото" (см. HTML ниже) вместо правдоподобной картинки — чтобы админ сразу видел пробел
+// и мог быстро дозалить фото этой модели, а не полагался на угадывание по похожему товару.
+$eportaHasPhoto = !empty($arResult["DETAIL_PICTURE"]["SRC"]) || !empty($arResult["PREVIEW_PICTURE"]["SRC"]);
+$mainPhotoSrc = $arResult["DETAIL_PICTURE"]["SRC"] ?? ($arResult["PREVIEW_PICTURE"]["SRC"] ?? $placeholderImg);
+$galleryPhotos = [$mainPhotoSrc];
+if (!empty($arResult["MORE_PHOTO"]) && is_array($arResult["MORE_PHOTO"])) {
+	foreach ($arResult["MORE_PHOTO"] as $morePhoto) {
+		$src = $morePhoto["SRC"] ?? null;
+		if ($src && !in_array($src, $galleryPhotos, true)) {
+			$galleryPhotos[] = $src;
+		}
+	}
+}
+
 // Размеры (свойство SIZES, многозначное): значение "ШxВ" или "ШxВ:надбавка" — формат-задел
 // под будущую выгрузку, надбавка пока в основном 0 (демо-данные без пересчёта).
 $eportaSizeOptions = [];
@@ -200,14 +206,20 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 	<!-- Галерея -->
 	<div style="flex:1.15;display:flex;flex-direction:column;gap:12px;height:560px">
 		<div style="position:relative;flex:1;min-height:0">
+			<?php if ($eportaHasPhoto): ?>
 			<?php eportaPicture($galleryPhotos[0], $arResult["NAME"], [
 				"id" => "mainPhoto",
 				"style" => "width:100%;height:100%;object-fit:contain;background:#f6f4ef;border-radius:16px",
 			]); ?>
+			<?php else: ?>
+			<!-- Фото у товара нет в базе (см. комментарий у $eportaHasPhoto выше) — явная заглушка
+			     вместо правдоподобной случайной картинки, чтобы админ сразу видел пробел. -->
+			<div id="mainPhoto" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f6f4ef;border-radius:16px;color:#a39e95;font:700 15px 'Manrope'">Нет фото</div>
+			<?php endif; ?>
 			<?php if ($isHit): ?><span style="position:absolute;top:14px;left:14px;background:#e8820a;color:#fff;font:700 11px 'Manrope';padding:6px 12px;border-radius:7px">ХИТ ПРОДАЖ</span><?php endif; ?>
 			<?php if ($isNew): ?><span style="position:absolute;top:14px;left:14px;background:#1f8a4c;color:#fff;font:700 11px 'Manrope';padding:6px 12px;border-radius:7px">НОВИНКА</span><?php endif; ?>
 		</div>
-		<?php if (count($galleryPhotos) > 1): ?>
+		<?php if ($eportaHasPhoto && count($galleryPhotos) > 1): ?>
 		<div style="display:flex;gap:12px;flex:none;height:96px">
 			<?php foreach ($galleryPhotos as $i => $photoSrc): eportaPicture($photoSrc, "", [
 				"class" => "thumb" . ($i === 0 ? " active-thumb" : ""),
