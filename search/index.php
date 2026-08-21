@@ -343,7 +343,6 @@ $APPLICATION->SetTitle("Страница поиска");
 			}
 		}
 		\Bitrix\Main\Loader::includeModule("currency");
-		$eportaPlaceholderImg = SITE_TEMPLATE_PATH."/assets/img/hit-1.jpg";
 	?>
 	<div style="padding:8px var(--pad-x) 4px">
 		<div class="eporta-product-grid" style="--eporta-cols:<?=$eportaLineCount?>">
@@ -364,8 +363,10 @@ $APPLICATION->SetTitle("Страница поиска");
 				$eportaHasDiscount = $eportaHasPrice && $eportaDiscountPercent > 0;
 				$eportaOldPriceVal = $eportaHasDiscount ? round($eportaPriceVal / (1 - $eportaDiscountPercent / 100)) : 0;
 
+				// Раньше при отсутствии фото сюда подставлялся общий hit-1.jpg — тот же баг,
+				// что и в catalog.element/.default/template.php (см. коммит e85175f, арт. 0593).
 				$eportaImgId = $eportaItem["PREVIEW_PICTURE"] ?: $eportaItem["DETAIL_PICTURE"];
-				$eportaImgSrc = $eportaImgId ? \CFile::GetPath($eportaImgId) : $eportaPlaceholderImg;
+				$eportaImgSrc = $eportaImgId ? \CFile::GetPath($eportaImgId) : "";
 
 				$eportaItemUrl = $eportaItem["DETAIL_PAGE_URL"] ?: null;
 				if (!$eportaItemUrl && !empty($eportaItem["CODE"])) {
@@ -374,7 +375,11 @@ $APPLICATION->SetTitle("Страница поиска");
 			?>
 			<a href="<?=$eportaItemUrl ? htmlspecialcharsbx($eportaItemUrl) : "javascript:void(0)"?>" class="product-card">
 				<div class="img-wrap">
+					<?if ($eportaImgSrc !== ""):?>
 					<img src="<?=htmlspecialcharsbx($eportaImgSrc)?>" alt="<?=htmlspecialcharsbx($eportaItem["NAME"])?>">
+					<?else:?>
+					<div class="img-noimg">Нет фото</div>
+					<?endif;?>
 					<?if ($eportaIsHit):?><span class="badge hit">ХИТ</span><?endif;?>
 					<?if ($eportaIsNew):?><span class="badge new">Новинка</span><?endif;?>
 					<?if ($eportaHasDiscount):?><span class="badge" style="background:#c2670a;top:<?=($eportaIsHit || $eportaIsNew) ? "44px" : "10px"?>">−<?=round($eportaDiscountPercent)?>%</span><?endif;?>
