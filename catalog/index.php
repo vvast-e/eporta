@@ -58,6 +58,17 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	];
 	$eportaSort = isset($_GET["sort"]) && isset($eportaSortOptions[$_GET["sort"]]) ? $_GET["sort"] : "popular";
 
+	// Натуральное сравнение по номеру модели ("По названию", sort=name): "Actus 5.10 P" и
+	// "Actus 5.2 L" должны сравниваться по числу 5.10/5.2, а не посимвольно как строка — иначе
+	// "5.10" лексикографически встаёт раньше "5.2". Буквенный суффикс (Л/П — сторона открывания)
+	// на порядок не влияет вовсе: при равной числовой части элементы равны по этому критерию,
+	// дальше решает обычный тай-брейк по ID (как и у остальных полей сортировки).
+	if (!function_exists("eportaExtractModelNumber")) {
+	function eportaExtractModelNumber(string $name): float {
+		return preg_match('/(\d+(?:\.\d+)?)/', $name, $m) ? (float)$m[1] : 0.0;
+	}
+	}
+
 	// Этап 5 — Коллекции: подразделы раздела 183 "Коллекции" в IBLOCK 19 (плюс Dorsum-F/
 	// Dorsum-Eco, добавлены 2026-08-10 — см. collection/index.php). URL приходит по штатному
 	// SEF-шаблону как /catalog/collections/<code>/ (SECTION_PAGE_URL секции). Список ID
@@ -88,6 +99,37 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 				)->SelectedRowsCount();
 			}
 		}
+	}
+
+	// Модели коллекции (верхний блок страницы коллекции): по одной карточке-представителю на
+	// каждую уникальную модель — тот вариант, у которого максимальный RATING ("популярный цвет",
+	// тот же критерий, что и бейдж ХИТ rating>=4.8 в catalog.section/.default/template.php).
+	// Пустой MODEL — как и в круговой раскладке ниже — сам себе группа ("__id_".ID). Отдельный
+	// лёгкий запрос, не завязан на фильтр сайдбара — блок моделей показывает всю коллекцию
+	// целиком независимо от применённых чекбоксов (представительские карточки, не список).
+	$eportaCollectionModelReps = [];
+	$eportaCollectionModelCount = 0;
+	if ($eportaCollectionSection) {
+		$eportaModelRepRes = \CIBlockElement::GetList(
+			[],
+			["IBLOCK_ID" => 19, "ACTIVE" => "Y", "SECTION_ID" => $eportaCollectionSection["ID"]],
+			false, false,
+			["ID", "PROPERTY_MODEL", "PROPERTY_RATING"]
+		);
+		$eportaModelBest = [];
+		while ($eportaModelRow = $eportaModelRepRes->Fetch()) {
+			$eportaModelKey = $eportaModelRow["PROPERTY_MODEL_VALUE"] ?: ("__id_" . $eportaModelRow["ID"]);
+			$eportaModelRating = (float)($eportaModelRow["PROPERTY_RATING_VALUE"] ?? 0);
+			$eportaModelId = (int)$eportaModelRow["ID"];
+			if (!isset($eportaModelBest[$eportaModelKey])
+				|| $eportaModelRating > $eportaModelBest[$eportaModelKey]["RATING"]
+				|| ($eportaModelRating === $eportaModelBest[$eportaModelKey]["RATING"] && $eportaModelId > $eportaModelBest[$eportaModelKey]["ID"])
+			) {
+				$eportaModelBest[$eportaModelKey] = ["ID" => $eportaModelId, "RATING" => $eportaModelRating];
+			}
+		}
+		$eportaCollectionModelReps = array_column($eportaModelBest, "ID");
+		$eportaCollectionModelCount = count($eportaCollectionModelReps);
 	}
 
 	// Сайдбар фильтров (сквозной для /catalog/ и всех коллекций): реальные свойства IBLOCK 19.
@@ -251,59 +293,104 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		}
 		$eportaSortField = $eportaSortOptions[$eportaSort]["FIELD"];
 		$eportaSortOrder = $eportaSortOptions[$eportaSort]["ORDER"];
-		$eportaGroupSelect = ["ID", "PROPERTY_MODEL"];
-		if ($eportaSortField === "PROPERTY_RATING") {
-			$eportaGroupSelect[] = "PROPERTY_RATING";
-		} elseif ($eportaSortField === "CATALOG_PRICE_1") {
-			$eportaGroupSelect[] = "CATALOG_PRICE_1";
-		} elseif ($eportaSortField === "NAME") {
-			$eportaGroupSelect[] = "NAME";
-		}
-		$eportaModelGroupsRes = CIBlockElement::GetList([], $eportaGroupFilter, false, false, $eportaGroupSelect);
-		$eportaModelGroups = [];
-		while ($eportaGroupRow = $eportaModelGroupsRes->Fetch()) {
-			$eportaGroupKey = $eportaGroupRow["PROPERTY_MODEL_VALUE"] ?: ("__id_" . $eportaGroupRow["ID"]);
-			if ($eportaSortField === "PROPERTY_RATING") {
-				$eportaSortVal = (float)($eportaGroupRow["PROPERTY_RATING_VALUE"] ?? 0);
-			} elseif ($eportaSortField === "CATALOG_PRICE_1") {
-				$eportaSortVal = (float)($eportaGroupRow["CATALOG_PRICE_1"] ?? 0);
-			} elseif ($eportaSortField === "NAME") {
-				$eportaSortVal = (string)($eportaGroupRow["NAME"] ?? "");
+
+		if ($eportaCollectionSection) {
+			// Страница коллекции: без круговой раскладки по моделям — модели уже показаны
+			// отдельным блоком выше ($eportaCollectionModelReps), здесь просто ВСЕ товары
+			// коллекции, отсортированные как выбрано в дропдауне (по решению пользователя).
+			if ($eportaSortField === "NAME") {
+				// CIBlockElement::GetList не умеет сортировать по вычисляемой числовой части
+				// названия — тянем ID+NAME без сортировки на уровне БД и сортируем в PHP тем же
+				// натуральным компаратором, что и в round-robin ветке ниже (eportaExtractModelNumber).
+				$eportaNameRes = CIBlockElement::GetList([], $eportaGroupFilter, false, false, ["ID", "NAME"]);
+				$eportaNameRows = [];
+				while ($eportaNameRow = $eportaNameRes->Fetch()) {
+					$eportaNameRows[] = ["ID" => (int)$eportaNameRow["ID"], "SORT" => eportaExtractModelNumber((string)$eportaNameRow["NAME"])];
+				}
+				usort($eportaNameRows, function ($a, $b) use ($eportaSortOrder) {
+					if ($a["SORT"] === $b["SORT"]) return $b["ID"] <=> $a["ID"];
+					$cmp = $a["SORT"] <=> $b["SORT"];
+					return $eportaSortOrder === "ASC" ? $cmp : -$cmp;
+				});
+				$eportaOrderedIds = array_column($eportaNameRows, "ID");
 			} else {
-				$eportaSortVal = (int)$eportaGroupRow["ID"];
-			}
-			$eportaModelGroups[$eportaGroupKey][] = ["ID" => (int)$eportaGroupRow["ID"], "SORT" => $eportaSortVal];
-		}
-
-		// Компаратор по выбранной сортировке, с ID как стабильным тай-брейком (иначе порядок
-		// "плывёт" между запросами при равных значениях — важно для пагинации).
-		$eportaSortCmp = function ($a, $b) use ($eportaSortOrder) {
-			if ($a["SORT"] === $b["SORT"]) {
-				return $b["ID"] <=> $a["ID"];
-			}
-			$cmp = $a["SORT"] <=> $b["SORT"];
-			return $eportaSortOrder === "ASC" ? $cmp : -$cmp;
-		};
-		foreach ($eportaModelGroups as &$eportaGroupItems) {
-			usort($eportaGroupItems, $eportaSortCmp);
-		}
-		unset($eportaGroupItems);
-		// Сами модели тоже упорядочиваем по их лучшему товару — модели-лидеры выбранной
-		// сортировки идут в раскладке первыми среди "раунда 1".
-		uasort($eportaModelGroups, function ($eportaGroupA, $eportaGroupB) use ($eportaSortCmp) {
-			return $eportaSortCmp($eportaGroupA[0], $eportaGroupB[0]);
-		});
-
-		$eportaOrderedIds = [];
-		$eportaMaxGroupSize = $eportaModelGroups ? max(array_map("count", $eportaModelGroups)) : 0;
-		for ($eportaRound = 0; $eportaRound < $eportaMaxGroupSize; $eportaRound++) {
-			foreach ($eportaModelGroups as $eportaGroupItems) {
-				if (isset($eportaGroupItems[$eportaRound])) {
-					$eportaOrderedIds[] = $eportaGroupItems[$eportaRound]["ID"];
+				$eportaSortRes = CIBlockElement::GetList([$eportaSortField => $eportaSortOrder, "ID" => "DESC"], $eportaGroupFilter, false, false, ["ID"]);
+				$eportaOrderedIds = [];
+				while ($eportaSortRow = $eportaSortRes->Fetch()) {
+					$eportaOrderedIds[] = (int)$eportaSortRow["ID"];
 				}
 			}
+			// Счётчик "N товаров (M моделей)" — число моделей уже посчитано для верхнего блока.
+			$eportaModelCount = $eportaCollectionModelCount;
+		} else {
+			// /catalog/ без коллекции: раньше здесь схлопывали выдачу до одного представителя на
+			// модель (иначе одна модель со множеством цветов — в выгрузке каждый цвет отдельный
+			// элемент, см. eportaImportComposeName — занимала всю страницу своими же вариантами),
+			// но это ПРЯТАЛО остальные цвета из каталога вовсе. По решению пользователя: показываем
+			// ВСЕ товары (ничего не скрываем), а очерёдность строим так, чтобы первые страницы
+			// показывали максимум РАЗНЫХ моделей, а не все цвета одной подряд. Лёгкий пред-запрос
+			// ID+MODEL с тем же фильтром, плюс поле текущей сортировки — группируем по MODEL,
+			// внутри каждой группы сортируем по выбранному критерию ($eportaSort), группы тоже
+			// упорядочиваем по лучшему товару в них (тем же критерием). Затем round-robin: раунд 1 —
+			// по одному (лучшему) товару из каждой модели, раунд 2 — по второму и т.д. Ничего не
+			// теряется, просто сначала показываются разные модели, а повторные цвета одной модели
+			// уходят дальше по списку/страницам.
+			$eportaGroupSelect = ["ID", "PROPERTY_MODEL"];
+			if ($eportaSortField === "PROPERTY_RATING") {
+				$eportaGroupSelect[] = "PROPERTY_RATING";
+			} elseif ($eportaSortField === "CATALOG_PRICE_1") {
+				$eportaGroupSelect[] = "CATALOG_PRICE_1";
+			} elseif ($eportaSortField === "NAME") {
+				$eportaGroupSelect[] = "NAME";
+			}
+			$eportaModelGroupsRes = CIBlockElement::GetList([], $eportaGroupFilter, false, false, $eportaGroupSelect);
+			$eportaModelGroups = [];
+			while ($eportaGroupRow = $eportaModelGroupsRes->Fetch()) {
+				$eportaGroupKey = $eportaGroupRow["PROPERTY_MODEL_VALUE"] ?: ("__id_" . $eportaGroupRow["ID"]);
+				if ($eportaSortField === "PROPERTY_RATING") {
+					$eportaSortVal = (float)($eportaGroupRow["PROPERTY_RATING_VALUE"] ?? 0);
+				} elseif ($eportaSortField === "CATALOG_PRICE_1") {
+					$eportaSortVal = (float)($eportaGroupRow["CATALOG_PRICE_1"] ?? 0);
+				} elseif ($eportaSortField === "NAME") {
+					// Натуральное сравнение по номеру модели (см. eportaExtractModelNumber выше) —
+					// буквенный суффикс (сторона открывания) на порядок не влияет.
+					$eportaSortVal = eportaExtractModelNumber((string)($eportaGroupRow["NAME"] ?? ""));
+				} else {
+					$eportaSortVal = (int)$eportaGroupRow["ID"];
+				}
+				$eportaModelGroups[$eportaGroupKey][] = ["ID" => (int)$eportaGroupRow["ID"], "SORT" => $eportaSortVal];
+			}
+
+			// Компаратор по выбранной сортировке, с ID как стабильным тай-брейком (иначе порядок
+			// "плывёт" между запросами при равных значениях — важно для пагинации).
+			$eportaSortCmp = function ($a, $b) use ($eportaSortOrder) {
+				if ($a["SORT"] === $b["SORT"]) {
+					return $b["ID"] <=> $a["ID"];
+				}
+				$cmp = $a["SORT"] <=> $b["SORT"];
+				return $eportaSortOrder === "ASC" ? $cmp : -$cmp;
+			};
+			foreach ($eportaModelGroups as &$eportaGroupItems) {
+				usort($eportaGroupItems, $eportaSortCmp);
+			}
+			unset($eportaGroupItems);
+			// Сами модели тоже упорядочиваем по их лучшему товару — модели-лидеры выбранной
+			// сортировки идут в раскладке первыми среди "раунда 1".
+			uasort($eportaModelGroups, function ($eportaGroupA, $eportaGroupB) use ($eportaSortCmp) {
+				return $eportaSortCmp($eportaGroupA[0], $eportaGroupB[0]);
+			});
+
+			$eportaOrderedIds = [];
+			$eportaMaxGroupSize = $eportaModelGroups ? max(array_map("count", $eportaModelGroups)) : 0;
+			for ($eportaRound = 0; $eportaRound < $eportaMaxGroupSize; $eportaRound++) {
+				foreach ($eportaModelGroups as $eportaGroupItems) {
+					if (isset($eportaGroupItems[$eportaRound])) {
+						$eportaOrderedIds[] = $eportaGroupItems[$eportaRound]["ID"];
+					}
+				}
+			}
+			$eportaModelCount = count($eportaModelGroups);
 		}
-		$eportaModelCount = count($eportaModelGroups);
 		$eportaFoundCount = count($eportaOrderedIds);
 
 		// Пагинация — своя (не компонентная): bitrix:catalog.section всегда пересортировывает
@@ -573,11 +660,28 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	</div>
 	<?endif;?>
 
+	<?if ($eportaCollectionSection && $eportaCollectionModelReps):?>
+	<!-- Модели коллекции: по одной карточке-представителю на модель (лучший по RATING вариант —
+	     "популярный цвет"), клик ведёт сразу на карточку этого конкретного товара. Пагинации нет —
+	     PAGE_ELEMENT_COUNT равен числу моделей, коллекции по факту не превышают несколько десятков. -->
+	<div style="padding:8px var(--pad-x) 0">
+		<h2 style="margin:0 0 12px;font:800 20px 'Manrope';letter-spacing:-0.01em">Модели коллекции <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></h2>
+		<?php eportaRenderCatalogGrid(
+			$eportaCollectionModelReps,
+			$eportaCollectionSection["ID"],
+			"ID", "DESC",
+			$eportaCols,
+			max(1, $eportaCollectionModelCount)
+		); ?>
+	</div>
+	<div style="border-top:1px solid #efece6;margin:26px var(--pad-x) 0"></div>
+	<?endif;?>
+
 	<!-- Заголовок + сортировка -->
 	<div style="display:flex;align-items:flex-end;justify-content:space-between;padding:8px var(--pad-x) 4px">
 		<div>
 			<?if ($eportaCollectionSection):?>
-			<h2 style="margin:0;font:800 24px 'Manrope';letter-spacing:-0.01em">Товары коллекции <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></h2>
+			<h2 style="margin:0;font:800 24px 'Manrope';letter-spacing:-0.01em">Все товары коллекции <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></h2>
 			<?elseif ($eportaOnlySale):?>
 			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Распродажа</h1>
 			<?elseif ($eportaOnlyNew):?>
