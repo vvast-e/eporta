@@ -32,8 +32,14 @@ uasort($eportaCompareProps, function ($a, $b) { return ($a["SORT"] ?? 500) <=> (
 						<th class="compare-item-col">
 							<button type="button" class="compare-item-remove" title="Удалить" onclick="removeCompareItem(<?= (int)$arItem["ID"] ?>)">×</button>
 							<?php
-							$photoSrc = $arItem["PICTURE"]["src"] ?? (SITE_TEMPLATE_PATH . "/assets/img/hit-1.jpg");
-							eportaPicture($photoSrc, $arItem["NAME"], ["class" => "compare-item-photo", "loading" => "lazy", "decoding" => "async"]);
+							// Раньше при отсутствии фото у товара сюда подставлялся общий hit-1.jpg —
+							// см. тот же фикс в catalog.element/.default/template.php (арт. 0593).
+							$photoSrc = $arItem["PICTURE"]["src"] ?? "";
+							if ($photoSrc !== "") {
+								eportaPicture($photoSrc, $arItem["NAME"], ["class" => "compare-item-photo", "loading" => "lazy", "decoding" => "async"]);
+							} else {
+								echo '<div class="compare-item-photo compare-item-noimg">Нет фото</div>';
+							}
 							?>
 							<a class="compare-item-name" href="<?= htmlspecialcharsbx($arItem["DETAIL_PAGE_URL"]) ?>"><?= htmlspecialcharsbx($arItem["NAME"]) ?></a>
 							<div class="compare-item-price"><?= !empty($arItem["PRICE"]) ? $arItem["PRICE"] : "по запросу" ?></div>

@@ -4,7 +4,6 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();
 /** @var array $arResult */
 /** @var array $arParams */
 
-$placeholderImg = SITE_TEMPLATE_PATH . "/assets/img/hit-1.jpg";
 $eportaCols = (int)($arParams["LINE_ELEMENT_COUNT"] ?? 3) ?: 3;
 // Вид плитка/список — общий для всех вызовов этого шаблона (каталог/коллекции/wishlist/
 // simple.offers), кука eporta_view переключается кнопками в catalog/index.php.
@@ -96,7 +95,11 @@ if ($eportaModels) {
 	$hasDiscount = $price && $discountPercent > 0 && $priceValue > 0;
 	$priceOldPrint = $hasDiscount ? \CCurrencyLang::CurrencyFormat(round($priceValue / (1 - $discountPercent / 100)), $price["CURRENCY"] ?? "RUB") : "";
 
-	$imgSrc = $arItem["PREVIEW_PICTURE"]["SRC"] ?? ($arItem["DETAIL_PICTURE"]["SRC"] ?? $placeholderImg);
+	// Раньше при отсутствии обеих картинок сюда подставлялся общий hit-1.jpg — визуально
+	// правдоподобное, но не относящееся к товару фото (см. catalog.element/.default/template.php,
+	// найдено на арт. 0593 через поиск по каталогу). Теперь явная "Нет фото" вместо угадывания.
+	$eportaHasPhoto = !empty($arItem["PREVIEW_PICTURE"]["SRC"]) || !empty($arItem["DETAIL_PICTURE"]["SRC"]);
+	$imgSrc = $arItem["PREVIEW_PICTURE"]["SRC"] ?? ($arItem["DETAIL_PICTURE"]["SRC"] ?? "");
 	// Первый ряд карточек — кандидат в LCP, грузим сразу; остальные ниже экрана — lazy.
 	$eportaIsEager = $eportaImgIndex < $eportaCols;
 	$eportaImgIndex++;
@@ -120,10 +123,14 @@ if ($eportaModels) {
 	<div class="product-card" data-id="<?= (int)$arItem["ID"] ?>">
 	<a href="<?= $elementUrl ? htmlspecialcharsbx($elementUrl) : "javascript:void(0)" ?>" class="product-card-link">
 		<div class="img-wrap">
+			<?php if ($eportaHasPhoto): ?>
 			<?php eportaPicture($imgSrc, $arItem["NAME"], [
 				"loading" => $eportaIsEager ? "eager" : "lazy",
 				"decoding" => "async",
 			], true); ?>
+			<?php else: ?>
+			<div class="img-noimg">Нет фото</div>
+			<?php endif; ?>
 			<?php if ($isHit): ?><span class="badge hit">ХИТ</span><?php endif; ?>
 			<?php if ($isNew): ?><span class="badge new">Новинка</span><?php endif; ?>
 			<?php if ($hasDiscount): ?><span class="badge" style="background:#c2670a;top:<?= ($isHit || $isNew) ? "44px" : "10px" ?>">−<?= round($discountPercent) ?>%</span><?php endif; ?>
