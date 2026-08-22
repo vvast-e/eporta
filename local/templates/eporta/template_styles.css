@@ -534,16 +534,42 @@ img { display: block; }
 }
 .eporta-model-card:hover { border-color: #e8820a; box-shadow: 0 6px 18px rgba(27,26,23,.08); transform: translateY(-2px); }
 
-/* Сетка карточек моделей — та же стратегия "фиксированное число колонок по брейкпоинту", что
-   у .eporta-product-grid ниже, но число колонок на каждом брейкпоинте дополнительно урезано
-   до --eporta-model-cols (реальное число моделей коллекции, задаётся инлайн в catalog/index.php) —
-   при 3 моделях на широком экране сетка покажет ровно 3 колонки, а не растянет их на всю ширину
-   с пустыми "фантомными" колонками. min() — паритет между "сколько поместится по брейкпоинту"
-   и "сколько вообще есть моделей". */
-.eporta-model-grid { display: grid; grid-template-columns: repeat(min(var(--eporta-model-cols, 6), 6), 1fr); gap: 14px; }
-@media (max-width: 1180px) { .eporta-model-grid { grid-template-columns: repeat(min(var(--eporta-model-cols, 6), 4), 1fr); } }
-@media (max-width: 860px)  { .eporta-model-grid { grid-template-columns: repeat(min(var(--eporta-model-cols, 6), 3), 1fr); } }
-@media (max-width: 560px)  { .eporta-model-grid { grid-template-columns: repeat(min(var(--eporta-model-cols, 6), 2), 1fr); } }
+/* Бейдж числа цветов поверх фото — "упор на количество цветов", тот же визуальный язык, что
+   у бейджей ХИТ/Новинка на товарных карточках (верхний левый угол, закруглённый цветной фон). */
+.eporta-model-colors-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: #1b1a17;
+  color: #fff;
+  font: 700 11px var(--font);
+  padding: 5px 10px;
+  border-radius: 7px;
+  letter-spacing: .01em;
+}
+
+/* Сетка карточек моделей — flex-wrap вместо grid: при неполном последнем ряду (например, у
+   Vilis 10 моделей — 6 в ряду, 4 в следующем) карточки последней строки центрируются, а не
+   прижимаются к левому краю с пустым хвостом справа (то, что даёт grid с repeat(N,1fr)).
+   --eff-cols — эффективное число колонок на брейкпоинт: min(--eporta-model-cols, потолок) —
+   --eporta-model-cols (реальное число моделей коллекции, инлайн в catalog/index.php) не даёт
+   при малом числе моделей растягивать/множить колонки сверх факта, потолок по брейкпоинту —
+   не даёт карточкам сжиматься теснее, чем нужно на узких экранах. Ширина карточки считается
+   от --eff-cols, чтобы полные ряды заполняли строку ровно встык, без лишних зазоров. */
+.eporta-model-grid {
+  --eff-cols: min(var(--eporta-model-cols, 6), 6);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+}
+.eporta-model-card {
+  flex: 0 0 calc((100% - (var(--eff-cols) - 1) * 16px) / var(--eff-cols));
+  max-width: calc((100% - (var(--eff-cols) - 1) * 16px) / var(--eff-cols));
+}
+@media (max-width: 1180px) { .eporta-model-grid { --eff-cols: min(var(--eporta-model-cols, 6), 4); } }
+@media (max-width: 860px)  { .eporta-model-grid { --eff-cols: min(var(--eporta-model-cols, 6), 3); } }
+@media (max-width: 560px)  { .eporta-model-grid { --eff-cols: min(var(--eporta-model-cols, 6), 2); } }
 
 .product-card .img-wrap { position: relative; }
 .product-card .img-wrap img { width: 100%; height: clamp(180px, 15vw, 280px); object-fit: contain; background: #f6f4ef; }
