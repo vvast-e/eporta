@@ -699,7 +699,14 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	<div style="padding:8px var(--pad-x) 0">
 		<h2 style="margin:0 0 4px;font:800 20px 'Manrope';letter-spacing:-0.01em">Модели коллекции <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></h2>
 		<p style="margin:0 0 16px;font:500 13px;color:#8a857b">Показан самый популярный цвет каждой модели — остальные доступны на карточке товара</p>
-		<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:14px">
+		<?php
+		// Число колонок сетки моделей: не больше, чем реально моделей (иначе при 3 моделях на
+		// широком экране сетка тянула бы их на всю ширину пустыми "фантомными" колонками) —
+		// см. .eporta-model-grid в template_styles.css, где на каждом брейкпоинте
+		// min(--eporta-model-cols, брейкпоинт) дополнительно урезает и под размер экрана.
+		$eportaModelGridCols = max(1, min($eportaCollectionModelCount, 6));
+		?>
+		<div class="eporta-model-grid" style="--eporta-model-cols:<?=$eportaModelGridCols?>">
 			<?foreach ($eportaCollectionModelCards as $eportaModelCard):
 				$eportaModelPrice = $eportaModelCard["PRICE"] > 0 ? \CCurrencyLang::CurrencyFormat($eportaModelCard["PRICE"], "RUB") : "по запросу";
 			?>
