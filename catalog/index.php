@@ -130,9 +130,16 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		);
 		$eportaModelBest = [];
 		$eportaModelColorCount = [];
+		// Минимальная цена по группе модели — "От ..." на карточке должна вести на самый
+		// дешёвый цвет модели, не на цену конкретного (самого популярного) представителя.
+		$eportaModelMinPrice = [];
 		while ($eportaModelRow = $eportaModelRepRes->Fetch()) {
 			$eportaModelKey = $eportaModelRow["PROPERTY_MODEL_VALUE"] ?: ("__id_" . $eportaModelRow["ID"]);
 			$eportaModelColorCount[$eportaModelKey] = ($eportaModelColorCount[$eportaModelKey] ?? 0) + 1;
+			$eportaModelRowPrice = (float)($eportaModelRow["CATALOG_PRICE_1"] ?? 0);
+			if ($eportaModelRowPrice > 0 && (!isset($eportaModelMinPrice[$eportaModelKey]) || $eportaModelRowPrice < $eportaModelMinPrice[$eportaModelKey])) {
+				$eportaModelMinPrice[$eportaModelKey] = $eportaModelRowPrice;
+			}
 			$eportaModelRating = (float)($eportaModelRow["PROPERTY_RATING_VALUE"] ?? 0);
 			$eportaModelId = (int)$eportaModelRow["ID"];
 			if (!isset($eportaModelBest[$eportaModelKey])
@@ -146,12 +153,12 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 					"MODEL" => $eportaModelRow["PROPERTY_MODEL_VALUE"] ?: $eportaModelRow["NAME"],
 					"URL" => $eportaModelRow["DETAIL_PAGE_URL"] ?: ($eportaModelRow["CODE"] ? "/catalog/" . $eportaModelRow["CODE"] . ".html" : ""),
 					"PHOTO" => $eportaModelPhotoId ? \CFile::GetPath($eportaModelPhotoId) : "",
-					"PRICE" => (float)($eportaModelRow["CATALOG_PRICE_1"] ?? 0),
 				];
 			}
 		}
 		foreach ($eportaModelBest as $eportaModelKey => $eportaModelCard) {
 			$eportaModelCard["COLORS"] = $eportaModelColorCount[$eportaModelKey] ?? 1;
+			$eportaModelCard["MIN_PRICE"] = $eportaModelMinPrice[$eportaModelKey] ?? 0;
 			$eportaCollectionModelCards[] = $eportaModelCard;
 		}
 		// Предсказуемый порядок для витрины моделей — по номеру (натуральное сравнение, см.
@@ -708,23 +715,31 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		?>
 		<div class="eporta-model-grid" style="--eporta-model-cols:<?=$eportaModelGridCols?>">
 			<?foreach ($eportaCollectionModelCards as $eportaModelCard):
-				$eportaModelPrice = $eportaModelCard["PRICE"] > 0 ? \CCurrencyLang::CurrencyFormat($eportaModelCard["PRICE"], "RUB") : "по запросу";
+				// "От ..." — минимальная цена среди всех цветов модели (не цена конкретного
+				// "популярного" представителя на фото), т.к. это цена целой линейки, не одного цвета.
+				$eportaModelPriceLabel = $eportaModelCard["MIN_PRICE"] > 0
+					? "От " . \CCurrencyLang::CurrencyFormat($eportaModelCard["MIN_PRICE"], "RUB")
+					: "по запросу";
 			?>
 			<a href="<?=$eportaModelCard["URL"] ? htmlspecialcharsbx($eportaModelCard["URL"]) : "javascript:void(0)"?>" class="eporta-model-card">
-				<?if ($eportaModelCard["PHOTO"]):?>
-				<?php eportaPicture($eportaModelCard["PHOTO"], $eportaModelCard["MODEL"], [
-					"style" => "width:100%;height:118px;object-fit:contain;background:#f6f4ef;display:block",
-					"loading" => "lazy", "decoding" => "async",
-				]); ?>
-				<?else:?>
-				<div class="img-noimg" style="height:118px">Нет фото</div>
-				<?endif;?>
-				<div style="padding:9px 11px 11px">
-					<div style="font:800 13.5px 'Manrope';letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="<?=htmlspecialcharsbx($eportaModelCard["MODEL"])?>"><?=htmlspecialcharsbx($eportaModelCard["MODEL"])?></div>
-					<div style="font:700 13px 'Manrope';color:#3a3631;margin-top:3px"><?=$eportaModelPrice?></div>
-					<?if ($eportaModelCard["COLORS"] > 1):?>
-					<div style="font:600 11px 'Manrope';color:#a39e95;margin-top:2px"><?=$eportaModelCard["COLORS"]?> <?=eportaPluralRu($eportaModelCard["COLORS"], "цвет", "цвета", "цветов")?></div>
+				<div style="position:relative">
+					<?if ($eportaModelCard["PHOTO"]):?>
+					<?php eportaPicture($eportaModelCard["PHOTO"], $eportaModelCard["MODEL"], [
+						"style" => "width:100%;height:158px;object-fit:contain;background:#f6f4ef;display:block",
+						"loading" => "lazy", "decoding" => "async",
+					]); ?>
+					<?else:?>
+					<div class="img-noimg" style="height:158px">Нет фото</div>
 					<?endif;?>
+					<?if ($eportaModelCard["COLORS"] > 1):?>
+					<!-- Упор на количество цветов — заметный бейдж поверх фото, тот же визуальный
+					     язык, что у бейджей ХИТ/Новинка на товарных карточках. -->
+					<span class="eporta-model-colors-badge"><?=$eportaModelCard["COLORS"]?> <?=eportaPluralRu($eportaModelCard["COLORS"], "цвет", "цвета", "цветов")?></span>
+					<?endif;?>
+				</div>
+				<div style="padding:12px 14px 14px">
+					<div style="font:800 15px 'Manrope';letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="<?=htmlspecialcharsbx($eportaModelCard["MODEL"])?>"><?=htmlspecialcharsbx($eportaModelCard["MODEL"])?></div>
+					<div style="font:700 14px 'Manrope';color:#3a3631;margin-top:4px"><?=$eportaModelPriceLabel?></div>
 				</div>
 			</a>
 			<?endforeach;?>
