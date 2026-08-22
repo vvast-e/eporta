@@ -9,12 +9,12 @@ AddEventHandler('main', 'OnBuildGlobalMenu', 'eportaOnBuildGlobalMenu');
 // сутки висели без WebP-варианта. Хук точечный: срабатывает на КАЖДОЕ сохранение элемента
 // в инсталляции (общей с dverimarket.ru), поэтому сразу отсеиваем чужие IBLOCK_ID —
 // картинки не наших разделов не трогаем и не грузим GD зря. 19 = каталог товаров,
-// 27 = баннеры слайдера главной (см. index.php).
+// 27 = баннеры слайдера главной (см. index.php), 28 = статьи (local/admin_tools/eporta_articles).
 AddEventHandler('iblock', 'OnAfterIBlockElementAdd', 'eportaOnIBlockElementSaveGenerateWebp');
 AddEventHandler('iblock', 'OnAfterIBlockElementUpdate', 'eportaOnIBlockElementSaveGenerateWebp');
 
 function eportaOnIBlockElementSaveGenerateWebp(&$arFields) {
-    static $eportaWebpIblockIds = [19, 27];
+    static $eportaWebpIblockIds = [19, 27, 28];
     if (empty($arFields['IBLOCK_ID']) || !in_array((int)$arFields['IBLOCK_ID'], $eportaWebpIblockIds, true)) {
         return;
     }
@@ -132,5 +132,16 @@ function eportaOnBuildGlobalMenu(&$aGlobalMenu, &$aModuleMenu) {
         'items_id' => 'menu_eporta_banners',
         'url' => '/local/admin_tools/eporta_banners/',
         'more_url' => ['/local/admin_tools/eporta_banners/'],
+    ];
+    $aModuleMenu[] = [
+        'parent_menu' => 'global_menu_content',
+        'sort' => 720,
+        'text' => 'Статьи (eporta.ru)',
+        'title' => 'Написание и редактирование статей раздела /articles/',
+        'icon' => 'iblock_menu_icon',
+        'page_icon' => 'iblock_menu_icon',
+        'items_id' => 'menu_eporta_articles',
+        'url' => '/local/admin_tools/eporta_articles/',
+        'more_url' => ['/local/admin_tools/eporta_articles/'],
     ];
 }

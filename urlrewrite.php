@@ -88,12 +88,23 @@ $arUrlRewrite=array (
     'PATH' => '/bitrix/services/rest/index.php',
     'SORT' => 100,
   ),
-  7 => 
+  7 =>
   array (
     'CONDITION' => '#^/news/#',
     'RULE' => '',
     'ID' => 'bitrix:news',
     'PATH' => '/news/index.php',
+    'SORT' => 100,
+  ),
+  8 =>
+  array (
+    // Раздел "Статьи" — свой роутинг внутри articles/index.php (по образцу /catalog/collections/
+    // <code>/, резолвится вручную по REQUEST_URI), правило нужно только чтобы Bitrix вообще
+    // долетал до этого файла на /articles/<code>.html (без него — 404 до PHP).
+    'CONDITION' => '#^/articles/#',
+    'RULE' => '',
+    'ID' => NULL,
+    'PATH' => '/articles/index.php',
     'SORT' => 100,
   ),
 );

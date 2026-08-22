@@ -237,6 +237,7 @@ $eportaNavSale = !empty($_GET["sale"]);
 $eportaNavNew = !empty($_GET["new"]);
 $eportaNavCollections = str_starts_with($eportaCurPath, "/collection/") || str_starts_with($eportaCurPath, "/catalog/collections/");
 $eportaNavCatalog = !$eportaNavCollections && !$eportaNavSale && !$eportaNavNew && str_starts_with($eportaCurPath, "/catalog/");
+$eportaNavArticles = str_starts_with($eportaCurPath, "/articles/");
 ?>
 <!-- Навигация -->
 <div class="cat-nav">
@@ -244,6 +245,7 @@ $eportaNavCatalog = !$eportaNavCollections && !$eportaNavSale && !$eportaNavNew 
 	<a href="/collection/" class="<?= $eportaNavCollections ? "active" : "" ?>">Коллекции</a>
 	<a href="/catalog/?sale=1" class="nav-item nav-sale<?= $eportaNavSale ? " active" : "" ?>"><span class="dot-red"></span>Распродажа</a>
 	<a href="/catalog/?new=1" class="nav-item nav-new<?= $eportaNavNew ? " active" : "" ?>">Новинки<span class="badge-new">NEW</span></a>
+	<a href="/articles/" class="nav-item<?= $eportaNavArticles ? " active" : "" ?>">Статьи</a>
 	<span class="spacer"></span>
 	<div class="buyer-nav" id="buyerNav">
 		<button type="button" class="buyer-nav-toggle" id="buyerNavToggle">Покупателю <i class="buyer-nav-arrow"></i></button>
