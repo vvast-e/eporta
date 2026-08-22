@@ -518,6 +518,22 @@ img { display: block; }
   transition: box-shadow .2s, transform .2s;
 }
 .product-card:hover { box-shadow: 0 8px 24px rgba(27,26,23,.10); transform: translateY(-2px); }
+
+/* Компактная карточка модели на странице коллекции (см. catalog/index.php, блок "Модели
+   коллекции") — намеренно легче .product-card: без бейджей/звёзд/кнопок, только фото+название+
+   цена, чтобы витрина выбора модели не выглядела перегруженной. */
+.eporta-model-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: #fff;
+  transition: border-color .15s, box-shadow .2s, transform .2s;
+}
+.eporta-model-card:hover { border-color: #e8820a; box-shadow: 0 6px 18px rgba(27,26,23,.08); transform: translateY(-2px); }
+
 .product-card .img-wrap { position: relative; }
 .product-card .img-wrap img { width: 100%; height: clamp(180px, 15vw, 280px); object-fit: contain; background: #f6f4ef; }
 .product-card .img-wrap .img-noimg { width: 100%; height: clamp(180px, 15vw, 280px); display: flex; align-items: center; justify-content: center; background: #f6f4ef; color: #a39e95; font: 700 12px var(--font); }
