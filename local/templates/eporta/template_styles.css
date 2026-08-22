@@ -534,6 +534,17 @@ img { display: block; }
 }
 .eporta-model-card:hover { border-color: #e8820a; box-shadow: 0 6px 18px rgba(27,26,23,.08); transform: translateY(-2px); }
 
+/* Сетка карточек моделей — та же стратегия "фиксированное число колонок по брейкпоинту", что
+   у .eporta-product-grid ниже, но число колонок на каждом брейкпоинте дополнительно урезано
+   до --eporta-model-cols (реальное число моделей коллекции, задаётся инлайн в catalog/index.php) —
+   при 3 моделях на широком экране сетка покажет ровно 3 колонки, а не растянет их на всю ширину
+   с пустыми "фантомными" колонками. min() — паритет между "сколько поместится по брейкпоинту"
+   и "сколько вообще есть моделей". */
+.eporta-model-grid { display: grid; grid-template-columns: repeat(min(var(--eporta-model-cols, 6), 6), 1fr); gap: 14px; }
+@media (max-width: 1180px) { .eporta-model-grid { grid-template-columns: repeat(min(var(--eporta-model-cols, 6), 4), 1fr); } }
+@media (max-width: 860px)  { .eporta-model-grid { grid-template-columns: repeat(min(var(--eporta-model-cols, 6), 3), 1fr); } }
+@media (max-width: 560px)  { .eporta-model-grid { grid-template-columns: repeat(min(var(--eporta-model-cols, 6), 2), 1fr); } }
+
 .product-card .img-wrap { position: relative; }
 .product-card .img-wrap img { width: 100%; height: clamp(180px, 15vw, 280px); object-fit: contain; background: #f6f4ef; }
 .product-card .img-wrap .img-noimg { width: 100%; height: clamp(180px, 15vw, 280px); display: flex; align-items: center; justify-content: center; background: #f6f4ef; color: #a39e95; font: 700 12px var(--font); }
