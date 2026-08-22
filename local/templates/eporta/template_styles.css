@@ -534,18 +534,20 @@ img { display: block; }
 }
 .eporta-model-card:hover { border-color: #e8820a; box-shadow: 0 6px 18px rgba(27,26,23,.08); transform: translateY(-2px); }
 
-/* Бейдж числа цветов поверх фото — "упор на количество цветов", тот же визуальный язык, что
-   у бейджей ХИТ/Новинка на товарных карточках (верхний левый угол, закруглённый цветной фон). */
+/* Бейдж числа цветов поверх фото — "упор на количество цветов". Намеренно НЕ сплошной тёмный/
+   оранжевый (как у ХИТ/Новинка/скидки — это статусы акции, другой смысл), а мягкая "таблетка"
+   в фирменном оранжевом тоне (--accent) — своя, узнаваемая, но не путается со статусными бейджами. */
 .eporta-model-colors-badge {
   position: absolute;
   top: 10px;
   left: 10px;
-  background: #1b1a17;
-  color: #fff;
+  background: #fff3e5;
+  color: var(--accent-dark);
   font: 700 11px var(--font);
   padding: 5px 10px;
   border-radius: 7px;
   letter-spacing: .01em;
+  box-shadow: 0 1px 4px rgba(27,26,23,.12);
 }
 
 /* Сетка карточек моделей — flex-wrap вместо grid: при неполном последнем ряду (например, у
