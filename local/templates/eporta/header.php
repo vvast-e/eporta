@@ -245,8 +245,8 @@ $eportaNavArticles = str_starts_with($eportaCurPath, "/articles/");
 	<a href="/collection/" class="<?= $eportaNavCollections ? "active" : "" ?>">Коллекции</a>
 	<a href="/catalog/?sale=1" class="nav-item nav-sale<?= $eportaNavSale ? " active" : "" ?>"><span class="dot-red"></span>Распродажа</a>
 	<a href="/catalog/?new=1" class="nav-item nav-new<?= $eportaNavNew ? " active" : "" ?>">Новинки<span class="badge-new">NEW</span></a>
-	<a href="/articles/" class="nav-item<?= $eportaNavArticles ? " active" : "" ?>">Статьи</a>
 	<span class="spacer"></span>
+	<a href="/articles/" class="nav-item<?= $eportaNavArticles ? " active" : "" ?>">Статьи</a>
 	<div class="buyer-nav" id="buyerNav">
 		<button type="button" class="buyer-nav-toggle" id="buyerNavToggle">Покупателю <i class="buyer-nav-arrow"></i></button>
 		<div class="buyer-nav-dropdown" id="buyerNavDropdown">

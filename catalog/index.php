@@ -109,35 +109,57 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		}
 	}
 
-	// Модели коллекции (верхний блок страницы коллекции): по одной карточке-представителю на
-	// каждую уникальную модель — тот вариант, у которого максимальный RATING ("популярный цвет",
-	// тот же критерий, что и бейдж ХИТ rating>=4.8 в catalog.section/.default/template.php).
+	// Модели коллекции (верхний блок страницы коллекции): по одной лёгкой карточке-представителю
+	// на каждую уникальную модель — тот вариант, у которого максимальный RATING ("популярный
+	// цвет", тот же критерий, что и бейдж ХИТ rating>=4.8 в catalog.section/.default/template.php).
 	// Пустой MODEL — как и в круговой раскладке ниже — сам себе группа ("__id_".ID). Отдельный
 	// лёгкий запрос, не завязан на фильтр сайдбара — блок моделей показывает всю коллекцию
 	// целиком независимо от применённых чекбоксов (представительские карточки, не список).
-	$eportaCollectionModelReps = [];
+	// Карточка здесь СВОЯ, не переиспользует catalog.section/.default/template.php — полноразмерная
+	// товарная карточка (звёзды/сравнение/кнопка корзины/полное название с описанием покрытия)
+	// оказалась слишком тяжёлой для витрины "выбери модель": заголовок карточки — только
+	// значение MODEL ("Actus 1.1", без "Экошпон Орех тёмный рифлёный" и т.п.), минимум деталей.
+	$eportaCollectionModelCards = [];
 	$eportaCollectionModelCount = 0;
 	if ($eportaCollectionSection) {
 		$eportaModelRepRes = \CIBlockElement::GetList(
 			[],
 			["IBLOCK_ID" => 19, "ACTIVE" => "Y", "SECTION_ID" => $eportaCollectionSection["ID"]],
 			false, false,
-			["ID", "PROPERTY_MODEL", "PROPERTY_RATING"]
+			["ID", "NAME", "CODE", "DETAIL_PAGE_URL", "PREVIEW_PICTURE", "DETAIL_PICTURE", "CATALOG_PRICE_1", "PROPERTY_MODEL", "PROPERTY_RATING"]
 		);
 		$eportaModelBest = [];
+		$eportaModelColorCount = [];
 		while ($eportaModelRow = $eportaModelRepRes->Fetch()) {
 			$eportaModelKey = $eportaModelRow["PROPERTY_MODEL_VALUE"] ?: ("__id_" . $eportaModelRow["ID"]);
+			$eportaModelColorCount[$eportaModelKey] = ($eportaModelColorCount[$eportaModelKey] ?? 0) + 1;
 			$eportaModelRating = (float)($eportaModelRow["PROPERTY_RATING_VALUE"] ?? 0);
 			$eportaModelId = (int)$eportaModelRow["ID"];
 			if (!isset($eportaModelBest[$eportaModelKey])
 				|| $eportaModelRating > $eportaModelBest[$eportaModelKey]["RATING"]
 				|| ($eportaModelRating === $eportaModelBest[$eportaModelKey]["RATING"] && $eportaModelId > $eportaModelBest[$eportaModelKey]["ID"])
 			) {
-				$eportaModelBest[$eportaModelKey] = ["ID" => $eportaModelId, "RATING" => $eportaModelRating];
+				$eportaModelPhotoId = $eportaModelRow["PREVIEW_PICTURE"] ?: $eportaModelRow["DETAIL_PICTURE"];
+				$eportaModelBest[$eportaModelKey] = [
+					"ID" => $eportaModelId,
+					"RATING" => $eportaModelRating,
+					"MODEL" => $eportaModelRow["PROPERTY_MODEL_VALUE"] ?: $eportaModelRow["NAME"],
+					"URL" => $eportaModelRow["DETAIL_PAGE_URL"] ?: ($eportaModelRow["CODE"] ? "/catalog/" . $eportaModelRow["CODE"] . ".html" : ""),
+					"PHOTO" => $eportaModelPhotoId ? \CFile::GetPath($eportaModelPhotoId) : "",
+					"PRICE" => (float)($eportaModelRow["CATALOG_PRICE_1"] ?? 0),
+				];
 			}
 		}
-		$eportaCollectionModelReps = array_column($eportaModelBest, "ID");
-		$eportaCollectionModelCount = count($eportaCollectionModelReps);
+		foreach ($eportaModelBest as $eportaModelKey => $eportaModelCard) {
+			$eportaModelCard["COLORS"] = $eportaModelColorCount[$eportaModelKey] ?? 1;
+			$eportaCollectionModelCards[] = $eportaModelCard;
+		}
+		// Предсказуемый порядок для витрины моделей — по номеру (натуральное сравнение, см.
+		// eportaExtractModelNumber выше), а не по внутреннему порядку выборки из БД.
+		usort($eportaCollectionModelCards, function ($a, $b) {
+			return eportaExtractModelNumber($a["MODEL"]) <=> eportaExtractModelNumber($b["MODEL"]);
+		});
+		$eportaCollectionModelCount = count($eportaCollectionModelCards);
 	}
 
 	// Сайдбар фильтров (сквозной для /catalog/ и всех коллекций): реальные свойства IBLOCK 19.
@@ -668,19 +690,38 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	</div>
 	<?endif;?>
 
-	<?if ($eportaCollectionSection && $eportaCollectionModelReps):?>
-	<!-- Модели коллекции: по одной карточке-представителю на модель (лучший по RATING вариант —
-	     "популярный цвет"), клик ведёт сразу на карточку этого конкретного товара. Пагинации нет —
-	     PAGE_ELEMENT_COUNT равен числу моделей, коллекции по факту не превышают несколько десятков. -->
+	<?if ($eportaCollectionSection && $eportaCollectionModelCards):?>
+	<!-- Модели коллекции: лёгкая карточка-представитель на модель (лучший по RATING вариант —
+	     "популярный цвет"), клик ведёт сразу на карточку этого конкретного товара. Своя, более
+	     компактная разметка (не catalog.section/.default/template.php) — полная товарная карточка
+	     со звёздами/сравнением/кнопкой корзины и полным названием ("...Экошпон Орех тёмный
+	     рифлёный") тут была избыточна, только название модели+номер, фото, цена, число цветов. -->
 	<div style="padding:8px var(--pad-x) 0">
-		<h2 style="margin:0 0 12px;font:800 20px 'Manrope';letter-spacing:-0.01em">Модели коллекции <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></h2>
-		<?php eportaRenderCatalogGrid(
-			$eportaCollectionModelReps,
-			$eportaCollectionSection["ID"],
-			"ID", "DESC",
-			$eportaCols,
-			max(1, $eportaCollectionModelCount)
-		); ?>
+		<h2 style="margin:0 0 4px;font:800 20px 'Manrope';letter-spacing:-0.01em">Модели коллекции <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></h2>
+		<p style="margin:0 0 16px;font:500 13px;color:#8a857b">Показан самый популярный цвет каждой модели — остальные доступны на карточке товара</p>
+		<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:14px">
+			<?foreach ($eportaCollectionModelCards as $eportaModelCard):
+				$eportaModelPrice = $eportaModelCard["PRICE"] > 0 ? \CCurrencyLang::CurrencyFormat($eportaModelCard["PRICE"], "RUB") : "по запросу";
+			?>
+			<a href="<?=$eportaModelCard["URL"] ? htmlspecialcharsbx($eportaModelCard["URL"]) : "javascript:void(0)"?>" class="eporta-model-card">
+				<?if ($eportaModelCard["PHOTO"]):?>
+				<?php eportaPicture($eportaModelCard["PHOTO"], $eportaModelCard["MODEL"], [
+					"style" => "width:100%;height:118px;object-fit:contain;background:#f6f4ef;display:block",
+					"loading" => "lazy", "decoding" => "async",
+				]); ?>
+				<?else:?>
+				<div class="img-noimg" style="height:118px">Нет фото</div>
+				<?endif;?>
+				<div style="padding:9px 11px 11px">
+					<div style="font:800 13.5px 'Manrope';letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="<?=htmlspecialcharsbx($eportaModelCard["MODEL"])?>"><?=htmlspecialcharsbx($eportaModelCard["MODEL"])?></div>
+					<div style="font:700 13px 'Manrope';color:#3a3631;margin-top:3px"><?=$eportaModelPrice?></div>
+					<?if ($eportaModelCard["COLORS"] > 1):?>
+					<div style="font:600 11px 'Manrope';color:#a39e95;margin-top:2px"><?=$eportaModelCard["COLORS"]?> <?=eportaPluralRu($eportaModelCard["COLORS"], "цвет", "цвета", "цветов")?></div>
+					<?endif;?>
+				</div>
+			</a>
+			<?endforeach;?>
+		</div>
 	</div>
 	<div style="border-top:1px solid #efece6;margin:26px var(--pad-x) 0"></div>
 	<?endif;?>
