@@ -126,7 +126,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			[],
 			["IBLOCK_ID" => 19, "ACTIVE" => "Y", "SECTION_ID" => $eportaCollectionSection["ID"]],
 			false, false,
-			["ID", "NAME", "CODE", "DETAIL_PAGE_URL", "PREVIEW_PICTURE", "DETAIL_PICTURE", "CATALOG_PRICE_1", "PROPERTY_MODEL", "PROPERTY_RATING", "PROPERTY_SHOWCASE", "PROPERTY_MAIN_COLOR", "PROPERTY_COATING_COLOR"]
+			["ID", "NAME", "CODE", "DETAIL_PAGE_URL", "PREVIEW_PICTURE", "DETAIL_PICTURE", "CATALOG_PRICE_1", "PROPERTY_MODEL", "PROPERTY_RATING", "PROPERTY_SHOWCASE"]
 		);
 		$eportaModelBest = [];
 		$eportaModelColorCount = [];
@@ -165,7 +165,6 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 					"MODEL" => $eportaModelRow["PROPERTY_MODEL_VALUE"] ?: $eportaModelRow["NAME"],
 					"URL" => $eportaModelRow["DETAIL_PAGE_URL"] ?: ($eportaModelRow["CODE"] ? "/catalog/" . $eportaModelRow["CODE"] . ".html" : ""),
 					"PHOTO" => $eportaModelPhotoId ? \CFile::GetPath($eportaModelPhotoId) : "",
-					"IS_LIGHT" => eportaIsLightDoorColor($eportaModelRow["PROPERTY_MAIN_COLOR_VALUE"] ?? "", $eportaModelRow["PROPERTY_COATING_COLOR_VALUE"] ?? ""),
 				];
 			}
 		}
@@ -734,15 +733,12 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 				$eportaModelPriceLabel = $eportaModelCard["MIN_PRICE"] > 0
 					? "От " . \CCurrencyLang::CurrencyFormat($eportaModelCard["MIN_PRICE"], "RUB")
 					: "по запросу";
-				// Светлые двери (белый, слоновая кость и т.п.) сливаются с базовым бежевым фоном —
-				// подкладываем более контрастную подложку (см. inc/card-backdrop.php).
-				$eportaModelBackdrop = !empty($eportaModelCard["IS_LIGHT"]) ? EPORTA_CARD_BACKDROP_LIGHT : "#f6f4ef";
 			?>
 			<a href="<?=$eportaModelCard["URL"] ? htmlspecialcharsbx($eportaModelCard["URL"]) : "javascript:void(0)"?>" class="eporta-model-card">
 				<div style="position:relative">
 					<?if ($eportaModelCard["PHOTO"]):?>
 					<?php eportaPicture($eportaModelCard["PHOTO"], $eportaModelCard["MODEL"], [
-						"style" => "width:100%;height:230px;object-fit:contain;background:$eportaModelBackdrop;display:block",
+						"style" => "width:100%;height:230px;object-fit:contain;background:" . EPORTA_CARD_BACKDROP . ";display:block",
 						"loading" => "lazy", "decoding" => "async",
 					]); ?>
 					<?else:?>

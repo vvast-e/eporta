@@ -67,14 +67,39 @@ function eportaShowcaseGetModels(int $sectionId): array {
     return $models;
 }
 
+// ВАЖНО (инцидент 29.08.2026): CIBlockElement::Update() с PROPERTY_VALUES в классическом API
+// Bitrix ПОЛНОСТЬЮ ЗАМЕНЯЕТ набор свойств элемента, а не мержит только переданный ключ — вызов
+// Update($id, ['PROPERTY_VALUES' => ['SHOWCASE' => 'Y']]) стирает MODEL/RATING/COATING_COLOR и
+// все остальные свойства товара. Единственный безопасный способ точечно обновить одно свойство —
+// SetPropertyValuesEx с числовыми PROPERTY_ID/ENUM_ID, см. ниже.
+function eportaShowcaseSetListProperty(int $elementId, string $propertyCode, string $enumXmlId): bool {
+    static $propIdByCode = null;
+    if ($propIdByCode === null) {
+        $propIdByCode = [];
+        $res = CIBlockProperty::GetList([], ['IBLOCK_ID' => EPORTA_SHOWCASE_IBLOCK_ID]);
+        while ($p = $res->Fetch()) {
+            $propIdByCode[$p['CODE']] = (int)$p['ID'];
+        }
+    }
+    $propId = $propIdByCode[$propertyCode] ?? null;
+    if (!$propId) {
+        return false;
+    }
+    $enumRow = CIBlockPropertyEnum::GetList([], ['PROPERTY_ID' => $propId, 'XML_ID' => $enumXmlId])->Fetch();
+    if (!$enumRow) {
+        return false;
+    }
+    CIBlockElement::SetPropertyValuesEx($elementId, EPORTA_SHOWCASE_IBLOCK_ID, [$propId => (int)$enumRow['ID']]);
+    return true;
+}
+
 // Проставляет SHOWCASE=Y выбранному варианту и снимает флаг со всех остальных вариантов той же
 // модели (только внутри переданного списка ID — вызывающий код передаёт все варианты модели).
 function eportaShowcaseSetVariant(int $selectedId, array $allVariantIds): bool {
-    $elObj = new CIBlockElement;
     $ok = true;
     foreach ($allVariantIds as $variantId) {
         $value = ($variantId === $selectedId) ? 'Y' : 'N';
-        $ok = $elObj->Update($variantId, ['PROPERTY_VALUES' => ['SHOWCASE' => $value]]) && $ok;
+        $ok = eportaShowcaseSetListProperty($variantId, 'SHOWCASE', $value) && $ok;
     }
     return $ok;
 }

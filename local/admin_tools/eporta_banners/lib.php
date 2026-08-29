@@ -13,6 +13,37 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
 // IBLOCK 27) при CIBlockElement::Add/Update ниже — отдельно вызывать не нужно.
 
 const EPORTA_BANNERS_IBLOCK_ID = 27;
+
+// ВАЖНО (инцидент 29.08.2026): CIBlockElement::Update()/Add() с PROPERTY_VALUES в классическом
+// API Bitrix ПОЛНОСТЬЮ ЗАМЕНЯЕТ набор свойств элемента тем, что передано — а не мержит только
+// указанные ключи (кроме файловых свойств типа F, их Update() не трогает, если не включить явно).
+// Update($id, ['PROPERTY_VALUES' => ['OVERLAY' => 'Y']]) стирает PLACEMENT/SUBTITLE/LINK/CTA_TEXT
+// у уже существующего элемента, если их не повторить в том же вызове. Единственный безопасный
+// способ обновить ОДНО свойство существующего элемента, не трогая остальные — точечная запись
+// через SetPropertyValuesEx с числовыми PROPERTY_ID/ENUM_ID, см. eportaBannersSetListProperty()
+// ниже. Все точечные обновления свойств элементов IBLOCK 27 в этом файле и в ajax.php должны
+// идти только через неё; Update()+PROPERTY_VALUES допустим только при создании нового элемента
+// (Add()) или когда передаётся ПОЛНЫЙ набор свойств, которые должны остаться на элементе.
+function eportaBannersSetListProperty(int $elementId, string $propertyCode, string $enumXmlId): bool {
+    static $propIdByCode = null;
+    if ($propIdByCode === null) {
+        $propIdByCode = [];
+        $res = CIBlockProperty::GetList([], ['IBLOCK_ID' => EPORTA_BANNERS_IBLOCK_ID]);
+        while ($p = $res->Fetch()) {
+            $propIdByCode[$p['CODE']] = (int)$p['ID'];
+        }
+    }
+    $propId = $propIdByCode[$propertyCode] ?? null;
+    if (!$propId) {
+        return false;
+    }
+    $enumRow = CIBlockPropertyEnum::GetList([], ['PROPERTY_ID' => $propId, 'XML_ID' => $enumXmlId])->Fetch();
+    if (!$enumRow) {
+        return false;
+    }
+    CIBlockElement::SetPropertyValuesEx($elementId, EPORTA_BANNERS_IBLOCK_ID, [$propId => (int)$enumRow['ID']]);
+    return true;
+}
 // Право на редактирование баннеров привязано к тому же IBLOCK 19 (каталог), что и импорт —
 // это те же контент-менеджеры, отдельной модели прав заводить не требовалось.
 const EPORTA_BANNERS_PERMISSION_IBLOCK_ID = 19;

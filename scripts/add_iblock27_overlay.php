@@ -48,19 +48,27 @@ if ($res->Fetch()) {
 // Существующие элементы без явного значения свойства уже ведут себя как "Y" на фронте
 // (index.php/lib.php трактуют отсутствие как затенение включено) — принудительно проставлять
 // значение не обязательно, но для наглядности в админке проставим "Да" всем, где пусто.
-$elObj = new CIBlockElement;
+//
+// ВАЖНО (инцидент 29.08.2026, см. память project_security_hardening/этот файл в истории git):
+// CIBlockElement::Update($id, ['PROPERTY_VALUES' => ['OVERLAY' => 'Y']]) заменяет ВЕСЬ набор
+// свойств элемента переданным (кроме файловых F-свойств) — на проде это стёрло PLACEMENT и
+// остальные свойства у всех 36 элементов IBLOCK 27, карусель/мозаика главной пропала до
+// ручного восстановления. Здесь используется только точечная запись через SetPropertyValuesEx
+// с числовым PROPERTY_ID/ENUM_ID — Update()+PROPERTY_VALUES для точечных изменений на элементах
+// этого инфоблока применять нельзя.
+$overlayProp = CIBlockProperty::GetList([], ['IBLOCK_ID' => $IBLOCK_ID, 'CODE' => 'OVERLAY'])->Fetch();
+$overlayPropId = (int)$overlayProp['ID'];
+$yEnum = CIBlockPropertyEnum::GetList([], ['PROPERTY_ID' => $overlayPropId, 'XML_ID' => 'Y'])->Fetch();
+$yEnumId = (int)$yEnum['ID'];
+
 $res = CIBlockElement::GetList([], ['IBLOCK_ID' => $IBLOCK_ID], false, false, ['ID', 'PROPERTY_OVERLAY']);
 $updated = 0;
 while ($el = $res->Fetch()) {
     if (!empty($el['PROPERTY_OVERLAY_VALUE'])) {
         continue;
     }
-    $ok = $elObj->Update($el['ID'], ['PROPERTY_VALUES' => ['OVERLAY' => 'Y']]);
-    if ($ok) {
-        $updated++;
-    } else {
-        echo "Ошибка обновления {$el['ID']}: {$elObj->LAST_ERROR}\n";
-    }
+    CIBlockElement::SetPropertyValuesEx($el['ID'], $IBLOCK_ID, [$overlayPropId => $yEnumId]);
+    $updated++;
 }
 echo "Проставлено значение по умолчанию (Да) для $updated элементов без OVERLAY.\n";
 

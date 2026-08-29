@@ -42,9 +42,9 @@ if ($action === 'set_overlay') {
     $existingForOverlay = eportaBannersGetSlotElements()[$slotCode] ?? null;
     $elObj = new CIBlockElement;
     if ($existingForOverlay) {
-        $ok = $elObj->Update((int)$existingForOverlay['ID'], [
-            'PROPERTY_VALUES' => ['OVERLAY' => $overlayValue],
-        ]);
+        // SetPropertyValuesEx, не Update() — элемент уже существует и несёт PLACEMENT/картинку,
+        // Update()+PROPERTY_VALUES с одним ключом стёр бы всё остальное (см. комментарий в lib.php).
+        $ok = eportaBannersSetListProperty((int)$existingForOverlay['ID'], 'OVERLAY', $overlayValue);
     } else {
         $fields = [
             'IBLOCK_ID' => EPORTA_BANNERS_IBLOCK_ID,
@@ -101,13 +101,18 @@ if (!$fileArray) {
 $existing = eportaBannersGetSlotElements()[$slotCode] ?? null;
 $elObj = new CIBlockElement;
 
+// Update()+PROPERTY_VALUES заменяет ВЕСЬ набор свойств элемента (см. lib.php) — при повторной
+// загрузке фото для уже существующей плитки нужно явно повторить текущее значение OVERLAY,
+// иначе выбор "затенения" контент-менеджера молча слетит на значение по умолчанию.
+$currentOverlay = $existing ? (($existing['OVERLAY_ENABLED'] ?? true) ? 'Y' : 'N') : 'Y';
+
 $fields = [
     'IBLOCK_ID' => EPORTA_BANNERS_IBLOCK_ID,
     'ACTIVE' => 'Y',
     'NAME' => $slots[$slotCode]['label'],
     'DETAIL_PICTURE' => $fileArray,
     'PREVIEW_PICTURE' => $fileArray,
-    'PROPERTY_VALUES' => ['PLACEMENT' => $slotCode],
+    'PROPERTY_VALUES' => ['PLACEMENT' => $slotCode, 'OVERLAY' => $currentOverlay],
 ];
 // Кладём в раздел "Плитки главной", если он уже заведён (add_iblock27_tiles_section.php) — иначе
 // этот элемент неотличим в общем списке ИБ 27 от слайдов главной карусели и попадает туда как

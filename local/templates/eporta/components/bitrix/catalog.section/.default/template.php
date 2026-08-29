@@ -20,7 +20,7 @@ if ($eportaItemIds) {
 		["IBLOCK_ID" => $arParams["IBLOCK_ID"], "ID" => $eportaItemIds],
 		false,
 		false,
-		["ID", "IBLOCK_ID", "PROPERTY_RATING", "PROPERTY_VOTE_COUNT", "PROPERTY_PRODUCT_DAY", "PROPERTY_DISCOUNT", "PROPERTY_MODEL", "PROPERTY_COATING_COLOR", "PROPERTY_MAIN_COLOR"]
+		["ID", "IBLOCK_ID", "PROPERTY_RATING", "PROPERTY_VOTE_COUNT", "PROPERTY_PRODUCT_DAY", "PROPERTY_DISCOUNT", "PROPERTY_MODEL", "PROPERTY_COATING_COLOR"]
 	);
 	while ($eportaPropsEl = $eportaPropsRes->GetNextElement()) {
 		$eportaFields = $eportaPropsEl->GetFields();
@@ -34,7 +34,6 @@ if ($eportaItemIds) {
 			// (см. комментарий выше про RATING/VOTE_COUNT/PRODUCT_DAY), берём из того же
 			// bulk-запроса, что и остальные "досчитанные" свойства.
 			"COATING_COLOR" => $eportaFields["PROPERTY_COATING_COLOR_VALUE"] ?? "",
-			"MAIN_COLOR" => $eportaFields["PROPERTY_MAIN_COLOR_VALUE"] ?? "",
 		];
 	}
 }
@@ -75,10 +74,7 @@ if ($eportaModels) {
 ?>
 <div class="eporta-product-grid<?=$eportaGridView?>" style="--eporta-cols:<?=$eportaCols?>">
 <?php $eportaImgIndex = 0; foreach ($arResult["ITEMS"] as $arItem):
-	$eportaExtra = $eportaExtraProps[$arItem["ID"]] ?? ["RATING" => 0, "VOTE_COUNT" => 0, "PRODUCT_DAY" => "", "DISCOUNT" => 0, "MODEL" => "", "COATING_COLOR" => "", "MAIN_COLOR" => ""];
-	// Светлые двери (белый, слоновая кость и т.п.) сливаются с базовым бежевым фоном подложки —
-	// см. inc/card-backdrop.php.
-	$eportaIsLightDoor = eportaIsLightDoorColor($eportaExtra["MAIN_COLOR"], $eportaExtra["COATING_COLOR"]);
+	$eportaExtra = $eportaExtraProps[$arItem["ID"]] ?? ["RATING" => 0, "VOTE_COUNT" => 0, "PRODUCT_DAY" => "", "DISCOUNT" => 0, "MODEL" => "", "COATING_COLOR" => ""];
 	// (float), не (int) — иначе 4.99 обрезается до 4 и попадает мимо порога ХИТ ниже.
 	$rating = (float)$eportaExtra["RATING"];
 	$voteCount = (int)$eportaExtra["VOTE_COUNT"];
@@ -126,7 +122,7 @@ if ($eportaModels) {
 ?>
 	<div class="product-card" data-id="<?= (int)$arItem["ID"] ?>">
 	<a href="<?= $elementUrl ? htmlspecialcharsbx($elementUrl) : "javascript:void(0)" ?>" class="product-card-link">
-		<div class="img-wrap<?= $eportaIsLightDoor ? " is-light-door" : "" ?>">
+		<div class="img-wrap">
 			<?php if ($eportaHasPhoto): ?>
 			<?php eportaPicture($imgSrc, $arItem["NAME"], [
 				"loading" => $eportaIsEager ? "eager" : "lazy",

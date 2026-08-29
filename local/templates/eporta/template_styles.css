@@ -583,12 +583,11 @@ img { display: block; }
 @media (max-width: 560px)  { .eporta-model-grid { --eff-cols: min(var(--eporta-model-cols, 4), 2); } }
 
 .product-card .img-wrap { position: relative; }
-.product-card .img-wrap img { width: 100%; height: clamp(180px, 15vw, 280px); object-fit: contain; background: #f6f4ef; }
-/* Светлые двери (белый, слоновая кость и т.п.) сливаются с базовым бежевым фоном — более
-   контрастная подложка, класс ставится в catalog.section/.default/template.php по значениям
-   MAIN_COLOR/COATING_COLOR (см. inc/card-backdrop.php). */
-.product-card .img-wrap.is-light-door img { background: #e2ddd0; }
-.product-card .img-wrap .img-noimg { width: 100%; height: clamp(180px, 15vw, 280px); display: flex; align-items: center; justify-content: center; background: #f6f4ef; color: #a39e95; font: 700 12px var(--font); }
+/* Единый фон подложки под фото (раньше переключался по цвету двери — светлые/тёмные карточки
+   вперемешку в сетке смотрелись пёстро, см. inc/card-backdrop.php). Один контрастный тон и для
+   светлых, и для тёмных дверей. */
+.product-card .img-wrap img { width: 100%; height: clamp(180px, 15vw, 280px); object-fit: contain; background: #ece5d6; }
+.product-card .img-wrap .img-noimg { width: 100%; height: clamp(180px, 15vw, 280px); display: flex; align-items: center; justify-content: center; background: #ece5d6; color: #a39e95; font: 700 12px var(--font); }
 .product-card .badge {
   position: absolute;
   top: 10px;

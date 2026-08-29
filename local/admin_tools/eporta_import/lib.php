@@ -503,9 +503,11 @@ function eportaImportOneProduct(array $p): array {
         return ['article' => $article, 'status' => 'error', 'message' => "Не найдена коллекция \"$collection\" в разделе Коллекции"];
     }
 
-    // SHOWCASE (витринный вариант модели, local/admin_tools/eporta_showcase/) намеренно не
-    // входит в этот список — импорт не должен затирать ручной выбор контент-менеджера при
-    // обновлении товара по фиду 1С.
+    // SHOWCASE (витринный вариант модели, local/admin_tools/eporta_showcase/) сюда не входит —
+    // импорт не должен задавать его сам. Но т.к. Update()+PROPERTY_VALUES заменяет ВЕСЬ набор
+    // свойств элемента (см. комментарий у вызова Update() ниже), текущее значение SHOWCASE
+    // читается из базы и явно повторяется в PROPERTY_VALUES перед Update(), иначе оно бы
+    // обнулялось при каждом переимпорте.
     $propertyValues = [
         'CML2_ARTICLE'    => $article,
         'MODEL'           => $p['model'] ?? '',
@@ -585,6 +587,15 @@ function eportaImportOneProduct(array $p): array {
     }
 
     if ($existingId) {
+        // ВАЖНО (инцидент 29.08.2026): Update()+PROPERTY_VALUES заменяет ВЕСЬ набор свойств
+        // элемента тем, что передано — SHOWCASE (local/admin_tools/eporta_showcase/) намеренно
+        // не входит в $propertyValues выше, но раз он не передан явно, он будет ОБНУЛЁН при
+        // переимпорте, а не "оставлен как был". Читаем текущее значение и повторяем его в
+        // PROPERTY_VALUES, чтобы ручной выбор витринного варианта пережил переимпорт по фиду.
+        $currentShowcaseRes = CIBlockElement::GetList([], ['IBLOCK_ID' => EPORTA_IMPORT_IBLOCK_ID, 'ID' => $existingId], false, false, ['ID', 'PROPERTY_SHOWCASE']);
+        $currentShowcaseEl = $currentShowcaseRes->Fetch();
+        $elFields['PROPERTY_VALUES']['SHOWCASE'] = ($currentShowcaseEl['PROPERTY_SHOWCASE_VALUE'] ?? '') === 'Y' ? 'Y' : 'N';
+
         $ok = $elObj->Update($existingId, $elFields);
         $elementId = $existingId;
     } else {
