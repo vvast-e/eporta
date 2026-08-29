@@ -503,6 +503,9 @@ function eportaImportOneProduct(array $p): array {
         return ['article' => $article, 'status' => 'error', 'message' => "Не найдена коллекция \"$collection\" в разделе Коллекции"];
     }
 
+    // SHOWCASE (витринный вариант модели, local/admin_tools/eporta_showcase/) намеренно не
+    // входит в этот список — импорт не должен затирать ручной выбор контент-менеджера при
+    // обновлении товара по фиду 1С.
     $propertyValues = [
         'CML2_ARTICLE'    => $article,
         'MODEL'           => $p['model'] ?? '',

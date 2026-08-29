@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !check_bitrix_sessid()) {
 
 $action = $_POST['action'] ?? '';
 
-if ($action !== 'upload') {
+if (!in_array($action, ['upload', 'set_overlay'], true)) {
     eportaBannersJsonFail('Неизвестное действие');
 }
 
@@ -32,6 +32,37 @@ $slots = eportaBannersSlots();
 $slotCode = (string)($_POST['slot'] ?? '');
 if (!isset($slots[$slotCode])) {
     eportaBannersJsonFail('Неизвестный слот');
+}
+
+// Переключение затенения — отдельное лёгкое действие, картинку не трогает. Если элемента для
+// слота ещё нет (плитка ещё на фолбэке), затенение сохранить некуда — создаём элемент без
+// картинки, eportaBannersResolveImage() всё равно продолжит отдавать фолбэк для DETAIL_PICTURE.
+if ($action === 'set_overlay') {
+    $overlayValue = ($_POST['overlay'] ?? 'Y') === 'N' ? 'N' : 'Y';
+    $existingForOverlay = eportaBannersGetSlotElements()[$slotCode] ?? null;
+    $elObj = new CIBlockElement;
+    if ($existingForOverlay) {
+        $ok = $elObj->Update((int)$existingForOverlay['ID'], [
+            'PROPERTY_VALUES' => ['OVERLAY' => $overlayValue],
+        ]);
+    } else {
+        $fields = [
+            'IBLOCK_ID' => EPORTA_BANNERS_IBLOCK_ID,
+            'ACTIVE' => 'Y',
+            'NAME' => $slots[$slotCode]['label'],
+            'PROPERTY_VALUES' => ['PLACEMENT' => $slotCode, 'OVERLAY' => $overlayValue],
+        ];
+        $tilesSectionId = eportaBannersTilesSectionId();
+        if ($tilesSectionId) {
+            $fields['IBLOCK_SECTION_ID'] = $tilesSectionId;
+        }
+        $ok = (bool)$elObj->Add($fields);
+    }
+    if (!$ok) {
+        eportaBannersJsonFail('Ошибка сохранения: ' . $elObj->LAST_ERROR, 500);
+    }
+    echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
 if (empty($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {

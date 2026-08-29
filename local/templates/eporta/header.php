@@ -60,6 +60,7 @@ if (!$eportaDevAccess) {
 require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/categories.php");
 require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/buyer_info_pages.php");
 require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/webp.php");
+require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/card-backdrop.php");
 function eportaResolveEnumMap($code) {
 	$map = [];
 	$rs = \CIBlockPropertyEnum::GetList(["SORT" => "ASC"], ["IBLOCK_ID" => 19, "CODE" => $code]);

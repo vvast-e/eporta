@@ -54,12 +54,16 @@ function eportaBannersSlots(): array {
         'cat_entrance' => ['label' => 'Категория: Входные', 'fallback' => 'cat-vhod.jpg', 'size' => 'широкая низкая плитка — рекомендуется ~900×550 px'],
         'cat_arch' => ['label' => 'Категория: Арки и порталы', 'fallback' => 'cat-arki.jpg', 'size' => 'широкая низкая плитка — рекомендуется ~900×550 px'],
         'cat_hardware' => ['label' => 'Категория: Фурнитура', 'fallback' => 'cat-furn.jpg', 'size' => 'высокая плитка, портрет — рекомендуется ~800×1100 px'],
-        'coll_dorsum' => ['label' => 'Коллекция: Dorsum', 'fallback' => 'hit-1.jpg', 'size' => 'широкая плитка (высота ~226px в вёрстке) — рекомендуется ~1200×450 px'],
-        'coll_vilis' => ['label' => 'Коллекция: Vilis', 'fallback' => 'hit-2.jpg', 'size' => 'широкая плитка (высота ~226px в вёрстке) — рекомендуется ~1200×450 px'],
-        'coll_actus' => ['label' => 'Коллекция: Actus', 'fallback' => 'hit-5.jpg', 'size' => 'широкая плитка (высота ~226px в вёрстке) — рекомендуется ~1200×450 px'],
-        'coll_vitrum' => ['label' => 'Коллекция: Vitrum', 'fallback' => 'hit-6.jpg', 'size' => 'широкая плитка (высота ~226px в вёрстке) — рекомендуется ~1200×450 px'],
-        'coll_tabula' => ['label' => 'Коллекция: Tabula', 'fallback' => 'hit-7.jpg', 'size' => 'широкая плитка (высота ~226px в вёрстке) — рекомендуется ~1200×450 px'],
-        'coll_lacuna' => ['label' => 'Коллекция: Lacuna', 'fallback' => 'hit-8.jpg', 'size' => 'широкая плитка (высота ~226px в вёрстке) — рекомендуется ~1200×450 px'],
+        // Квадратная плитка 1:1, картинка вписывается целиком (object-fit:contain) — не
+        // обрезается, независимо от пропорций исходного фото. Точный размер не критичен,
+        // важна не слишком маленькая сторона (упирается в подложку #f2efe9 при несовпадении
+        // пропорций).
+        'coll_dorsum' => ['label' => 'Коллекция: Dorsum', 'fallback' => 'hit-1.jpg', 'size' => 'квадратная плитка — рекомендуется ~900×900 px'],
+        'coll_vilis' => ['label' => 'Коллекция: Vilis', 'fallback' => 'hit-2.jpg', 'size' => 'квадратная плитка — рекомендуется ~900×900 px'],
+        'coll_actus' => ['label' => 'Коллекция: Actus', 'fallback' => 'hit-5.jpg', 'size' => 'квадратная плитка — рекомендуется ~900×900 px'],
+        'coll_vitrum' => ['label' => 'Коллекция: Vitrum', 'fallback' => 'hit-6.jpg', 'size' => 'квадратная плитка — рекомендуется ~900×900 px'],
+        'coll_tabula' => ['label' => 'Коллекция: Tabula', 'fallback' => 'hit-7.jpg', 'size' => 'квадратная плитка — рекомендуется ~900×900 px'],
+        'coll_lacuna' => ['label' => 'Коллекция: Lacuna', 'fallback' => 'hit-8.jpg', 'size' => 'квадратная плитка — рекомендуется ~900×900 px'],
     ];
 }
 
@@ -98,13 +102,19 @@ function eportaBannersGetSlotElements(): array {
     while ($enumRow = $enumRes->Fetch()) {
         $enumIdToXmlId[$enumRow['ID']] = $enumRow['XML_ID'];
     }
+    // Та же карта для затенения (см. scripts/add_iblock27_overlay.php) — Y/N.
+    $overlayEnumRes = CIBlockPropertyEnum::GetList([], ['IBLOCK_ID' => EPORTA_BANNERS_IBLOCK_ID, 'CODE' => 'OVERLAY']);
+    $overlayEnumIdToXmlId = [];
+    while ($enumRow = $overlayEnumRes->Fetch()) {
+        $overlayEnumIdToXmlId[$enumRow['ID']] = $enumRow['XML_ID'];
+    }
 
     $res = CIBlockElement::GetList(
         [],
         ['IBLOCK_ID' => EPORTA_BANNERS_IBLOCK_ID, 'ACTIVE' => 'Y'],
         false,
         false,
-        ['ID', 'NAME', 'DETAIL_PICTURE', 'PROPERTY_PLACEMENT']
+        ['ID', 'NAME', 'DETAIL_PICTURE', 'PROPERTY_PLACEMENT', 'PROPERTY_OVERLAY']
     );
     while ($el = $res->Fetch()) {
         // ...ENUM_ID, не ...VALUE — тот же паттерн, что и на главной (index.php, разбор
@@ -115,12 +125,26 @@ function eportaBannersGetSlotElements(): array {
         if ($xmlId === null) {
             continue;
         }
+        $overlayEnumId = $el['PROPERTY_OVERLAY_ENUM_ID'] ?? null;
+        $overlayXmlId = $overlayEnumId ? ($overlayEnumIdToXmlId[$overlayEnumId] ?? '') : '';
+        $el['OVERLAY_ENABLED'] = ($overlayXmlId !== 'N');
         // На случай дублей (несколько элементов с одним PLACEMENT) — берём последний по ID.
         if (!isset($bySlot[$xmlId]) || (int)$el['ID'] > (int)$bySlot[$xmlId]['ID']) {
             $bySlot[$xmlId] = $el;
         }
     }
     return $bySlot;
+}
+
+// Затенение слотового баннера включено? true, если свойства ещё нет на элементе (по умолчанию
+// как раньше — включено) или явно не выставлено "Нет".
+function eportaBannersSlotOverlayEnabled(string $slotCode): bool {
+    static $slotElements = null;
+    if ($slotElements === null) {
+        $slotElements = eportaBannersGetSlotElements();
+    }
+    $el = $slotElements[$slotCode] ?? null;
+    return $el ? ($el['OVERLAY_ENABLED'] ?? true) : true;
 }
 
 // Публичный хелпер для index.php главной: код слота -> веб-путь к картинке (залитая через

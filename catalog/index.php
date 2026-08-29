@@ -126,7 +126,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			[],
 			["IBLOCK_ID" => 19, "ACTIVE" => "Y", "SECTION_ID" => $eportaCollectionSection["ID"]],
 			false, false,
-			["ID", "NAME", "CODE", "DETAIL_PAGE_URL", "PREVIEW_PICTURE", "DETAIL_PICTURE", "CATALOG_PRICE_1", "PROPERTY_MODEL", "PROPERTY_RATING"]
+			["ID", "NAME", "CODE", "DETAIL_PAGE_URL", "PREVIEW_PICTURE", "DETAIL_PICTURE", "CATALOG_PRICE_1", "PROPERTY_MODEL", "PROPERTY_RATING", "PROPERTY_SHOWCASE", "PROPERTY_MAIN_COLOR", "PROPERTY_COATING_COLOR"]
 		);
 		$eportaModelBest = [];
 		$eportaModelColorCount = [];
@@ -142,17 +142,30 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			}
 			$eportaModelRating = (float)($eportaModelRow["PROPERTY_RATING_VALUE"] ?? 0);
 			$eportaModelId = (int)$eportaModelRow["ID"];
-			if (!isset($eportaModelBest[$eportaModelKey])
-				|| $eportaModelRating > $eportaModelBest[$eportaModelKey]["RATING"]
-				|| ($eportaModelRating === $eportaModelBest[$eportaModelKey]["RATING"] && $eportaModelId > $eportaModelBest[$eportaModelKey]["ID"])
-			) {
+			// Ручной витринный вариант (свойство SHOWCASE="Y", проставляется в
+			// local/admin_tools/eporta_showcase/) побеждает всегда — даже вариант с более низким
+			// RATING; фолбэк на прежнюю логику (максимум RATING, тай-брейк больший ID) для
+			// моделей, где контент-менеджер витринный вариант ещё не выбрал.
+			$eportaModelIsShowcase = ($eportaModelRow["PROPERTY_SHOWCASE_VALUE"] ?? "") === "Y";
+			$eportaModelCurrentIsShowcase = $eportaModelBest[$eportaModelKey]["IS_SHOWCASE"] ?? false;
+			$eportaModelWins = $eportaModelIsShowcase && !$eportaModelCurrentIsShowcase;
+			if (!$eportaModelWins && !$eportaModelCurrentIsShowcase && !isset($eportaModelBest[$eportaModelKey])) {
+				$eportaModelWins = true;
+			}
+			if (!$eportaModelWins && !$eportaModelIsShowcase && !$eportaModelCurrentIsShowcase) {
+				$eportaModelWins = $eportaModelRating > $eportaModelBest[$eportaModelKey]["RATING"]
+					|| ($eportaModelRating === $eportaModelBest[$eportaModelKey]["RATING"] && $eportaModelId > $eportaModelBest[$eportaModelKey]["ID"]);
+			}
+			if ($eportaModelWins) {
 				$eportaModelPhotoId = $eportaModelRow["PREVIEW_PICTURE"] ?: $eportaModelRow["DETAIL_PICTURE"];
 				$eportaModelBest[$eportaModelKey] = [
 					"ID" => $eportaModelId,
 					"RATING" => $eportaModelRating,
+					"IS_SHOWCASE" => $eportaModelIsShowcase,
 					"MODEL" => $eportaModelRow["PROPERTY_MODEL_VALUE"] ?: $eportaModelRow["NAME"],
 					"URL" => $eportaModelRow["DETAIL_PAGE_URL"] ?: ($eportaModelRow["CODE"] ? "/catalog/" . $eportaModelRow["CODE"] . ".html" : ""),
 					"PHOTO" => $eportaModelPhotoId ? \CFile::GetPath($eportaModelPhotoId) : "",
+					"IS_LIGHT" => eportaIsLightDoorColor($eportaModelRow["PROPERTY_MAIN_COLOR_VALUE"] ?? "", $eportaModelRow["PROPERTY_COATING_COLOR_VALUE"] ?? ""),
 				];
 			}
 		}
@@ -705,13 +718,14 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	     рифлёный") тут была избыточна, только название модели+номер, фото, цена, число цветов. -->
 	<div style="padding:8px var(--pad-x) 0">
 		<h2 style="margin:0 0 4px;font:800 20px 'Manrope';letter-spacing:-0.01em">Модели коллекции <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></h2>
-		<p style="margin:0 0 16px;font:500 13px;color:#8a857b">Показан самый популярный цвет каждой модели — остальные доступны на карточке товара</p>
+		<p style="margin:0 0 16px;font:500 13px;color:#8a857b">Показан витринный вариант каждой модели — остальные цвета доступны на карточке товара</p>
 		<?php
 		// Число колонок сетки моделей: не больше, чем реально моделей (иначе при 3 моделях на
 		// широком экране сетка тянула бы их на всю ширину пустыми "фантомными" колонками) —
 		// см. .eporta-model-grid в template_styles.css, где на каждом брейкпоинте
 		// min(--eporta-model-cols, брейкпоинт) дополнительно урезает и под размер экрана.
-		$eportaModelGridCols = max(1, min($eportaCollectionModelCount, 6));
+		// Раньше упиралось в 6 в ряду — карточки были мелкие; теперь максимум 4, крупнее.
+		$eportaModelGridCols = max(1, min($eportaCollectionModelCount, 4));
 		?>
 		<div class="eporta-model-grid" style="--eporta-model-cols:<?=$eportaModelGridCols?>">
 			<?foreach ($eportaCollectionModelCards as $eportaModelCard):
@@ -720,16 +734,19 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 				$eportaModelPriceLabel = $eportaModelCard["MIN_PRICE"] > 0
 					? "От " . \CCurrencyLang::CurrencyFormat($eportaModelCard["MIN_PRICE"], "RUB")
 					: "по запросу";
+				// Светлые двери (белый, слоновая кость и т.п.) сливаются с базовым бежевым фоном —
+				// подкладываем более контрастную подложку (см. inc/card-backdrop.php).
+				$eportaModelBackdrop = !empty($eportaModelCard["IS_LIGHT"]) ? EPORTA_CARD_BACKDROP_LIGHT : "#f6f4ef";
 			?>
 			<a href="<?=$eportaModelCard["URL"] ? htmlspecialcharsbx($eportaModelCard["URL"]) : "javascript:void(0)"?>" class="eporta-model-card">
 				<div style="position:relative">
 					<?if ($eportaModelCard["PHOTO"]):?>
 					<?php eportaPicture($eportaModelCard["PHOTO"], $eportaModelCard["MODEL"], [
-						"style" => "width:100%;height:158px;object-fit:contain;background:#f6f4ef;display:block",
+						"style" => "width:100%;height:230px;object-fit:contain;background:$eportaModelBackdrop;display:block",
 						"loading" => "lazy", "decoding" => "async",
 					]); ?>
 					<?else:?>
-					<div class="img-noimg" style="height:158px">Нет фото</div>
+					<div class="img-noimg" style="height:230px">Нет фото</div>
 					<?endif;?>
 					<?if ($eportaModelCard["COLORS"] > 1):?>
 					<!-- Упор на количество цветов — заметный бейдж поверх фото, тот же визуальный
