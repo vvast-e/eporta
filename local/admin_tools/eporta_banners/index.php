@@ -32,6 +32,7 @@ foreach ($slots as $code => &$slot) {
     $el = $slotElements[$code] ?? null;
     $slot['preview'] = ($el && $el['DETAIL_PICTURE']) ? CFile::GetPath($el['DETAIL_PICTURE']) : $assetsWebBase . $slot['fallback'];
     $slot['is_custom'] = (bool)$el;
+    $slot['overlay'] = $el ? (bool)($el['OVERLAY_ENABLED'] ?? true) : true;
 }
 unset($slot);
 
@@ -64,6 +65,8 @@ $collSlots = array_filter($slots, fn($c) => str_starts_with($c, 'coll_'), ARRAY_
     .slot-card .status { font-size: 12px; margin-top: 6px; min-height: 16px; }
     .slot-card .status.ok { color: #2f9e44; }
     .slot-card .status.err { color: #c0392b; }
+    .slot-card .overlay-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #444; margin-top: 8px; cursor: pointer; }
+    .slot-card .overlay-toggle input { margin: 0; }
 </style>
 </head>
 <body>
@@ -71,8 +74,10 @@ $collSlots = array_filter($slots, fn($c) => str_starts_with($c, 'coll_'), ARRAY_
 <p class="hint">
     Замена картинок для плиток блоков «Каталог по категориям» и «Коллекции фабрики» на главной.
     Пока картинка не залита — используется текущая (фабричная) картинка шаблона. Формат JPG/PNG,
-    до 8 МБ. Вывод везде через object-fit:cover (обрезка по контейнеру), поэтому важнее соблюсти
-    пропорцию, чем точный размер в пикселях — рекомендация под каждой плиткой ниже.
+    до 8 МБ. Плитки категорий выводятся через object-fit:cover (обрезка по контейнеру) — важнее
+    пропорция. Плитки коллекций — через object-fit:contain (квадрат, без обрезки, лишнее место
+    закрывается фоном) — любые пропорции впишутся, но лучше квадратное фото. Затенение поверх
+    фото можно выключить галочкой под превью — полезно для светлых фото, где градиент не нужен.
 </p>
 
 <h2>Каталог по категориям</h2>
@@ -104,6 +109,7 @@ $collSlots = array_filter($slots, fn($c) => str_starts_with($c, 'coll_'), ARRAY_
                     '<div class="size-hint">' + (slot.size || '') + '</div>' +
                     '<input type="file" accept=".jpg,.jpeg,.png">' +
                     '<button type="button">Заменить</button>' +
+                    '<label class="overlay-toggle"><input type="checkbox" ' + (slot.overlay ? 'checked' : '') + '> Затенение поверх фото</label>' +
                     '<div class="status"></div>' +
                 '</div>';
 
@@ -112,6 +118,35 @@ $collSlots = array_filter($slots, fn($c) => str_starts_with($c, 'coll_'), ARRAY_
             const btn = card.querySelector('button');
             const statusEl = card.querySelector('.status');
             const badge = card.querySelector('.badge');
+            const overlayCheckbox = card.querySelector('.overlay-toggle input');
+
+            overlayCheckbox.addEventListener('change', async function () {
+                overlayCheckbox.disabled = true;
+                statusEl.textContent = '';
+                statusEl.className = 'status';
+                const fd = new FormData();
+                fd.append('action', 'set_overlay');
+                fd.append('sessid', SESSID);
+                fd.append('slot', slot.code);
+                fd.append('overlay', overlayCheckbox.checked ? 'Y' : 'N');
+                try {
+                    const r = await fetch('ajax.php', { method: 'POST', body: fd });
+                    const resp = await r.json();
+                    if (!resp.ok) {
+                        statusEl.textContent = resp.error || 'Ошибка';
+                        statusEl.classList.add('err');
+                        overlayCheckbox.checked = !overlayCheckbox.checked;
+                    } else {
+                        statusEl.textContent = 'Сохранено';
+                        statusEl.classList.add('ok');
+                    }
+                } catch (e) {
+                    statusEl.textContent = 'Ошибка сети: ' + e.message;
+                    statusEl.classList.add('err');
+                    overlayCheckbox.checked = !overlayCheckbox.checked;
+                }
+                overlayCheckbox.disabled = false;
+            });
 
             btn.addEventListener('click', async function () {
                 statusEl.textContent = '';

@@ -45,6 +45,15 @@ $APPLICATION->SetTitle("Eporta");?> <?
 		while ($arEnum = $rsPlacementEnum->Fetch()) {
 			$arPlacementXmlIdByEnumId[$arEnum["ID"]] = $arEnum["XML_ID"];
 		}
+		// Затенение поверх фото — включатель на баннер (свойство-список OVERLAY, значения
+		// Y/N, XML_ID совпадает со значением; см. scripts/add_iblock27_overlay.php). Если
+		// свойства ещё нет на окружении — карта пустая, ниже это трактуется как "Y" (старое
+		// поведение по умолчанию).
+		$arOverlayXmlIdByEnumId = [];
+		$rsOverlayEnum = CIBlockPropertyEnum::GetList([], ["IBLOCK_ID" => 27, "CODE" => "OVERLAY"]);
+		while ($arEnum = $rsOverlayEnum->Fetch()) {
+			$arOverlayXmlIdByEnumId[$arEnum["ID"]] = $arEnum["XML_ID"];
+		}
 
 		$arHomeBannerSlides = ["main" => [], "side1" => [], "side2" => []];
 		$rsHomeBannerSlides = CIBlockElement::GetList(
@@ -52,7 +61,7 @@ $APPLICATION->SetTitle("Eporta");?> <?
 			["IBLOCK_ID" => 27, "ACTIVE" => "Y"],
 			false,
 			false,
-			["ID", "NAME", "DETAIL_PICTURE", "PROPERTY_PLACEMENT", "PROPERTY_SUBTITLE", "PROPERTY_LINK", "PROPERTY_CTA_TEXT"]
+			["ID", "NAME", "DETAIL_PICTURE", "PREVIEW_PICTURE", "PROPERTY_PLACEMENT", "PROPERTY_OVERLAY", "PROPERTY_SUBTITLE", "PROPERTY_LINK", "PROPERTY_CTA_TEXT"]
 		);
 		while ($arSlideFields = $rsHomeBannerSlides->Fetch()) {
 			if (empty($arSlideFields["DETAIL_PICTURE"])) {
@@ -63,27 +72,50 @@ $APPLICATION->SetTitle("Eporta");?> <?
 			// local/admin_tools/eporta_banners/ — см. eportaBannersSlots() в lib.php). Слайды без
 			// PLACEMENT вообще (старые, до PLACEMENT) идут в "main", как и раньше; слайды с чужим
 			// (не main/side1/side2) PLACEMENT — это слотовые баннеры, их сюда не подмешиваем.
+			// Пустой/неизвестный XML_ID (значение списка заведено вручную через штатную админку
+			// Битрикса, без XML_ID) раньше отбрасывал слайд молча — трактуем как "main", как и
+			// полностью отсутствующее свойство. Отбрасываем только явно чужие слотовые коды
+			// (cat_*/coll_*, см. eportaBannersSlots() в lib.php) — это баннеры плиток, не карусели.
 			$enumIdSet = $arSlideFields["PROPERTY_PLACEMENT_ENUM_ID"] ?? null;
-			if ($enumIdSet === null || $enumIdSet === false || $enumIdSet === "") {
-				$slidePlacement = "main";
+			$slidePlacementRaw = ($enumIdSet === null || $enumIdSet === false || $enumIdSet === "")
+				? ""
+				: ($arPlacementXmlIdByEnumId[$enumIdSet] ?? "");
+			if (isset($arHomeBannerSlides[$slidePlacementRaw])) {
+				// Известное место карусели (main/side1/side2).
+				$slidePlacement = $slidePlacementRaw;
+			} elseif (strpos($slidePlacementRaw, "cat_") === 0 || strpos($slidePlacementRaw, "coll_") === 0) {
+				// Слотовый баннер плитки (eporta_banners) — не наш, сюда не подмешиваем.
+				continue;
 			} else {
-				$slidePlacement = $arPlacementXmlIdByEnumId[$enumIdSet] ?? "main";
-				if (!isset($arHomeBannerSlides[$slidePlacement])) {
-					continue;
-				}
+				// Пустой/незнакомый XML_ID (в т.ч. значение списка, заведённое вручную через
+				// штатную админку Битрикса без XML_ID) — трактуем как "main", как и раньше
+				// делалось для полностью отсутствующего свойства.
+				$slidePlacement = "main";
+			}
+			// DETAIL_PICTURE может быть не заполнена, если фото залили только в "Картинку для
+			// анонса" (PREVIEW_PICTURE) — тот же фолбэк, что и для карточек моделей коллекции
+			// (catalog/index.php).
+			$eportaBannerPictureId = $arSlideFields["DETAIL_PICTURE"] ?: $arSlideFields["PREVIEW_PICTURE"];
+			if (!$eportaBannerPictureId) {
+				continue;
 			}
 			// WebP уже готов заранее (scripts/import/convert_webp.php проходит весь upload/iblock
-			// целиком, включая инфоблок баннеров 27 — не только товары IBLOCK 19), здесь просто
-			// подставляем готовый вариант в background-image, если он на диске (Этап 5 перфоманса,
-			// 2026-08-05 — эти конкретные баннеры были самой тяжёлой находкой в Lighthouse-отчёте).
-			$eportaBannerSrc = CFile::GetPath($arSlideFields["DETAIL_PICTURE"]);
+			// целиком, включая инфоблок баннеров 27 — не только товары IBLOCK 19). Раньше .webp
+			// подставлялся как единственный URL (?: $eportaBannerSrc) — если файл на диске битый
+			// или нулевого размера, картинка пропадала целиком. Теперь храним оба варианта и всегда
+			// оставляем оригинал доступным как запасной (см. renderHomeBannerCarousel).
+			$eportaBannerSrc = CFile::GetPath($eportaBannerPictureId);
 			$eportaBannerWebp = eportaWebpVariant($eportaBannerSrc);
+			$eportaOverlayEnumId = $arSlideFields["PROPERTY_OVERLAY_ENUM_ID"] ?? null;
+			$eportaOverlayXmlId = $eportaOverlayEnumId ? ($arOverlayXmlIdByEnumId[$eportaOverlayEnumId] ?? "") : "";
 			$arHomeBannerSlides[$slidePlacement][] = [
-				"IMAGE" => $eportaBannerWebp ?: $eportaBannerSrc,
+				"IMAGE" => $eportaBannerSrc,
+				"IMAGE_WEBP" => $eportaBannerWebp,
 				"TITLE" => $arSlideFields["NAME"],
 				"SUBTITLE" => $arSlideFields["PROPERTY_SUBTITLE_VALUE"] ?? "",
 				"LINK" => $arSlideFields["PROPERTY_LINK_VALUE"] ?: "/catalog/",
 				"CTA_TEXT" => $arSlideFields["PROPERTY_CTA_TEXT_VALUE"] ?: "Подробнее →",
+				"OVERLAY" => ($eportaOverlayXmlId !== "N"),
 			];
 		}
 
@@ -105,12 +137,23 @@ $APPLICATION->SetTitle("Eporta");?> <?
 						// (не видны до пролистывания) остаются на background-image, как раньше.
 						$eportaSlideIsFirst = ($eportaSlideIndex === 0);
 					?>
-					<a href="<?= htmlspecialcharsbx($arSlide["LINK"]) ?>" class="hbc-slide"<?= $eportaSlideIsFirst ? "" : ' style="background-image:url('.htmlspecialcharsbx($arSlide["IMAGE"]).')"' ?>>
+					<?
+						// Затенение выключено (свойство OVERLAY=N) не отменяет .hbc-slide-content —
+						// подписи получают собственную читаемую плашку (.hbc-slide-content--plain),
+						// иначе светлый текст пропадает на светлом фото без градиента.
+						$eportaSlideBgStyle = "";
+						if (!$eportaSlideIsFirst) {
+							$eportaSlideBgStyle = $arSlide["IMAGE_WEBP"]
+								? "background-image:image-set(url(".htmlspecialcharsbx($arSlide["IMAGE_WEBP"]).") type(\"image/webp\"), url(".htmlspecialcharsbx($arSlide["IMAGE"]).") type(\"image/jpeg\"));background-image:url(".htmlspecialcharsbx($arSlide["IMAGE"]).")"
+								: "background-image:url(".htmlspecialcharsbx($arSlide["IMAGE"]).")";
+						}
+					?>
+					<a href="<?= htmlspecialcharsbx($arSlide["LINK"]) ?>" class="hbc-slide"<?= $eportaSlideBgStyle ? ' style="'.$eportaSlideBgStyle.'"' : "" ?>>
 						<?if ($eportaSlideIsFirst):?>
-						<img src="<?= htmlspecialcharsbx($arSlide["IMAGE"]) ?>" alt="" fetchpriority="high" class="hbc-slide-img">
+						<?php eportaPicture($arSlide["IMAGE"], "", ["fetchpriority" => "high", "class" => "hbc-slide-img"]); ?>
 						<?endif;?>
-						<div class="hbc-slide-overlay"></div>
-						<div class="hbc-slide-content">
+						<?if ($arSlide["OVERLAY"]):?><div class="hbc-slide-overlay"></div><?endif;?>
+						<div class="hbc-slide-content<?= $arSlide["OVERLAY"] ? "" : " hbc-slide-content--plain" ?>">
 							<div class="hbc-title"><?= htmlspecialcharsbx($arSlide["TITLE"]) ?></div>
 							<?if ($arSlide["SUBTITLE"]):?><div class="hbc-subtitle"><?= htmlspecialcharsbx($arSlide["SUBTITLE"]) ?></div><?endif;?>
 							<span class="hbc-cta"><?= htmlspecialcharsbx($arSlide["CTA_TEXT"]) ?></span>
@@ -239,11 +282,17 @@ $APPLICATION->SetTitle("Eporta");?> <?
 		</div>
 		<div style="font:500 13.5px;color:#8a857b;margin-bottom:18px">Серии дверей с единым дизайном — от полотна до фурнитуры</div>
 		<div class="eporta-tile-grid">
-			<?foreach ($eportaHomeCollections as $eportaHomeColl):?>
-			<a href="/catalog/collections/<?=$eportaHomeColl["CODE"]?>/" style="position:relative;border-radius:16px;overflow:hidden;cursor:pointer;height:226px;display:block;text-decoration:none">
-				<?php eportaPicture(eportaBannersResolveImage($eportaHomeColl["SLOT"], SITE_TEMPLATE_PATH . "/assets/img/" . $eportaHomeColl["IMG"]), $eportaHomeColl["NAME"], ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
+			<?foreach ($eportaHomeCollections as $eportaHomeColl):
+				// Квадрат 1:1 с фоновой подложкой (как на alfaporta.ru) — картинка вписывается
+				// целиком (object-fit:contain), не обрезается при несовпадении пропорций с блоком.
+				$eportaCollOverlayOn = eportaBannersSlotOverlayEnabled($eportaHomeColl["SLOT"]);
+			?>
+			<a href="/catalog/collections/<?=$eportaHomeColl["CODE"]?>/" style="position:relative;border-radius:16px;overflow:hidden;cursor:pointer;aspect-ratio:1/1;display:block;text-decoration:none;background:#f2efe9">
+				<?php eportaPicture(eportaBannersResolveImage($eportaHomeColl["SLOT"], SITE_TEMPLATE_PATH . "/assets/img/" . $eportaHomeColl["IMG"]), $eportaHomeColl["NAME"], ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:contain"]); ?>
+				<?if ($eportaCollOverlayOn):?>
 				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 38%,rgba(20,17,12,.8) 100%)"></div>
-				<div style="position:absolute;left:20px;right:20px;bottom:18px"><div style="font:800 22px 'Manrope';color:#fff;letter-spacing:.01em"><?=htmlspecialcharsbx($eportaHomeColl["NAME"])?></div><div style="font:600 12.5px 'Manrope';color:rgba(255,255,255,.78);margin-top:4px"><?=htmlspecialcharsbx($eportaHomeColl["DESC"])?> · <?=$eportaHomeColl["CNT"]?> <?=($eportaHomeColl["CNT"] % 10 === 1 && $eportaHomeColl["CNT"] % 100 !== 11) ? "модель" : "моделей"?></div></div>
+				<?endif;?>
+				<div style="position:absolute;left:20px;right:20px;bottom:18px<?=$eportaCollOverlayOn ? "" : ";background:rgba(20,17,12,.55);border-radius:12px;padding:10px 14px"?>"><div style="font:800 22px 'Manrope';color:#fff;letter-spacing:.01em"><?=htmlspecialcharsbx($eportaHomeColl["NAME"])?></div><div style="font:600 12.5px 'Manrope';color:rgba(255,255,255,.78);margin-top:4px"><?=htmlspecialcharsbx($eportaHomeColl["DESC"])?> · <?=$eportaHomeColl["CNT"]?> <?=($eportaHomeColl["CNT"] % 10 === 1 && $eportaHomeColl["CNT"] % 100 !== 11) ? "модель" : "моделей"?></div></div>
 			</a>
 			<?endforeach;?>
 		</div>

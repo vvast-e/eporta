@@ -61,7 +61,9 @@ $APPLICATION->SetTitle("Коллекции фабрики EPORTA");
 			// явно из CODE секции — совпадает с рабочим резолвером детали в catalog/index.php.
 			$eportaCollUrl = "/catalog/collections/".$eportaColl["CODE"]."/";
 		?>
-		<a href="<?=htmlspecialcharsbx($eportaCollUrl)?>" style="position:relative;border-radius:18px;overflow:hidden;height:250px;display:block;background:#efeae2<?=$eportaCollImgSrc ? ";background-image:url('".htmlspecialcharsbx($eportaCollImgSrc)."');background-size:cover;background-position:center" : ""?>">
+		<!-- Квадрат 1:1 с фоновой подложкой (как на плитках коллекций главной и на
+		     alfaporta.ru) — background-size:contain вписывает фото целиком без обрезки. -->
+		<a href="<?=htmlspecialcharsbx($eportaCollUrl)?>" style="position:relative;border-radius:18px;overflow:hidden;aspect-ratio:1/1;display:block;background:#efeae2<?=$eportaCollImgSrc ? ";background-image:url('".htmlspecialcharsbx($eportaCollImgSrc)."');background-size:contain;background-repeat:no-repeat;background-position:center" : ""?>">
 			<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 34%,rgba(20,17,12,.85) 100%);pointer-events:none"></div>
 			<div style="position:absolute;left:22px;right:22px;bottom:20px">
 				<div style="font:800 23px 'Manrope';color:#fff;letter-spacing:.01em"><?=htmlspecialcharsbx($eportaColl["NAME"])?></div>

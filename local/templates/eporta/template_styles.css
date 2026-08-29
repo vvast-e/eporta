@@ -381,6 +381,14 @@ img { display: block; }
   bottom: 32px;
   max-width: 460px;
 }
+/* Затенение баннера выключено (свойство OVERLAY=N) — .hbc-slide-overlay не рендерится вовсе,
+   поэтому подписи получают собственную плашку, иначе светлый текст пропадает на светлом фото. */
+.hbc-slide-content--plain {
+  background: rgba(20,17,12,.55);
+  border-radius: 14px;
+  padding: 16px 20px;
+  backdrop-filter: blur(2px);
+}
 .hbc-title { font: 800 30px var(--font); color: #fff; letter-spacing: -0.01em; line-height: 1.1; }
 .hbc-subtitle { font: 600 14px var(--font); color: rgba(255,255,255,.82); margin-top: 8px; }
 .hbc-cta {
@@ -559,7 +567,9 @@ img { display: block; }
    не даёт карточкам сжиматься теснее, чем нужно на узких экранах. Ширина карточки считается
    от --eff-cols, чтобы полные ряды заполняли строку ровно встык, без лишних зазоров. */
 .eporta-model-grid {
-  --eff-cols: min(var(--eporta-model-cols, 6), 6);
+  /* Потолок был 6 в ряду — карточки смотрелись мелко; PHP теперь передаёт --eporta-model-cols
+     не больше 4 (catalog/index.php), здесь оставлен тот же потолок 4 для явности. */
+  --eff-cols: min(var(--eporta-model-cols, 4), 4);
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -569,12 +579,15 @@ img { display: block; }
   flex: 0 0 calc((100% - (var(--eff-cols) - 1) * 16px) / var(--eff-cols));
   max-width: calc((100% - (var(--eff-cols) - 1) * 16px) / var(--eff-cols));
 }
-@media (max-width: 1180px) { .eporta-model-grid { --eff-cols: min(var(--eporta-model-cols, 6), 4); } }
-@media (max-width: 860px)  { .eporta-model-grid { --eff-cols: min(var(--eporta-model-cols, 6), 3); } }
-@media (max-width: 560px)  { .eporta-model-grid { --eff-cols: min(var(--eporta-model-cols, 6), 2); } }
+@media (max-width: 860px)  { .eporta-model-grid { --eff-cols: min(var(--eporta-model-cols, 4), 3); } }
+@media (max-width: 560px)  { .eporta-model-grid { --eff-cols: min(var(--eporta-model-cols, 4), 2); } }
 
 .product-card .img-wrap { position: relative; }
 .product-card .img-wrap img { width: 100%; height: clamp(180px, 15vw, 280px); object-fit: contain; background: #f6f4ef; }
+/* Светлые двери (белый, слоновая кость и т.п.) сливаются с базовым бежевым фоном — более
+   контрастная подложка, класс ставится в catalog.section/.default/template.php по значениям
+   MAIN_COLOR/COATING_COLOR (см. inc/card-backdrop.php). */
+.product-card .img-wrap.is-light-door img { background: #e2ddd0; }
 .product-card .img-wrap .img-noimg { width: 100%; height: clamp(180px, 15vw, 280px); display: flex; align-items: center; justify-content: center; background: #f6f4ef; color: #a39e95; font: 700 12px var(--font); }
 .product-card .badge {
   position: absolute;
