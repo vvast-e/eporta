@@ -143,9 +143,13 @@ $APPLICATION->SetTitle("Eporta");?> <?
 						// иначе светлый текст пропадает на светлом фото без градиента.
 						$eportaSlideBgStyle = "";
 						if (!$eportaSlideIsFirst) {
-							$eportaSlideBgStyle = $arSlide["IMAGE_WEBP"]
-								? "background-image:image-set(url(".htmlspecialcharsbx($arSlide["IMAGE_WEBP"]).") type(\"image/webp\"), url(".htmlspecialcharsbx($arSlide["IMAGE"]).") type(\"image/jpeg\"));background-image:url(".htmlspecialcharsbx($arSlide["IMAGE"]).")"
-								: "background-image:url(".htmlspecialcharsbx($arSlide["IMAGE"]).")";
+							// ВАЖНО: раньше здесь стоял CSS image-set(...type("image/webp")) — вложенные
+							// двойные кавычки внутри HTML-атрибута style="..." обрывали атрибут на первой
+							// же внутренней кавычке (браузер видел style="...type(" и всё, background-image
+							// не применялся ВООБЩЕ ни у одного слайда, кроме первого). PHP и так уже выбрал
+							// webp-или-оригинал с проверкой наличия файла на диске (eportaWebpVariant) —
+							// никакого CSS-fallback поверх не нужно, только один валидный url().
+							$eportaSlideBgStyle = "background-image:url(" . htmlspecialcharsbx($arSlide["IMAGE_WEBP"] ?: $arSlide["IMAGE"]) . ")";
 						}
 					?>
 					<a href="<?= htmlspecialcharsbx($arSlide["LINK"]) ?>" class="hbc-slide"<?= $eportaSlideBgStyle ? ' style="'.$eportaSlideBgStyle.'"' : "" ?>>
