@@ -125,6 +125,52 @@ if ($action === 'upload') {
     exit;
 }
 
+if ($action === 'upload_inline') {
+    // Картинка ВНУТРИ текста статьи (не превью) — не привязана к элементу инфоблока, поэтому
+    // работает даже для ещё не сохранённой (новой) статьи. Сохраняется напрямую CFile::SaveFile
+    // в /upload/articles_inline/, без связи с конкретным ID элемента — так же, как это делают
+    // обычные WYSIWYG-редакторы (картинка просто ссылка внутри HTML, её жизненный цикл отдельный
+    // от жизненного цикла статьи; переиспользование/orphan-очистка — на будущее, не MVP).
+    if (empty($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
+        eportaArticlesJsonFail('Файл не загружен');
+    }
+
+    $allowedExt = ['jpg', 'jpeg', 'png', 'webp'];
+    $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
+    if (!in_array($ext, $allowedExt, true)) {
+        eportaArticlesJsonFail('Допустимые форматы: JPG, PNG, WEBP');
+    }
+    if ($_FILES['image']['size'] > 8 * 1024 * 1024) {
+        eportaArticlesJsonFail('Файл слишком большой (максимум 8 МБ)');
+    }
+
+    $tmpDir = eportaArticlesTmpDir();
+    $tmpPath = $tmpDir . '/' . bin2hex(random_bytes(16)) . '.' . $ext;
+    if (!move_uploaded_file($_FILES['image']['tmp_name'], $tmpPath)) {
+        eportaArticlesJsonFail('Не удалось сохранить загруженный файл');
+    }
+    if (!@getimagesize($tmpPath)) {
+        @unlink($tmpPath);
+        eportaArticlesJsonFail('Файл повреждён или не является изображением');
+    }
+
+    $fileArray = CFile::MakeFileArray($tmpPath);
+    if (!$fileArray) {
+        @unlink($tmpPath);
+        eportaArticlesJsonFail('Не удалось подготовить файл для сохранения');
+    }
+
+    $fileId = \CFile::SaveFile($fileArray, 'articles_inline');
+    @unlink($tmpPath);
+    if (!$fileId) {
+        eportaArticlesJsonFail('Не удалось сохранить файл', 500);
+    }
+
+    $imgPath = \CFile::GetPath($fileId);
+    echo json_encode(['ok' => true, 'image' => $imgPath], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
 if ($action === 'delete') {
     $elementId = (int)($_POST['element_id'] ?? 0);
     if ($elementId <= 0) {

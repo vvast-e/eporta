@@ -49,15 +49,43 @@ $articles = eportaArticlesList();
     .field label { display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 4px; }
     .field input[type=text], .field textarea { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; font-family: inherit; }
     .field textarea { resize: vertical; }
-    .wysiwyg-toolbar { display: flex; gap: 4px; margin-bottom: 6px; }
+    .wysiwyg-toolbar { display: flex; gap: 4px; margin-bottom: 6px; flex-wrap: wrap; }
     .wysiwyg-toolbar button { padding: 5px 10px; border: 1px solid #ccc; background: #fafafa; border-radius: 4px; cursor: pointer; font-size: 13px; }
     .wysiwyg-toolbar button:hover { background: #eee; }
-    .wysiwyg-editor { border: 1px solid #ccc; border-radius: 5px; min-height: 220px; padding: 10px 12px; font-size: 14px; line-height: 1.5; }
+    .wysiwyg-toolbar .sep { width: 1px; background: #ddd; margin: 2px 4px; }
+    .wysiwyg-editor { border: 1px solid #ccc; border-radius: 5px; min-height: 260px; padding: 10px 12px; font-size: 14px; line-height: 1.6; }
     .wysiwyg-editor:focus { outline: 2px solid #2b6cb0; outline-offset: -1px; }
     .form-actions { display: flex; gap: 10px; align-items: center; }
     .form-status { font-size: 13px; }
     .form-status.err { color: #c0392b; }
     .form-status.ok { color: #2f9e44; }
+
+    /* ===== Содержимое статьи — общее для редактора (.wysiwyg-editor) и предпросмотра
+       (.article-preview-body): такие же правила (кроме размера базового шрифта) продублированы
+       на публичной странице /articles/ в template_styles.css под классом .article-content, чтобы
+       результат кнопок абзаца/списков/выравнивания фото выглядел в статье так же, как здесь. ===== */
+    .wysiwyg-editor p, .article-preview-body p { margin: 0 0 14px; }
+    .wysiwyg-editor h2, .article-preview-body h2 { margin: 20px 0 10px; font-size: 1.35em; }
+    .wysiwyg-editor h3, .article-preview-body h3 { margin: 16px 0 8px; font-size: 1.15em; }
+    .wysiwyg-editor ul, .wysiwyg-editor ol, .article-preview-body ul, .article-preview-body ol { margin: 0 0 14px; padding-left: 22px; }
+    .wysiwyg-editor li, .article-preview-body li { margin-bottom: 4px; }
+    .wysiwyg-editor img, .article-preview-body img { max-width: 100%; border-radius: 8px; cursor: pointer; }
+    .wysiwyg-editor img.eporta-img-selected { outline: 3px solid #2b6cb0; outline-offset: 2px; cursor: default; }
+    .img-align-left { float: left; margin: 4px 16px 12px 0; max-width: 48%; }
+    .img-align-center { display: block; margin: 14px auto; }
+    .img-align-full { display: block; width: 100%; margin: 14px 0; }
+    .wysiwyg-editor::after, .article-preview-body::after { content: ""; display: table; clear: both; }
+
+    /* Предпросмотр */
+    .preview-overlay { display: none; position: fixed; inset: 0; background: rgba(20,17,12,.6); z-index: 1000; align-items: flex-start; justify-content: center; padding: 40px 20px; overflow-y: auto; }
+    .preview-overlay.open { display: flex; }
+    .preview-modal { background: #fff; border-radius: 10px; max-width: 760px; width: 100%; padding: 0 0 40px; position: relative; }
+    .preview-modal-header { display: flex; justify-content: flex-end; padding: 14px 14px 0; }
+    .preview-modal-header button { background: none; border: none; font-size: 22px; cursor: pointer; color: #888; line-height: 1; }
+    .article-preview-body { padding: 0 40px; font-size: 15px; line-height: 1.7; color: #3a3631; }
+    .article-preview-body img { border-radius: 10px; }
+    .article-preview-title { padding: 0 40px 16px; font-size: 26px; font-weight: 800; }
+    .article-preview-photo { width: 100%; max-height: 360px; object-fit: cover; margin-bottom: 20px; }
 </style>
 </head>
 <body>
@@ -98,19 +126,41 @@ $articles = eportaArticlesList();
     <div class="field">
         <label>Текст статьи</label>
         <div class="wysiwyg-toolbar">
-            <button type="button" data-cmd="bold"><b>Ж</b></button>
-            <button type="button" data-cmd="italic"><i>К</i></button>
-            <button type="button" data-cmd="formatBlock" data-arg="h2">H2</button>
-            <button type="button" data-cmd="formatBlock" data-arg="p">Абзац</button>
-            <button type="button" data-cmd="insertUnorderedList">• Список</button>
-            <button type="button" data-cmd="createLink">Ссылка</button>
+            <button type="button" data-cmd="bold" title="Жирный"><b>Ж</b></button>
+            <button type="button" data-cmd="italic" title="Курсив"><i>К</i></button>
+            <span class="sep"></span>
+            <button type="button" data-cmd="formatBlock" data-arg="<h2>" title="Заголовок">H2</button>
+            <button type="button" data-cmd="formatBlock" data-arg="<h3>" title="Подзаголовок">H3</button>
+            <button type="button" data-cmd="formatBlock" data-arg="<p>" title="Обычный текстовый абзац">Абзац</button>
+            <span class="sep"></span>
+            <button type="button" data-cmd="insertUnorderedList" title="Маркированный список">• Список</button>
+            <button type="button" data-cmd="insertOrderedList" title="Нумерованный список">1. Список</button>
+            <span class="sep"></span>
+            <button type="button" data-cmd="createLink" title="Вставить ссылку">Ссылка</button>
+            <button type="button" id="btnInsertImage" title="Вставить картинку в текст">🖼 Фото</button>
+            <span class="sep"></span>
+            <button type="button" data-align="left" title="Картинка слева, текст обтекает справа">⬅ Фото слева</button>
+            <button type="button" data-align="center" title="Картинка по центру, отдельным блоком">⬛ По центру</button>
+            <button type="button" data-align="full" title="Картинка на всю ширину текста">↔ Во всю ширину</button>
         </div>
         <div class="wysiwyg-editor" id="fDetailEditor" contenteditable="true"></div>
+        <input type="file" id="fInlineImageInput" accept=".jpg,.jpeg,.png,.webp" style="display:none">
+        <span id="fInlineImageStatus" class="form-status"></span>
     </div>
     <div class="form-actions">
         <button type="button" class="btn" id="btnSave">Сохранить</button>
+        <button type="button" class="btn secondary" id="btnPreview">Предпросмотр</button>
         <button type="button" class="btn secondary" id="btnCancel">Отмена</button>
         <span id="formStatus" class="form-status"></span>
+    </div>
+</div>
+
+<div class="preview-overlay" id="previewOverlay">
+    <div class="preview-modal">
+        <div class="preview-modal-header"><button type="button" id="btnClosePreview">×</button></div>
+        <div id="previewPhotoWrap"></div>
+        <div class="article-preview-title" id="previewTitle"></div>
+        <div class="article-preview-body" id="previewBody"></div>
     </div>
 </div>
 
@@ -132,6 +182,29 @@ $articles = eportaArticlesList();
     const fPictureInput = document.getElementById('fPictureInput');
     const fPictureStatus = document.getElementById('fPictureStatus');
     const formStatus = document.getElementById('formStatus');
+    const fInlineImageInput = document.getElementById('fInlineImageInput');
+    const fInlineImageStatus = document.getElementById('fInlineImageStatus');
+    const previewOverlay = document.getElementById('previewOverlay');
+    const previewTitle = document.getElementById('previewTitle');
+    const previewBody = document.getElementById('previewBody');
+    const previewPhotoWrap = document.getElementById('previewPhotoWrap');
+
+    // Картинка, выделенная кликом внутри текста статьи — к ней применяются кнопки выравнивания
+    // (⬅/⬛/↔). Подсвечивается рамкой (.eporta-img-selected), пока не выбрана другая или не
+    // снят фокус кликом по остальному тексту.
+    let selectedImg = null;
+    function selectImg(img) {
+        if (selectedImg) selectedImg.classList.remove('eporta-img-selected');
+        selectedImg = img;
+        if (selectedImg) selectedImg.classList.add('eporta-img-selected');
+    }
+    fDetailEditor.addEventListener('click', function (e) {
+        if (e.target.tagName === 'IMG') {
+            selectImg(e.target);
+        } else {
+            selectImg(null);
+        }
+    });
 
     function renderTable() {
         tbody.innerHTML = '';
@@ -159,6 +232,9 @@ $articles = eportaArticlesList();
     function openForm(id) {
         formStatus.textContent = '';
         fPictureStatus.textContent = '';
+        fInlineImageStatus.textContent = '';
+        selectImg(null);
+        savedRange = null;
         if (id) {
             const a = ARTICLES.find(function (x) { return String(x.ID) === String(id); });
             if (!a) return;
@@ -191,7 +267,10 @@ $articles = eportaArticlesList();
     document.getElementById('btnAdd').addEventListener('click', function () { openForm(null); });
     document.getElementById('btnCancel').addEventListener('click', closeForm);
 
-    document.querySelectorAll('.wysiwyg-toolbar button').forEach(function (btn) {
+    // Кнопки форматирования (жирный/курсив/заголовки/абзац/списки/ссылка) — execCommand с
+    // тегом в угловых скобках (<p>, <h2>) для формата, надёжнее vouched без скобок в разных
+    // браузерах (историческая особенность Firefox, Chrome понимает оба варианта).
+    document.querySelectorAll('.wysiwyg-toolbar button[data-cmd]').forEach(function (btn) {
         btn.addEventListener('click', function () {
             fDetailEditor.focus();
             const cmd = btn.dataset.cmd;
@@ -203,6 +282,88 @@ $articles = eportaArticlesList();
             }
             document.execCommand(cmd, false, btn.dataset.arg || null);
         });
+    });
+
+    // Выравнивание/обтекание выделенной картинки (⬅ слева / ⬛ по центру / ↔ во всю ширину) —
+    // применяется к последней картинке, по которой кликнули внутри редактора (selectedImg).
+    document.querySelectorAll('.wysiwyg-toolbar button[data-align]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            if (!selectedImg) {
+                alert('Сначала кликните по картинке в тексте, чтобы её выделить');
+                return;
+            }
+            selectedImg.classList.remove('img-align-left', 'img-align-center', 'img-align-full');
+            selectedImg.classList.add('img-align-' + btn.dataset.align);
+        });
+    });
+
+    // Вставка картинки в произвольное место текста: сохраняем позицию курсора ДО открытия
+    // диалога выбора файла (иначе фокус/выделение в contenteditable теряется, пока открыт
+    // системный файловый диалог и идёт асинхронная загрузка), после успешной загрузки
+    // восстанавливаем ту же позицию и вставляем <img> через insertHTML.
+    let savedRange = null;
+    document.getElementById('btnInsertImage').addEventListener('click', function () {
+        fDetailEditor.focus();
+        const sel = window.getSelection();
+        savedRange = sel.rangeCount ? sel.getRangeAt(0) : null;
+        fInlineImageInput.value = '';
+        fInlineImageInput.click();
+    });
+    fInlineImageInput.addEventListener('change', async function () {
+        if (!fInlineImageInput.files.length) return;
+        fInlineImageStatus.textContent = 'Загрузка...';
+        fInlineImageStatus.className = 'form-status';
+
+        const fd = new FormData();
+        fd.append('action', 'upload_inline');
+        fd.append('sessid', SESSID);
+        fd.append('image', fInlineImageInput.files[0]);
+
+        try {
+            const r = await fetch('ajax.php', { method: 'POST', body: fd });
+            const resp = await r.json();
+            if (!resp.ok) {
+                fInlineImageStatus.textContent = resp.error || 'Ошибка';
+                fInlineImageStatus.className = 'form-status err';
+                return;
+            }
+            fDetailEditor.focus();
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            if (savedRange) {
+                sel.addRange(savedRange);
+            } else {
+                // Курсор никогда не был в редакторе (например, кликнули "Фото" сразу после
+                // открытия формы) — вставляем в конец текста, а не теряем картинку молча.
+                const r2 = document.createRange();
+                r2.selectNodeContents(fDetailEditor);
+                r2.collapse(false);
+                sel.addRange(r2);
+            }
+            document.execCommand('insertHTML', false, '<img src="' + resp.image + '" class="img-align-full">');
+            fInlineImageStatus.textContent = 'Готово';
+            fInlineImageStatus.className = 'form-status ok';
+        } catch (e) {
+            fInlineImageStatus.textContent = 'Ошибка сети: ' + e.message;
+            fInlineImageStatus.className = 'form-status err';
+        }
+    });
+
+    // Предпросмотр — рендерит несохранённое текущее состояние формы в том же оформлении,
+    // что и настоящая страница статьи (.article-preview-body повторяет правила .article-content
+    // из template_styles.css для абзацев/списков/выравнивания фото).
+    document.getElementById('btnPreview').addEventListener('click', function () {
+        previewTitle.textContent = fName.value.trim() || '(без названия)';
+        previewBody.innerHTML = fDetailEditor.innerHTML || '<p style="color:#999">Текст статьи пока пуст.</p>';
+        const previewImg = fPicturePreview.querySelector('img');
+        previewPhotoWrap.innerHTML = previewImg ? '<img class="article-preview-photo" src="' + previewImg.src + '">' : '';
+        previewOverlay.classList.add('open');
+    });
+    document.getElementById('btnClosePreview').addEventListener('click', function () {
+        previewOverlay.classList.remove('open');
+    });
+    previewOverlay.addEventListener('click', function (e) {
+        if (e.target === previewOverlay) previewOverlay.classList.remove('open');
     });
 
     async function refreshList() {

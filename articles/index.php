@@ -47,10 +47,14 @@
 		]); ?>
 		<?endif;?>
 		<h1 style="margin:0 0 20px;font:800 30px 'Manrope';letter-spacing:-0.01em"><?=htmlspecialcharsbx($eportaArticle["NAME"])?></h1>
-		<div style="font:400 15px/1.7 'Manrope';color:#3a3631"><?php
+		<div class="article-content"><?php
 			// DETAIL_TEXT сохранён как HTML из встроенного WYSIWYG-редактора админки статей
 			// (см. local/admin_tools/eporta_articles) — доверенный источник, пишет только
 			// авторизованный админ через собственный интерфейс, поэтому выводится как есть.
+			// .article-content (template_styles.css) задаёт стили абзацев/списков/заголовков и
+			// классов выравнивания картинок (img-align-left/center/full) — те же классы, что
+			// расставляет редактор, чтобы результат кнопок форматирования выглядел тут так же,
+			// как в предпросмотре админки.
 			echo $eportaArticle["DETAIL_TEXT"] !== "" ? $eportaArticle["DETAIL_TEXT"] : "<p>Текст статьи пока не заполнен.</p>";
 		?></div>
 		<div style="margin-top:36px"><a href="/articles/" style="color:#e8820a;font-weight:700;text-decoration:none">← Ко всем статьям</a></div>
