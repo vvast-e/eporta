@@ -181,6 +181,11 @@ if (\Bitrix\Main\Loader::includeModule("dw.deluxe")) {
 ?><!DOCTYPE html>
 <html lang="ru">
 <head>
+<!-- Без этого тега мобильные браузеры рендерят страницу в виртуальном desktop-вьюпорте
+     (~980px) и просто ужимают её под экран — все @media (max-width: ...) в CSS шаблона
+     из-за этого никогда не срабатывают на реальных телефонах, хотя работают в DevTools
+     device toolbar (там вьюпорт эмулируется правильно даже без этого тега). -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <?php $APPLICATION->ShowHead(); ?>
 <title><?php $APPLICATION->ShowTitle(); ?></title>
 </head>
