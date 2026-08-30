@@ -1401,6 +1401,12 @@ img { display: block; }
   }
   .product-detail-gallery { height: 360px !important; }
   .product-detail-panel { align-self: stretch !important; }
+  /* Цена (#priceBig, шрифт 40px inline) вместе со старой ценой/бейджем скидки не
+     помещалась в узкую панель и переносилась посреди числа ("9 818" / "₽" на разных
+     строках) — уменьшаем шрифт и разрешаем строке переноситься целиком по элементам,
+     а не рвать сам текст цены. */
+  .product-detail-price-row { flex-wrap: wrap !important; row-gap: 6px; }
+  .product-detail-price-row #priceBig { font-size: 30px !important; }
 }
 
 /* ========== Тост-уведомление ========== */

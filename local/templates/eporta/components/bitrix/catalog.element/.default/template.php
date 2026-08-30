@@ -252,15 +252,15 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 			<?php if ($article !== ""): ?><span style="font:500 12.5px;color:#b3aea4">арт. <span id="articleNum"><?= htmlspecialcharsbx($article) ?></span></span><?php endif; ?>
 		</div>
 
-		<div style="display:flex;align-items:baseline;gap:12px;margin-bottom:4px">
+		<div class="product-detail-price-row" style="display:flex;align-items:baseline;gap:12px;margin-bottom:4px">
 			<?php if ($price): ?>
-				<div id="priceBig" style="font:800 40px 'Manrope';letter-spacing:-0.02em"><?= $price["PRINT_VALUE"] ?></div>
+				<div id="priceBig" style="font:800 40px 'Manrope';letter-spacing:-0.02em;white-space:nowrap"><?= $price["PRINT_VALUE"] ?></div>
 				<?php if ($hasDiscount): ?>
 					<div id="oldPrice" style="font:600 16px;color:#a39e95;text-decoration:line-through"><?= $priceOldValuePrint ?></div>
 					<span id="discountBadge" style="font:700 12px;color:#c2670a;background:#fbecd9;padding:5px 9px;border-radius:6px">−<?= round($discountPercent) ?>%</span>
 				<?php endif; ?>
 			<?php else: ?>
-				<div id="priceBig" style="font:800 40px 'Manrope';letter-spacing:-0.02em">по запросу</div>
+				<div id="priceBig" style="font:800 40px 'Manrope';letter-spacing:-0.02em;white-space:nowrap">по запросу</div>
 			<?php endif; ?>
 		</div>
 		<div style="font:500 13px;color:#8a857b;margin-bottom:16px">цена от фабрики · без розничной наценки</div>
