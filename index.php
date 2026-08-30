@@ -285,7 +285,7 @@ $APPLICATION->SetTitle("Eporta");?> <?
 			<a href="/collection/" style="font:600 14px;color:#e8820a">Все коллекции →</a>
 		</div>
 		<div style="font:500 13.5px;color:#8a857b;margin-bottom:18px">Серии дверей с единым дизайном — от полотна до фурнитуры</div>
-		<div class="eporta-tile-grid">
+		<div class="eporta-tile-grid eporta-tile-grid--square">
 			<?foreach ($eportaHomeCollections as $eportaHomeColl):
 				// Квадрат 1:1 с фоновой подложкой (как на alfaporta.ru) — картинка вписывается
 				// целиком (object-fit:contain), не обрезается при несовпадении пропорций с блоком.

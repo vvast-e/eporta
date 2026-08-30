@@ -53,7 +53,7 @@ $APPLICATION->SetTitle("Коллекции фабрики EPORTA");
 		<p style="margin:6px 0 0;font:500 14px/1.5 'Manrope';color:#8a857b;max-width:640px">Каждая коллекция — законченная серия дверей с единым дизайном полотна, кромки и фурнитуры. Выберите серию под ваш интерьер — внутри неё уже подобраны цвета, остекление и размеры.</p>
 	</div>
 
-	<div class="eporta-tile-grid" style="padding:18px var(--pad-x) 40px">
+	<div class="eporta-tile-grid eporta-tile-grid--square" style="padding:18px var(--pad-x) 40px">
 		<?foreach ($eportaCollections as $eportaColl):
 			$eportaCollImgSrc = \CFile::GetPath($eportaColl["DETAIL_PICTURE"] ?: $eportaColl["PICTURE"]);
 			// SECTION_PAGE_URL у секций-коллекций пустое (шаблон URL не настроен в админке),

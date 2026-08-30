@@ -202,6 +202,11 @@ if (\Bitrix\Main\Loader::includeModule("dw.deluxe")) {
 		<strong><?= htmlspecialcharsbx($templatePhone) ?></strong>
 		<a href="#">Заказать звонок</a>
 	</div>
+	<!-- Бургер — видна только на мобильном брейкпоинте (.cat-nav-toggle), открывает .cat-nav
+	     как выезжающую панель (JS: app.js). -->
+	<button type="button" class="cat-nav-toggle" id="catNavToggle" aria-label="Меню" aria-expanded="false" aria-controls="catNav">
+		<span></span><span></span><span></span>
+	</button>
 	<!-- Кнопка-иконка звонка — видна только на мобильном брейкпоинте (.header-call-btn),
 	     на десктопе телефон и так показан текстом в .header-phone. -->
 	<a href="tel:<?= htmlspecialcharsbx(preg_replace('/[^\d+]/', '', $templatePhone)) ?>" class="header-call-btn" aria-label="Позвонить">
@@ -246,7 +251,7 @@ $eportaNavCatalog = !$eportaNavCollections && !$eportaNavSale && !$eportaNavNew 
 $eportaNavArticles = str_starts_with($eportaCurPath, "/articles/");
 ?>
 <!-- Навигация -->
-<div class="cat-nav">
+<div class="cat-nav" id="catNav">
 	<a href="/catalog/" class="<?= $eportaNavCatalog ? "active" : "" ?>">Каталог</a>
 	<a href="/collection/" class="<?= $eportaNavCollections ? "active" : "" ?>">Коллекции</a>
 	<a href="/catalog/?sale=1" class="nav-item nav-sale<?= $eportaNavSale ? " active" : "" ?>"><span class="dot-red"></span>Распродажа</a>
