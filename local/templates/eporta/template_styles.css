@@ -235,6 +235,20 @@ img { display: block; }
   display: flex; align-items: center; justify-content: center;
 }
 
+/* Тач-таргеты шапки: видимая иконка остаётся 22×22, но кликабельная область увеличена
+   до ~44×44 через прозрачный ::before (position:absolute поверх иконки, без сдвига
+   раскладки и без изменения видимого размера). */
+.header-actions .btn-account,
+.cart-btn,
+.compare-btn { position: relative; }
+.header-actions .btn-account::before,
+.cart-btn::before,
+.compare-btn::before {
+  content: "";
+  position: absolute;
+  inset: -11px;
+}
+
 /* ========== Навигация (cat-nav) ========== */
 .cat-nav {
   display: flex;
@@ -462,6 +476,9 @@ img { display: block; }
   .hbc-slide-content { left: 20px; right: 20px; max-width: none; bottom: 24px; }
   .hbc-title { font-size: 22px; }
   .hbc-arrow { display: none; }
+  /* Меньший минимум высоты — на телефоне баннер не должен занимать почти весь первый
+     экран, под ним должен читаться край следующего блока без скролла. */
+  .home-banner-carousel { height: clamp(200px, 32vh, 480px); }
 }
 
 /* ---- Шапка на мобильном ----
@@ -475,9 +492,69 @@ img { display: block; }
   .site-header { flex-wrap: wrap; row-gap: 10px; gap: 12px; }
   .logo-wrap { order: 1; }
   .header-phone { display: none; }
-  .header-call-btn { display: flex; order: 2; margin-left: auto; }
-  .header-actions { order: 3; gap: 12px; }
-  .header-search { order: 4; flex: 0 0 100%; }
+  .cat-nav-toggle { order: 2; margin-left: auto; }
+  .header-call-btn { display: flex; order: 3; }
+  .header-actions { order: 4; gap: 12px; }
+  .header-search { order: 5; flex: 0 0 100%; }
+}
+
+/* ---- Бургер-меню (мобильная навигация .cat-nav) ----
+   .cat-nav на десктопе — обычная строка ссылок в потоке. На мобильном прячем её из
+   потока и показываем как выезжающую слева панель (drawer) по клику на .cat-nav-toggle
+   (3 полоски) — тот же список пунктов, включая .buyer-nav внутри. JS — тот же паттерн
+   click-toggle/click-outside, что у buyerNavToggle (см. app.js). */
+.cat-nav-toggle {
+  display: none;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg-warm);
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+}
+.cat-nav-toggle span { display: block; width: 18px; height: 2px; background: var(--dark); border-radius: 1px; }
+@media (max-width: 640px) {
+  .cat-nav-toggle { display: flex; }
+  body.cat-nav-open { overflow: hidden; }
+  body.cat-nav-open::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: rgba(20,17,12,.45);
+    z-index: 295;
+  }
+  .cat-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 300;
+    width: 84vw;
+    max-width: 320px;
+    height: 100vh;
+    flex-direction: column;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    gap: 2px;
+    padding: 18px var(--pad-x) 24px;
+    background: #fff;
+    overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    border-bottom: none;
+    box-shadow: 0 0 40px rgba(20,17,12,.2);
+  }
+  .cat-nav.open { transform: translateX(0); }
+  .cat-nav a, .cat-nav .nav-item { padding: 11px 0; width: 100%; white-space: normal; }
+  .cat-nav .spacer { display: none; }
+  .buyer-nav { margin-left: 0; width: 100%; }
+  .buyer-nav-toggle { width: 100%; justify-content: space-between; padding: 11px 0; }
+  .buyer-nav-dropdown { position: static; box-shadow: none; border: none; padding: 0 0 0 12px; }
 }
 
 /* ---- Мозаика: большой слайдер + два маленьких друг под другом ----
@@ -698,6 +775,83 @@ img { display: block; }
   .eporta-catalog-toolrow { flex: 0 0 100%; justify-content: space-between; }
 }
 
+/* ---- Фильтры каталога на мобильном (выезжающая шторка справа) ----
+   Форма фильтров (.eporta-catalog-filters-form) на десктопе — обычная колонка 248px
+   рядом с сеткой. На узком экране это зажимало #eportaCatalogGrid до ~194px. Ниже
+   860px форма уходит из потока (display:none) и открывается как fixed-панель по
+   клику на .eporta-filters-toggle (JS — catalog/index.php, тот же паттерн, что у
+   .cat-nav-toggle в шапке). !important — перебивает инлайн-стили формы (flex/width
+   заданы в разметке catalog/index.php). */
+.eporta-filters-toggle {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid #e7e3db;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font: 600 13px 'Manrope';
+  color: #3a3631;
+  background: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.eporta-filters-toggle-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: #e8820a;
+  color: #fff;
+  font: 700 11px 'Manrope';
+}
+.eporta-filters-panel-head { display: none; }
+.eporta-filters-close {
+  border: none;
+  background: none;
+  font-size: 18px;
+  color: #726c62;
+  cursor: pointer;
+  padding: 4px;
+}
+@media (max-width: 860px) {
+  .eporta-filters-toggle { display: inline-flex; }
+  .eporta-catalog-filters-form {
+    display: none !important;
+    position: fixed !important;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 300;
+    width: 86vw !important;
+    max-width: 340px;
+    height: 100vh;
+    overflow-y: auto;
+    background: #fff;
+    padding: 18px var(--pad-x) 24px;
+    box-shadow: 0 0 40px rgba(20,17,12,.2);
+    box-sizing: border-box;
+  }
+  .eporta-filters-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font: 800 16px 'Manrope';
+    margin-bottom: 8px;
+  }
+  body.eporta-filters-open { overflow: hidden; }
+  body.eporta-filters-open::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: rgba(20,17,12,.45);
+    z-index: 295;
+  }
+  body.eporta-filters-open .eporta-catalog-filters-form { display: block !important; }
+}
+
 /* Карточка товара: внешняя .product-card — не ссылка (внутри неё теперь два independent-а:
    .product-card-link на сам товар и свотчи цвета — каждый свотч тоже ссылка, но на ДРУГОЙ
    товар, вложенные <a> невалидны, поэтому основная ссылка вынесена в дочерний блок). */
@@ -766,7 +920,14 @@ img { display: block; }
    те же брейкпоинты, что у товарной сетки, чтобы плитки не расползались на узких экранах. */
 .eporta-tile-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 @media (max-width: 860px) { .eporta-tile-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 560px) { .eporta-tile-grid { grid-template-columns: repeat(1, 1fr); } }
+/* На мобильном (≤640px) карточки квадратные 1:1 растягивали страницу на несколько
+   экранов скролла (6-10 плиток в столбец) — оставляем 2 колонки (не схлопываем в 1,
+   как раньше) и делаем карточки более приплюснутыми (аспект 3:4 вместо квадрата).
+   !important — у карточек свой inline aspect-ratio:1/1 в разметке (index.php/collection). */
+@media (max-width: 640px) {
+  .eporta-tile-grid--square { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
+  .eporta-tile-grid--square > a { aspect-ratio: 3 / 4 !important; }
+}
 
 /* Мозаика категорий на главной — на десктопе 4 колонки с явной раскладкой плиток
    (grid-column/grid-row в инлайн-стилях), на узких экранах раскладка ломается,
@@ -1221,6 +1382,22 @@ img { display: block; }
   font-weight: 700;
 }
 
+/* ---- Карточка товара на мобильном ----
+   .product-detail-layout (галерея+панель покупки) и .product-detail-description
+   (описание+характеристики) — на десктопе flex-строка без единого media-запроса,
+   на узком экране (~390px) это сжимало фото в узкую полоску и ломало перенос цены.
+   Схлопываем оба блока в одну колонку; !important — перебивает инлайн-стили (флекс/
+   высота/ширина заданы в разметке template.php компонента catalog.element). */
+@media (max-width: 768px) {
+  .product-detail-layout,
+  .product-detail-description {
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+  .product-detail-gallery { height: 360px !important; }
+  .product-detail-panel { align-self: stretch !important; }
+}
+
 /* ========== Тост-уведомление ========== */
 .toast {
   position: fixed;
@@ -1360,6 +1537,15 @@ img { display: block; }
 #basket-root .basket-item-amount-btn-minus, #basket-root .basket-item-amount-btn-plus {
   width: 32px; height: 34px; display: flex; align-items: center; justify-content: center;
   font: 700 16px var(--font); color: var(--text-muted); cursor: pointer; transition: background .15s;
+  position: relative;
+}
+/* Тач-таргет: видимый размер кнопки не трогаем (32×34), кликабельную область расширяем
+   до ~44px через ::after (::before уже занят глифом "−"/"+" ниже). */
+#basket-root .basket-item-amount-btn-minus::after,
+#basket-root .basket-item-amount-btn-plus::after {
+  content: "";
+  position: absolute;
+  inset: -6px -8px;
 }
 #basket-root .basket-item-amount-btn-minus::before { content: "−"; }
 #basket-root .basket-item-amount-btn-plus::before { content: "+"; }

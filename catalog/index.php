@@ -802,6 +802,15 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 					<?endforeach;?>
 				</div>
 			</details>
+			<!-- Кнопка "Фильтры" — видна только на мобильном брейкпоинте, открывает боковую форму
+			     фильтров как выезжающую панель (.eporta-filters-open, JS ниже в файле). Бейдж —
+			     число реально применённых фильтров ($eportaActiveChips, тот же массив, что рисует
+			     чипы выше). -->
+			<button type="button" class="eporta-filters-toggle" id="eportaFiltersToggle" aria-controls="eportaFiltersForm" aria-expanded="false">
+				<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"></line><line x1="7" y1="12" x2="17" y2="12"></line><line x1="10" y1="18" x2="14" y2="18"></line></svg>
+				Фильтры
+				<?if (!empty($eportaActiveChips)):?><span class="eporta-filters-toggle-badge"><?=count($eportaActiveChips)?></span><?endif;?>
+			</button>
 			<!-- Переключатель плитка/список — визуальный (кука eporta_view), бэкенд не меняет. -->
 			<div class="eporta-view-switch">
 				<button type="button" class="eporta-view-btn<?=$eportaView === "grid" ? " active" : ""?>" data-view="grid" onclick="eportaSetView('grid')" title="Плитка" aria-label="Плитка">
@@ -837,10 +846,18 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	<?endif;?>
 
 	<!-- Фильтры + сетка -->
-	<div style="display:flex;gap:22px;padding:8px var(--pad-x) 28px;align-items:flex-start">
+	<div class="eporta-catalog-filters-wrap" style="display:flex;gap:22px;padding:8px var(--pad-x) 28px;align-items:flex-start">
 
-		<!-- Боковой фильтр: обычный GET-submit, реальные свойства IBLOCK 19 -->
-		<form method="get" action="" style="flex:none;width:248px">
+		<!-- Боковой фильтр: обычный GET-submit, реальные свойства IBLOCK 19. На мобильном —
+		     выезжающая панель (.eporta-filters-open на body переключает видимость через CSS,
+		     см. template_styles.css), в потоке документа не участвует. -->
+		<form method="get" action="" id="eportaFiltersForm" class="eporta-catalog-filters-form" style="flex:none;width:248px">
+			<!-- Заголовок панели — виден только на мобильном (выезжающая шторка), на десктопе
+			     скрыт через display:none в базовых стилях .eporta-filters-panel-head. -->
+			<div class="eporta-filters-panel-head">
+				<span>Фильтры</span>
+				<button type="button" class="eporta-filters-close" id="eportaFiltersClose" aria-label="Закрыть">✕</button>
+			</div>
 			<!-- Цена: реальный диапазон CATALOG_PRICE_1 (BASE) в текущей области -->
 			<div style="border-bottom:1px solid #efece6;padding:6px 0 18px">
 				<div style="font:800 14px 'Manrope';margin-bottom:14px">Цена, ₽</div>
@@ -909,6 +926,25 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 				btn.classList.toggle("active", btn.getAttribute("data-view") === view);
 			});
 		};
+
+		// Мобильная шторка фильтров: "eporta-filters-open" на body переключает CSS-видимость
+		// формы (см. template_styles.css) — та же кнопка/панель что и на десктопе, без
+		// дублирования разметки. "Показать N товаров" — обычный GET-сабмит, страница
+		// перезагрузится и шторка закроется сама.
+		var eportaFiltersToggle = document.getElementById("eportaFiltersToggle");
+		var eportaFiltersClose = document.getElementById("eportaFiltersClose");
+		var eportaFiltersForm = document.getElementById("eportaFiltersForm");
+		function eportaCloseFilters() {
+			document.body.classList.remove("eporta-filters-open");
+			if (eportaFiltersToggle) eportaFiltersToggle.setAttribute("aria-expanded", "false");
+		}
+		if (eportaFiltersToggle && eportaFiltersForm) {
+			eportaFiltersToggle.addEventListener("click", function(){
+				var isOpen = document.body.classList.toggle("eporta-filters-open");
+				eportaFiltersToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+			});
+		}
+		if (eportaFiltersClose) eportaFiltersClose.addEventListener("click", eportaCloseFilters);
 	})();
 	</script>
 

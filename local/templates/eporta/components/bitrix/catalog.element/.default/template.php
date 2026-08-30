@@ -201,10 +201,10 @@ global $arrFilterEportaSimilar;
 $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 ?>
 
-<div style="display:flex;gap:30px;padding:14px var(--pad-x) 30px;align-items:flex-start">
+<div class="product-detail-layout" style="display:flex;gap:30px;padding:14px var(--pad-x) 30px;align-items:flex-start">
 
 	<!-- Галерея -->
-	<div style="flex:1.15;display:flex;flex-direction:column;gap:12px;height:560px">
+	<div class="product-detail-gallery" style="flex:1.15;display:flex;flex-direction:column;gap:12px;height:560px">
 		<div style="position:relative;flex:1;min-height:0">
 			<?php if ($eportaHasPhoto): ?>
 			<?php eportaPicture($galleryPhotos[0], $arResult["NAME"], [
@@ -237,7 +237,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 	</div>
 
 	<!-- Панель покупки -->
-	<div style="flex:1;align-self:flex-start">
+	<div class="product-detail-panel" style="flex:1;align-self:flex-start">
 		<h1 style="margin:0 0 8px;font:800 24px/1.2 'Manrope';letter-spacing:-0.01em"><?= htmlspecialcharsbx($arResult["NAME"]) ?></h1>
 		<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
 			<?php if ($rating > 0): ?>
@@ -364,7 +364,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 
 <!-- Описание + характеристики -->
 <div style="padding:26px var(--pad-x) 6px">
-	<div style="display:flex;gap:36px">
+	<div class="product-detail-description" style="display:flex;gap:36px">
 		<div style="flex:1.1">
 			<h2 style="margin:0 0 12px;font:800 20px 'Manrope';letter-spacing:-0.01em">Описание</h2>
 			<div style="font:400 14.5px/1.6 'Manrope';color:#3a3631"><?php

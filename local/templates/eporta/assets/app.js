@@ -145,6 +145,36 @@ document.addEventListener('DOMContentLoaded', function () {
 	});
 });
 
+// ---- Бургер-меню (мобильная навигация .cat-nav) ----
+// Тот же паттерн click-toggle/click-outside, что у buyerNavToggle выше: класс "open" на
+// .cat-nav переключает CSS-drawer (см. .cat-nav-toggle в template_styles.css), плюс класс
+// "cat-nav-open" на body — для затемнения фона и блокировки скролла под панелью.
+document.addEventListener('DOMContentLoaded', function () {
+	var toggle = document.getElementById('catNavToggle');
+	var nav = document.getElementById('catNav');
+	if (!toggle || !nav) return;
+
+	function closeNav() {
+		nav.classList.remove('open');
+		toggle.setAttribute('aria-expanded', 'false');
+		document.body.classList.remove('cat-nav-open');
+	}
+
+	toggle.addEventListener('click', function (e) {
+		e.stopPropagation();
+		var isOpen = nav.classList.toggle('open');
+		toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+		document.body.classList.toggle('cat-nav-open', isOpen);
+	});
+	document.addEventListener('click', function (e) {
+		if (nav.classList.contains('open') && !nav.contains(e.target)) closeNav();
+	});
+	// Клик по обычному пункту меню (не по тогглу "Покупателю") — закрыть панель, дать перейти по ссылке.
+	nav.querySelectorAll('a').forEach(function (link) {
+		link.addEventListener('click', closeNav);
+	});
+});
+
 // ---- Поиск в шапке (подсказки через search/suggest.php — тот же CSearch, что у страницы
 // /search/, вместо вендорского dw.deluxe act=search (substring/LIKE) — движки больше не
 // расходятся, один и тот же запрос теперь даёт одинаковый набор результатов подсказке
