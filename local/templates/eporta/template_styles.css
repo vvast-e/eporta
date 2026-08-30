@@ -172,6 +172,21 @@ img { display: block; }
 .header-phone strong { display: block; font: 800 16px var(--font); }
 .header-phone a { display: block; font: 600 11.5px var(--font); color: var(--accent); }
 
+/* Кнопка-иконка звонка — компактная замена .header-phone на мобильном (см. media
+   ниже), спрятана на десктопе, там телефон и так виден текстом. */
+.header-call-btn {
+  display: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-warm);
+  color: var(--dark);
+  flex: none;
+  align-items: center;
+  justify-content: center;
+}
+.header-call-btn svg { width: 18px; height: 18px; }
+
 /* Иконки (корзина, аккаунт) */
 .header-actions { display: flex; gap: 14px; flex: none; align-items: center; }
 .header-actions .btn-account {
@@ -449,6 +464,22 @@ img { display: block; }
   .hbc-arrow { display: none; }
 }
 
+/* ---- Шапка на мобильном ----
+   Раньше .site-header был чисто десктопной строкой без единого media-запроса:
+   лого + поиск + телефон + иконки в один ряд не влезали в экран телефона и
+   вылезали за край (документ шире вьюпорта, весь сайт выглядел "скомканным").
+   Раскладка: 1-я строка — лого / кнопка-звонок + иконки, 2-я строка — поиск
+   на всю ширину. .header-phone (текст номера) прячем — вместо него
+   .header-call-btn (см. выше). */
+@media (max-width: 640px) {
+  .site-header { flex-wrap: wrap; row-gap: 10px; gap: 12px; }
+  .logo-wrap { order: 1; }
+  .header-phone { display: none; }
+  .header-call-btn { display: flex; order: 2; margin-left: auto; }
+  .header-actions { order: 3; gap: 12px; }
+  .header-search { order: 4; flex: 0 0 100%; }
+}
+
 /* ---- Мозаика: большой слайдер + два маленьких друг под другом ----
    .home-banner-mosaic задаёт общую высоту (тот же clamp, что был у одиночного
    слайдера), а вложенные .home-banner-carousel растягиваются на 100% высоты
@@ -658,6 +689,14 @@ img { display: block; }
 @media (max-width: 1180px) { .eporta-product-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 860px)  { .eporta-product-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 560px)  { .eporta-product-grid { grid-template-columns: repeat(1, 1fr); } }
+
+/* Строка "Заголовок + сортировка/вид" каталога (catalog/index.php) — на десктопе H1 и блок
+   сортировки/переключателя вида стоят в одну строку по краям, на узком экране блок с
+   dropdown'ом сортировки не помещается и вылезал за край экрана. */
+@media (max-width: 560px) {
+  .eporta-catalog-headrow { flex-wrap: wrap; gap: 10px; align-items: flex-start; }
+  .eporta-catalog-toolrow { flex: 0 0 100%; justify-content: space-between; }
+}
 
 /* Карточка товара: внешняя .product-card — не ссылка (внутри неё теперь два independent-а:
    .product-card-link на сам товар и свотчи цвета — каждый свотч тоже ссылка, но на ДРУГОЙ
@@ -1272,6 +1311,10 @@ img { display: block; }
 #basket-root .basket-items-list-item-container td { display: block; padding: 0; border: none; }
 #basket-root .basket-items-list-item-descriptions { padding: 0 !important; }
 #basket-root .basket-items-list-item-descriptions-inner { display: flex; gap: 15px; align-items: flex-start; padding: 16px 18px; }
+/* Без min-width:0 средний (текстовый) ребёнок этой flex-строки не может сжаться уже своего
+   содержимого — на узком экране он раздвигал строку и .basket-item-price-inline (см. ниже,
+   flex:none, margin-left:auto) наезжал поверх текста названия вместо переноса под него. */
+#basket-root .basket-items-list-item-descriptions-inner > * { min-width: 0; }
 
 /* Шапка карточки-«комплекта» (название/бейдж/сумма) — эталон #cart, группа cartGroups[].name */
 #basket-root .basket-kit-header {
@@ -1461,6 +1504,29 @@ img { display: block; }
 #basket-root .bcg-check {
   width: 20px; height: 20px; flex: none; border-radius: 50%; background: #eaf6ee; color: #1f8a4c;
   display: flex; align-items: center; justify-content: center; font: 700 11px var(--font);
+}
+
+/* ---- Корзина на мобильном ----
+   #basket-root (строка 1242 выше) — десктопная двухколоночная flex-раскладка (список товаров
+   1.62fr + "Итого" 1fr, min-width:280px у "Итого"). На узком экране 280px+ колонка "Итого" и
+   основная колонка товаров конкурировали за ширину и наезжали друг на друга (та самая "каша"
+   на мобильном скрине). Ниже брейкпоинта складываем обе колонки в одну и убираем sticky —
+   на телефоне "прилипающий" блок итога при коротком списке товаров смысла не имеет, а с
+   переносом в одну колонку ещё и не даёт своей высотой перекрыть контент под собой. */
+@media (max-width: 720px) {
+  #basket-root > .row:has(.basket-items-list-wrapper),
+  #basket-root > .row:has([data-entity="basket-total-block"]) {
+    flex: 0 0 100%;
+    min-width: 0;
+    position: static;
+  }
+  #basket-root .basket-item-block-image { width: 64px; height: 86px; }
+  #basket-root .cart-upsell-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 420px) {
+  #basket-root .basket-items-list-item-descriptions-inner { flex-wrap: wrap; }
+  #basket-root .basket-item-price-inline { flex: 0 0 100%; margin-left: 0; text-align: left; margin-top: 8px; }
+  #basket-root .cart-upsell-grid { grid-template-columns: repeat(1, 1fr); }
 }
 
 /* Пустая корзина (empty.php) */

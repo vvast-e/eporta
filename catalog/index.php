@@ -762,7 +762,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	<?endif;?>
 
 	<!-- Заголовок + сортировка -->
-	<div style="display:flex;align-items:flex-end;justify-content:space-between;padding:8px var(--pad-x) 4px">
+	<div class="eporta-catalog-headrow" style="display:flex;align-items:flex-end;justify-content:space-between;padding:8px var(--pad-x) 4px">
 		<div>
 			<?if ($eportaCollectionSection):?>
 			<h2 style="margin:0;font:800 24px 'Manrope';letter-spacing:-0.01em">Все товары коллекции <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></h2>
@@ -775,7 +775,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			<?endif;?>
 			<div style="font:500 13px;color:#8a857b;margin-top:5px">Найдено <?=$eportaFoundCount?> <?=eportaPluralRu($eportaFoundCount, "товар", "товара", "товаров")?> (<?=$eportaModelCount?> <?=eportaPluralRu($eportaModelCount, "модель", "модели", "моделей")?>)</div>
 		</div>
-		<div style="display:flex;align-items:center;gap:10px">
+		<div class="eporta-catalog-toolrow" style="display:flex;align-items:center;gap:10px">
 			<!-- Сортировка: реальный dropdown ($eportaSortOptions), значение уходит в GET ?sort=
 			     и прокидывается в ELEMENT_SORT_FIELD/ORDER компонента ниже. <details>/<summary> —
 			     без зависимости от JS-библиотек (в шаблоне их нет). -->
