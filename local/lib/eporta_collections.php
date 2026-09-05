@@ -77,18 +77,23 @@ function eportaCollectionsElementCounts(bool $includeInactive = false): array {
         $cache[$cacheKey] = $counts;
         return $counts;
     }
-    // "CNT" обязателен в списке полей при группировке (4-й параметр) — без него Bitrix не
-    // считает агрегат, $row['CNT'] всегда пуст и все коллекции показывают 0 моделей (баг,
-    // обнаружен на проде 06.09.2026 — карточки коллекций на главной все по 0).
+    // Две отдельные ловушки нашлись здесь (обнаружено на проде 06.09.2026 — карточки коллекций
+    // на главной все по 0 моделей):
+    // 1) "SECTION_ID" в фильтре — валидный ключ (резолвится через M:N-таблицу
+    //    b_iblock_section_element), но как ПОЛЕ для группировки/выборки не существует —
+    //    группировка по нему тихо ломается, GetList отдаёт вырожденные строки без реальных
+    //    данных. Настоящее имя поля элемента — "IBLOCK_SECTION_ID".
+    // 2) "CNT" обязателен в списке полей при группировке (4-й параметр) — без него Bitrix не
+    //    считает агрегат, $row['CNT'] всегда пуст и ?? 0 подставлял ноль для каждой коллекции.
     $res = CIBlockElement::GetList(
         [],
         ['IBLOCK_ID' => EPORTA_COLLECTIONS_IBLOCK_ID, 'SECTION_ID' => $sectionIds, 'ACTIVE' => 'Y'],
-        ['SECTION_ID'],
+        ['IBLOCK_SECTION_ID'],
         false,
-        ['ID', 'SECTION_ID', 'CNT']
+        ['ID', 'IBLOCK_SECTION_ID', 'CNT']
     );
     while ($row = $res->Fetch()) {
-        $sectionId = (int)$row['SECTION_ID'];
+        $sectionId = (int)$row['IBLOCK_SECTION_ID'];
         $counts[$sectionId] = (int)($row['CNT'] ?? 0);
     }
     $cache[$cacheKey] = $counts;
