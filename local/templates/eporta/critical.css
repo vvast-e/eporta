@@ -370,11 +370,9 @@ img { display: block; }
   bottom: 32px;
   max-width: 460px;
 }
-.hbc-slide-content--plain {
-  background: rgba(20,17,12,.55);
-  border-radius: 14px;
-  padding: 16px 20px;
-  backdrop-filter: blur(2px);
+.hbc-slide-content--plain .hbc-title,
+.hbc-slide-content--plain .hbc-subtitle {
+  text-shadow: 0 1px 6px rgba(0,0,0,.55);
 }
 .hbc-title { font: 800 30px var(--font); color: #fff; letter-spacing: -0.01em; line-height: 1.1; }
 .hbc-subtitle { font: 600 14px var(--font); color: rgba(255,255,255,.82); margin-top: 8px; }

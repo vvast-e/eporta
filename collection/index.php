@@ -5,6 +5,9 @@ $APPLICATION->SetTitle("Коллекции фабрики EPORTA");
 <?
 	//include module
 	\Bitrix\Main\Loader::includeModule("dw.deluxe");
+	\Bitrix\Main\Loader::includeModule("iblock");
+	require_once($_SERVER["DOCUMENT_ROOT"]."/local/admin_tools/eporta_banners/lib.php");
+	require_once($_SERVER["DOCUMENT_ROOT"]."/local/lib/eporta_collections.php");
 
 	//vars
 	$catalogIblockId = null;
@@ -17,31 +20,16 @@ $APPLICATION->SetTitle("Коллекции фабрики EPORTA");
 		$arPriceCodes = explode(", ", $arTemplateSettings["TEMPLATE_PRICE_CODES"]);
 	}
 
-	// Этап 5 — Коллекции: подразделы раздела 183 "Коллекции" в IBLOCK 19
-	// (Dorsum/Vitrum/Vilis/Vetus/Tabula/Actus/Lacuna/Invi + Dorsum-F/Dorsum-Eco, добавлены
-	// 2026-08-10 скриптом scripts/add_collections_dorsum_f_eco.php). Список зафиксирован явно —
-	// фильтр CIBlockSection::GetList по IBLOCK_SECTION_ID не работает как ожидалось (возвращает
-	// вообще все секции инфоблока), поэтому не полагаемся на него, а берём только эти ID
-	// напрямую, чтобы на хабе не всплыли посторонние разделы (фурнитура, цвета и т.п.).
+	// Этап 5 — Коллекции: подразделы раздела 183 "Коллекции" в IBLOCK 19. Источник данных —
+	// local/lib/eporta_collections.php (единый для главной, хаба и каталога, см. память
+	// feedback_bitrix_section_filter_gotcha про то, почему список секций нельзя получить прямым
+	// фильтром по IBLOCK_SECTION_ID).
 	$isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH) === "eporta";
-	$eportaCollectionIds = [184, 185, 186, 187, 188, 189, 190, 191, 193, 194];
 	$eportaCollections = [];
+	$eportaCollectionCounts = [];
 	if ($isEportaTemplate) {
-		\Bitrix\Main\Loader::includeModule("iblock");
-		$eportaCollRes = \CIBlockSection::GetList(
-			["SORT" => "ASC"],
-			["IBLOCK_ID" => 19, "ID" => $eportaCollectionIds, "ACTIVE" => "Y"],
-			false,
-			["ID", "NAME", "CODE", "DESCRIPTION", "PICTURE", "DETAIL_PICTURE", "SECTION_PAGE_URL"]
-		);
-		while ($eportaCollSection = $eportaCollRes->GetNext()) {
-			$eportaCollSection["ELEMENT_CNT"] = \CIBlockElement::GetList(
-				[],
-				["IBLOCK_ID" => 19, "SECTION_ID" => $eportaCollSection["ID"], "ACTIVE" => "Y"],
-				["SECTION_ID"]
-			)->SelectedRowsCount();
-			$eportaCollections[] = $eportaCollSection;
-		}
+		$eportaCollections = eportaCollections();
+		$eportaCollectionCounts = eportaCollectionsElementCounts();
 	}
 ?>
 <?if ($isEportaTemplate):?>
@@ -53,24 +41,38 @@ $APPLICATION->SetTitle("Коллекции фабрики EPORTA");
 		<p style="margin:6px 0 0;font:500 14px/1.5 'Manrope';color:#8a857b;max-width:640px">Каждая коллекция — законченная серия дверей с единым дизайном полотна, кромки и фурнитуры. Выберите серию под ваш интерьер — внутри неё уже подобраны цвета, остекление и размеры.</p>
 	</div>
 
-	<div class="eporta-tile-grid eporta-tile-grid--square" style="padding:18px var(--pad-x) 40px">
+	<div class="eporta-tile-grid eporta-tile-grid--coll" style="padding:18px var(--pad-x) 40px">
 		<?foreach ($eportaCollections as $eportaColl):
+			$eportaCollSlotCode = eportaCollectionSlotCode($eportaColl["CODE"]);
 			$eportaCollImgSrc = \CFile::GetPath($eportaColl["DETAIL_PICTURE"] ?: $eportaColl["PICTURE"]);
+			// Секции-коллекции в IBLOCK 19 своих PICTURE/DETAIL_PICTURE не имеют (никогда не заливались) — падаем на то же фото, что уже залито
+			// через админку баннеров (local/admin_tools/eporta_banners/) для плитки этой же коллекции на главной
+			// (слот coll_<CODE>, см. eportaBannersSlots() в lib.php) — одни и те же картинки повсюду, источник не дублируется. Если для конкретной
+			// коллекции слота нет — остаётся нейтральный фон как раньше.
+			if (!$eportaCollImgSrc) {
+				$eportaCollImgSrc = eportaBannersResolveImage($eportaCollSlotCode, "");
+			}
 			// SECTION_PAGE_URL у секций-коллекций пустое (шаблон URL не настроен в админке),
 			// поэтому строился href="" и клик просто перезагружал текущую страницу. Строим URL
 			// явно из CODE секции — совпадает с рабочим резолвером детали в catalog/index.php.
 			$eportaCollUrl = "/catalog/collections/".$eportaColl["CODE"]."/";
+			// Затенение (свойство OVERLAY) — тот же слот, что и на главной, тот же переключатель
+			// в админке баннеров. Раньше здесь градиент был безусловным.
+			$eportaCollOverlayOn = eportaBannersSlotOverlayEnabled($eportaCollSlotCode);
+			$eportaCollCnt = $eportaCollectionCounts[$eportaColl["ID"]] ?? 0;
 		?>
 		<!-- Квадрат 1:1 с фоновой подложкой (как на плитках коллекций главной и на
 		     alfaporta.ru) — background-size:contain вписывает фото целиком без обрезки. -->
 		<a href="<?=htmlspecialcharsbx($eportaCollUrl)?>" style="position:relative;border-radius:18px;overflow:hidden;aspect-ratio:1/1;display:block;background:#efeae2<?=$eportaCollImgSrc ? ";background-image:url('".htmlspecialcharsbx($eportaCollImgSrc)."');background-size:contain;background-repeat:no-repeat;background-position:center" : ""?>">
+			<?if ($eportaCollOverlayOn):?>
 			<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 34%,rgba(20,17,12,.85) 100%);pointer-events:none"></div>
+			<?endif;?>
 			<div style="position:absolute;left:22px;right:22px;bottom:20px">
-				<div style="font:800 23px 'Manrope';color:#fff;letter-spacing:.01em"><?=htmlspecialcharsbx($eportaColl["NAME"])?></div>
+				<div style="font:800 23px 'Manrope';color:#fff;letter-spacing:.01em<?=$eportaCollOverlayOn ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>"><?=htmlspecialcharsbx($eportaColl["NAME"])?></div>
 				<?if ($eportaColl["DESCRIPTION"]):?>
-				<div style="font:600 12px 'Manrope';color:#ffd7b0;margin-top:3px"><?=htmlspecialcharsbx($eportaColl["DESCRIPTION"])?></div>
+				<div style="font:600 12px 'Manrope';color:#ffd7b0;margin-top:3px<?=$eportaCollOverlayOn ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>"><?=htmlspecialcharsbx($eportaColl["DESCRIPTION"])?></div>
 				<?endif;?>
-				<div style="display:inline-flex;align-items:center;gap:8px;margin-top:11px;font:700 12.5px 'Manrope';color:#fff"><?=$eportaColl["ELEMENT_CNT"]?> моделей <span style="color:#e8820a">→</span></div>
+				<div class="eporta-coll-count" style="display:inline-flex;align-items:center;gap:8px;margin-top:11px;font:700 12.5px 'Manrope';color:#fff<?=$eportaCollOverlayOn ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>"><?=$eportaCollCnt?> <?=eportaCollectionsDeclension($eportaCollCnt)?> <span style="color:#e8820a">→</span></div>
 			</div>
 		</a>
 		<?endforeach;?>

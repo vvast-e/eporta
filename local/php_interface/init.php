@@ -135,6 +135,17 @@ function eportaOnBuildGlobalMenu(&$aGlobalMenu, &$aModuleMenu) {
     ];
     $aModuleMenu[] = [
         'parent_menu' => 'global_menu_content',
+        'sort' => 715,
+        'text' => 'Коллекции фабрики',
+        'title' => 'Название, описание и порядок коллекций (раздел "Коллекции" IBLOCK 19), добавление новых',
+        'icon' => 'iblock_menu_icon',
+        'page_icon' => 'iblock_menu_icon',
+        'items_id' => 'menu_eporta_collections',
+        'url' => '/local/admin_tools/eporta_collections/',
+        'more_url' => ['/local/admin_tools/eporta_collections/'],
+    ];
+    $aModuleMenu[] = [
+        'parent_menu' => 'global_menu_content',
         'sort' => 720,
         'text' => 'Статьи (eporta.ru)',
         'title' => 'Написание и редактирование статей раздела /articles/',
