@@ -51,7 +51,7 @@ if ($eportaModels) {
 		["IBLOCK_ID" => $arParams["IBLOCK_ID"], "ACTIVE" => "Y", "PROPERTY_MODEL" => $eportaModels],
 		false,
 		false,
-		["ID", "NAME", "CODE", "PROPERTY_MODEL", "PROPERTY_COATING_COLOR", "DETAIL_PAGE_URL", "PREVIEW_PICTURE", "DETAIL_PICTURE"]
+		["ID", "NAME", "CODE", "PROPERTY_MODEL", "PROPERTY_COATING_COLOR", "PROPERTY_DISCOUNT", "DETAIL_PAGE_URL", "PREVIEW_PICTURE", "DETAIL_PICTURE", "CATALOG_PRICE_1"]
 	);
 	while ($eportaV = $eportaVariantsRes->Fetch()) {
 		$eportaVModel = $eportaV["PROPERTY_MODEL_VALUE"] ?? "";
@@ -68,6 +68,11 @@ if ($eportaModels) {
 				"url" => $eportaVUrl,
 				"photo" => $eportaVImg ? \CFile::GetPath($eportaVImg) : "",
 				"color" => $eportaVColor,
+				// Цена этого конкретного цвета — CATALOG_PRICE_1 уже посчитан импортёром ПОСЛЕ
+				// скидки (тот же принцип, что MIN_PRICE основных карточек), см. коммент выше по
+				// файлу и аналогичный расчёт MIN_PRICE моделей коллекции в catalog/index.php.
+				"price" => (float)($eportaV["CATALOG_PRICE_1"] ?? 0),
+				"discount" => (float)($eportaV["PROPERTY_DISCOUNT_VALUE"] ?? 0),
 			];
 		}
 	}
@@ -120,18 +125,38 @@ if ($eportaModels) {
 	$eportaCardSwatches = array_values(array_filter($eportaCardSwatches, fn($v) => $v["id"] !== (int)$arItem["ID"]));
 	$eportaSwatchesShown = array_slice($eportaCardSwatches, 0, 5);
 	$eportaSwatchesMore = count($eportaCardSwatches) - count($eportaSwatchesShown);
+
+	// Дефолтные фото и цена карточки — рендерим один раз через ob_start и переиспользуем и в
+	// самой разметке, и в data-атрибутах .product-card (см. ниже), чтобы app.js мог вернуть
+	// карточку в исходное состояние при уходе курсора со свотчей без повторного похода в PHP —
+	// гарантированно тот же HTML, не отдельная копия логики форматирования.
+	ob_start();
+	if ($eportaHasPhoto) {
+		eportaPicture($imgSrc, $arItem["NAME"], [
+			"loading" => $eportaIsEager ? "eager" : "lazy",
+			"decoding" => "async",
+		], true);
+	} else {
+		echo '<div class="img-noimg">Нет фото</div>';
+	}
+	$eportaDefaultPictureHtml = ob_get_clean();
+
+	ob_start();
+	if ($price) {
+		if ($hasDiscount) {
+			echo '<span class="price">' . $price["PRINT_VALUE"] . '</span> <span class="price-old">' . $priceOldPrint . '</span>';
+		} else {
+			echo '<div class="price">' . $price["PRINT_VALUE"] . '</div>';
+		}
+	} else {
+		echo '<div class="price">по запросу</div>';
+	}
+	$eportaDefaultPriceHtml = ob_get_clean();
 ?>
-	<div class="product-card" data-id="<?= (int)$arItem["ID"] ?>">
+	<div class="product-card" data-id="<?= (int)$arItem["ID"] ?>" data-default-picture="<?= htmlspecialcharsbx($eportaDefaultPictureHtml) ?>" data-default-price="<?= htmlspecialcharsbx($eportaDefaultPriceHtml) ?>">
 	<a href="<?= $elementUrl ? htmlspecialcharsbx($elementUrl) : "javascript:void(0)" ?>" class="product-card-link">
 		<div class="img-wrap">
-			<?php if ($eportaHasPhoto): ?>
-			<?php eportaPicture($imgSrc, $arItem["NAME"], [
-				"loading" => $eportaIsEager ? "eager" : "lazy",
-				"decoding" => "async",
-			], true); ?>
-			<?php else: ?>
-			<div class="img-noimg">Нет фото</div>
-			<?php endif; ?>
+			<?= $eportaDefaultPictureHtml ?>
 			<?php if ($isHit): ?><span class="badge hit">ХИТ</span><?php endif; ?>
 			<?php if ($isNew): ?><span class="badge new">Новинка</span><?php endif; ?>
 			<?php if ($hasDiscount): ?><span class="badge" style="background:#c2670a;top:<?= ($isHit || $isNew) ? "44px" : "10px" ?>">−<?= round($discountPercent) ?>%</span><?php endif; ?>
@@ -146,15 +171,7 @@ if ($eportaModels) {
 			<div class="stars"><?= $stars ?><?php if ($rating > 0): ?> <span><?= number_format($rating, 1, ".", "") ?></span><?php endif; ?></div>
 			<div class="name"><?= htmlspecialcharsbx($arItem["NAME"]) ?></div>
 			<div class="price-row">
-				<?php if ($price): ?>
-					<?php if ($hasDiscount): ?>
-						<div><span class="price"><?= $price["PRINT_VALUE"] ?></span> <span class="price-old"><?= $priceOldPrint ?></span></div>
-					<?php else: ?>
-						<div class="price"><?= $price["PRINT_VALUE"] ?></div>
-					<?php endif; ?>
-				<?php else: ?>
-					<div class="price">по запросу</div>
-				<?php endif; ?>
+				<div class="price-block"><?= $eportaDefaultPriceHtml ?></div>
 				<div class="price-row-tools">
 					<button class="btn-compare" onclick="addCompare(event, <?= (int)$arItem["ID"] ?>)" title="Сравнить">⇄</button>
 					<button class="btn-cart" onclick="addCartAjax(event, <?= (int)$arItem["ID"] ?>)">В корзину</button>
@@ -165,9 +182,11 @@ if ($eportaModels) {
 	<?php if ($eportaSwatchesShown): ?>
 	<div class="product-swatches">
 		<?php foreach ($eportaSwatchesShown as $eportaSwatch):
-			// Фото этого цвета, заранее отрендеренное как <picture> (тот же webp/jpg, что и основное фото карточки выше), чтобы клик по кружку
-			// мог подменить картинку на месте (app.js) без перехода на карточку другого цвета.
-			// Без фото (вариант не залит) атрибут не выводится и клик остаётся обычной ссылкой на страницу варианта.
+			// Фото и цена этого цвета — заранее отрендерены (тот же webp/jpg и то же форматирование
+			// цены, что и на основной карточке выше), чтобы наведение на кружок (app.js, hover без
+			// клика) подменяло их на месте без перехода на страницу другого цвета.
+			// Без фото (вариант не залит) атрибуты не выводятся, наведение ничего не подменяет, а
+			// клик остаётся обычной ссылкой на страницу варианта.
 			$eportaSwatchPictureHtml = "";
 			if ($eportaSwatch["photo"]) {
 				ob_start();
@@ -177,12 +196,28 @@ if ($eportaModels) {
 				], true);
 				$eportaSwatchPictureHtml = ob_get_clean();
 			}
+			// Цена — всегда своя для этого цвета, а не "если отличается": у разных вариантов
+			// модели цена не всегда посчитана (например, ещё не проставлена в выгрузке), поэтому
+			// строим блок и на случай "по запросу", чтобы наведение никогда не оставляло цену
+			// чужого (текущего показанного) элемента.
+			if ($eportaSwatch["price"] > 0) {
+				$eportaSwatchPricePrint = \CCurrencyLang::CurrencyFormat($eportaSwatch["price"], "RUB");
+				if ($eportaSwatch["discount"] > 0) {
+					$eportaSwatchOldPricePrint = \CCurrencyLang::CurrencyFormat(round($eportaSwatch["price"] / (1 - $eportaSwatch["discount"] / 100)), "RUB");
+					$eportaSwatchPriceHtml = '<span class="price">' . $eportaSwatchPricePrint . '</span> <span class="price-old">' . $eportaSwatchOldPricePrint . '</span>';
+				} else {
+					$eportaSwatchPriceHtml = '<div class="price">' . $eportaSwatchPricePrint . '</div>';
+				}
+			} else {
+				$eportaSwatchPriceHtml = '<div class="price">по запросу</div>';
+			}
 		?>
 		<a href="<?= $eportaSwatch["url"] ? htmlspecialcharsbx($eportaSwatch["url"]) : "javascript:void(0)" ?>"
 		   class="swatch"
 		   title="<?= htmlspecialcharsbx($eportaSwatch["color"]) ?>"
 		   <?= $eportaSwatch["photo"] ? 'style="background-image:url(' . htmlspecialcharsbx($eportaSwatch["photo"]) . ')"' : "" ?>
-		   <?= $eportaSwatchPictureHtml ? 'data-picture="' . htmlspecialcharsbx($eportaSwatchPictureHtml) . '"' : "" ?>></a>
+		   <?= $eportaSwatchPictureHtml ? 'data-picture="' . htmlspecialcharsbx($eportaSwatchPictureHtml) . '"' : "" ?>
+		   <?= $eportaSwatchPriceHtml ? 'data-price="' . htmlspecialcharsbx($eportaSwatchPriceHtml) . '"' : "" ?>></a>
 		<?php endforeach; ?>
 		<?php if ($eportaSwatchesMore > 0): ?><span class="swatch-more">+<?= $eportaSwatchesMore ?></span><?php endif; ?>
 	</div>
