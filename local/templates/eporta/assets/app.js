@@ -394,3 +394,35 @@ document.addEventListener('DOMContentLoaded', function () {
 		if (e.target && e.target.id === 'eportaCatalogLoadMore') loadNext();
 	});
 });
+
+// ---- Карточка товара в каталоге: клик по кружку цвета меняет фото на месте ----
+// (catalog.section/.default/template.php, .product-swatches .swatch). Разметка ссылок
+// сохранена (href ведёт на карточку этого цвета) — так свотчи остаются рабочими без JS и
+// по ctrl/cmd/middle-click всё равно открывают страницу того цвета в новой вкладке. Делегирование
+// на document, а не на сетку — карточки подгружаются AJAX'ом (кнопка "Показать ещё" выше).
+document.addEventListener('click', function (e) {
+	var swatch = e.target.closest('.product-swatches .swatch');
+	if (!swatch) return;
+	// Модификаторы/не левая кнопка — оставляем браузеру обычный переход по ссылке.
+	if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+	var pictureHtml = swatch.getAttribute('data-picture');
+	if (!pictureHtml) return; // фото для этого цвета не залито — обычная навигация по ссылке
+
+	var card = swatch.closest('.product-card');
+	var imgWrap = card && card.querySelector('.img-wrap');
+	if (!imgWrap) return;
+	e.preventDefault();
+
+	var oldPicture = imgWrap.querySelector('picture, .img-noimg');
+	if (oldPicture) {
+		oldPicture.outerHTML = pictureHtml;
+	} else {
+		imgWrap.insertAdjacentHTML('afterbegin', pictureHtml);
+	}
+
+	var swatchesWrap = swatch.closest('.product-swatches');
+	if (swatchesWrap) {
+		swatchesWrap.querySelectorAll('.swatch.active').forEach(function (s) { s.classList.remove('active'); });
+	}
+	swatch.classList.add('active');
+});

@@ -12,7 +12,13 @@ function eportaWebpVariant(string $src): ?string {
 	$ext = pathinfo($src, PATHINFO_EXTENSION);
 	if ($ext === "") return null;
 	$webp = substr($src, 0, -strlen($ext)) . "webp";
-	return is_file($_SERVER["DOCUMENT_ROOT"] . $webp) ? $webp : null;
+	$webpDisk = $_SERVER["DOCUMENT_ROOT"] . $webp;
+	// filesize(), не только is_file() — конвертация иногда оставляет на диске битый файл
+	// нулевого размера (см. инцидент с баннером "4-я дверь – в подарок", 2026-08-30). Браузер
+	// внутри <picture> один раз выбирает этот <source> и на неудачной загрузке НЕ откатывается
+	// на <img src> (в отличие от <video>/<audio>) — картинка пропадает целиком, а не просто без
+	// webp-оптимизации.
+	return (is_file($webpDisk) && filesize($webpDisk) > 0) ? $webp : null;
 }
 }
 
