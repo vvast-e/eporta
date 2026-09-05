@@ -30,7 +30,15 @@ $slotElements = eportaBannersGetSlotElements();
 $assetsWebBase = '/local/templates/eporta/assets/img/';
 foreach ($slots as $code => &$slot) {
     $el = $slotElements[$code] ?? null;
-    $slot['preview'] = ($el && $el['DETAIL_PICTURE']) ? CFile::GetPath($el['DETAIL_PICTURE']) : $assetsWebBase . $slot['fallback'];
+    if ($el && $el['DETAIL_PICTURE']) {
+        $slot['preview'] = CFile::GetPath($el['DETAIL_PICTURE']);
+    } elseif ($slot['fallback']) {
+        $slot['preview'] = $assetsWebBase . $slot['fallback'];
+    } else {
+        // Новая коллекция без исторической картинки-заглушки — превью пустое, плитка на
+        // нейтральной подложке, пока картинка не залита.
+        $slot['preview'] = '';
+    }
     $slot['is_custom'] = (bool)$el;
     $slot['overlay'] = $el ? (bool)($el['OVERLAY_ENABLED'] ?? true) : true;
 }
@@ -102,7 +110,7 @@ $collSlots = array_filter($slots, fn($c) => str_starts_with($c, 'coll_'), ARRAY_
             card.innerHTML =
                 '<div class="thumb">' +
                     '<span class="badge ' + (slot.is_custom ? 'custom' : 'fallback') + '">' + (slot.is_custom ? 'Загружено' : 'По умолчанию') + '</span>' +
-                    '<img src="' + slot.preview + '" alt="">' +
+                    (slot.preview ? '<img src="' + slot.preview + '" alt="">' : '') +
                 '</div>' +
                 '<div class="body">' +
                     '<div class="label">' + slot.label + '</div>' +
@@ -113,7 +121,6 @@ $collSlots = array_filter($slots, fn($c) => str_starts_with($c, 'coll_'), ARRAY_
                     '<div class="status"></div>' +
                 '</div>';
 
-            const img = card.querySelector('img');
             const fileInput = card.querySelector('input[type=file]');
             const btn = card.querySelector('button');
             const statusEl = card.querySelector('.status');
@@ -172,7 +179,12 @@ $collSlots = array_filter($slots, fn($c) => str_starts_with($c, 'coll_'), ARRAY_
                         statusEl.textContent = resp.error || 'Ошибка';
                         statusEl.classList.add('err');
                     } else {
-                        img.src = resp.image + '?t=' + Date.now();
+                        let imgEl = card.querySelector('img');
+                        if (!imgEl) {
+                            imgEl = document.createElement('img');
+                            card.querySelector('.thumb').appendChild(imgEl);
+                        }
+                        imgEl.src = resp.image + '?t=' + Date.now();
                         badge.textContent = 'Загружено';
                         badge.className = 'badge custom';
                         statusEl.textContent = 'Готово';

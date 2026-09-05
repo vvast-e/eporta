@@ -10,10 +10,7 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
 
 const EPORTA_SHOWCASE_IBLOCK_ID = 19;
 
-// Список ID коллекций (раздел 183 "Коллекции") — тот же явный whitelist, что в
-// collection/index.php и catalog/index.php (CIBlockSection::GetList по IBLOCK_SECTION_ID не
-// фильтрует — возвращает все секции инфоблока, см. памятку по этому гочу).
-const EPORTA_SHOWCASE_COLLECTION_IDS = [184, 185, 186, 187, 188, 189, 190, 191, 193, 194];
+require_once($_SERVER['DOCUMENT_ROOT'] . '/local/lib/eporta_collections.php');
 
 function eportaShowcaseUserHasAccess(): bool {
     global $USER;
@@ -26,19 +23,9 @@ function eportaShowcaseUserHasAccess(): bool {
     return CIBlock::GetPermission(EPORTA_SHOWCASE_IBLOCK_ID) >= 'W';
 }
 
-// Список коллекций для селектора — только те, где реально есть активные элементы.
+// Список коллекций для селектора — общий источник, см. local/lib/eporta_collections.php.
 function eportaShowcaseGetCollections(): array {
-    $result = [];
-    $res = CIBlockSection::GetList(
-        ['SORT' => 'ASC'],
-        ['IBLOCK_ID' => EPORTA_SHOWCASE_IBLOCK_ID, 'ID' => EPORTA_SHOWCASE_COLLECTION_IDS, 'ACTIVE' => 'Y'],
-        false,
-        ['ID', 'NAME', 'CODE']
-    );
-    while ($section = $res->GetNext()) {
-        $result[] = $section;
-    }
-    return $result;
+    return eportaCollections();
 }
 
 // Модели коллекции: группировка по PROPERTY_MODEL (тот же ключ, что и в catalog/index.php),

@@ -410,13 +410,12 @@ img { display: block; }
   bottom: 32px;
   max-width: 460px;
 }
-/* Затенение баннера выключено (свойство OVERLAY=N) — .hbc-slide-overlay не рендерится вовсе,
-   поэтому подписи получают собственную плашку, иначе светлый текст пропадает на светлом фото. */
-.hbc-slide-content--plain {
-  background: rgba(20,17,12,.55);
-  border-radius: 14px;
-  padding: 16px 20px;
-  backdrop-filter: blur(2px);
+/* Затенение баннера выключено — .hbc-slide-overlay не рендерится вовсе, только картинка и
+   название, без плашки под текстом (заказчик рисует своё оформление на самом фото, 05.09.2026).
+   Текстовая тень вместо плашки — иначе белое название пропадает на светлом фото. */
+.hbc-slide-content--plain .hbc-title,
+.hbc-slide-content--plain .hbc-subtitle {
+  text-shadow: 0 1px 6px rgba(0,0,0,.55);
 }
 .hbc-title { font: 800 30px var(--font); color: #fff; letter-spacing: -0.01em; line-height: 1.1; }
 .hbc-subtitle { font: 600 14px var(--font); color: rgba(255,255,255,.82); margin-top: 8px; }
@@ -933,6 +932,14 @@ img { display: block; }
   .eporta-tile-grid--square { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
   .eporta-tile-grid--square > a { aspect-ratio: 3 / 4 !important; }
 }
+
+/* Плитки коллекций (главная "Коллекции фабрики", хаб /collection/) — 4 в ряд на десктопе,
+   заявка заказчика 05.09.2026: все коллекции без кнопки "Все коллекции", 3 ряда по 4. */
+.eporta-tile-grid--coll { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 860px) { .eporta-tile-grid--coll { grid-template-columns: repeat(2, 1fr); } }
+/* "N моделей" под подписью — подзаголовок и так занимает много места на узком экране,
+   заказчик попросил убрать счётчик только на мобильном, оставив его на десктопе/планшете. */
+@media (max-width: 640px) { .eporta-coll-count { display: none !important; } }
 
 /* Мозаика категорий на главной — на десктопе 4 колонки с явной раскладкой плиток
    (grid-column/grid-row в инлайн-стилях), на узких экранах раскладка ломается,

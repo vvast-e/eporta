@@ -77,14 +77,14 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	}
 	}
 
-	// Этап 5 — Коллекции: подразделы раздела 183 "Коллекции" в IBLOCK 19 (плюс Dorsum-F/
-	// Dorsum-Eco, добавлены 2026-08-10 — см. collection/index.php). URL приходит по штатному
-	// SEF-шаблону как /catalog/collections/<code>/ (SECTION_PAGE_URL секции). Список ID
-	// зафиксирован явно (фильтр CIBlockSection::GetList по IBLOCK_SECTION_ID не работает как
-	// ожидалось, возвращает вообще все секции инфоблока), поэтому матчим CODE только среди этих
-	// ID — иначе обычный раздел каталога с тем же кодом сегмента URL мог бы случайно попасть
-	// под резолвер коллекции.
-	$eportaCollectionIds = [184, 185, 186, 187, 188, 189, 190, 191, 193, 194];
+	// Этап 5 — Коллекции: подразделы раздела 183 "Коллекции" в IBLOCK 19. URL приходит по
+	// штатному SEF-шаблону как /catalog/collections/<code>/ (SECTION_PAGE_URL секции). Список
+	// ID коллекций — общий источник local/lib/eporta_collections.php (фильтр
+	// CIBlockSection::GetList по IBLOCK_SECTION_ID не работает как ожидалось, возвращает вообще
+	// все секции инфоблока), матчим CODE только среди этих ID — иначе обычный раздел каталога с
+	// тем же кодом сегмента URL мог бы случайно попасть под резолвер коллекции.
+	require_once($_SERVER["DOCUMENT_ROOT"]."/local/lib/eporta_collections.php");
+	$eportaCollectionIds = array_column(eportaCollections(), "ID");
 	$eportaCollectionSection = null;
 	if ($isEportaTemplate && !$isEportaProductDetail) {
 		$eportaReqPath = parse_url($_SERVER["REQUEST_URI"] ?? "", PHP_URL_PATH);

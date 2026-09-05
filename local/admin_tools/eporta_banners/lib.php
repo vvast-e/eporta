@@ -77,25 +77,44 @@ function eportaBannersTilesSectionId() {
 // cat_mkd/cat_hardware — высокие плитки на 2 строки грида, cat_hidden/cat_sliding/cat_entrance/
 // cat_arch — низкие широкие плитки-пары, coll_* — широкие плитки фикс. высоты 226px). Вывод
 // везде через object-fit:cover, поэтому важнее пропорция, чем точный пиксельный размер.
+//
+// Слоты coll_* строятся динамически по eportaCollections() (local/lib/eporta_collections.php) —
+// раньше здесь был хардкод ровно 6 записей, из-за чего часть коллекций не могла получить свою
+// картинку через админку в принципе. Теперь слот заводится на каждую коллекцию автоматически;
+// enum-значение PLACEMENT для новой коллекции заводит eportaCollectionsEnsurePlacementEnum()
+// (local/admin_tools/eporta_collections/lib.php) при её создании.
 function eportaBannersSlots(): array {
-    return [
+    $slots = [
         'cat_mkd' => ['label' => 'Категория: Межкомнатные', 'fallback' => 'cat-mezh.jpg', 'size' => 'высокая плитка, портрет — рекомендуется ~800×1100 px'],
         'cat_hidden' => ['label' => 'Категория: Скрытые', 'fallback' => 'cat-skryt.jpg', 'size' => 'широкая низкая плитка — рекомендуется ~900×550 px'],
         'cat_sliding' => ['label' => 'Категория: Раздвижные', 'fallback' => 'cat-razdv.jpg', 'size' => 'широкая низкая плитка — рекомендуется ~900×550 px'],
         'cat_entrance' => ['label' => 'Категория: Входные', 'fallback' => 'cat-vhod.jpg', 'size' => 'широкая низкая плитка — рекомендуется ~900×550 px'],
         'cat_arch' => ['label' => 'Категория: Арки и порталы', 'fallback' => 'cat-arki.jpg', 'size' => 'широкая низкая плитка — рекомендуется ~900×550 px'],
         'cat_hardware' => ['label' => 'Категория: Фурнитура', 'fallback' => 'cat-furn.jpg', 'size' => 'высокая плитка, портрет — рекомендуется ~800×1100 px'],
-        // Квадратная плитка 1:1, картинка вписывается целиком (object-fit:contain) — не
-        // обрезается, независимо от пропорций исходного фото. Точный размер не критичен,
-        // важна не слишком маленькая сторона (упирается в подложку #f2efe9 при несовпадении
-        // пропорций).
-        'coll_dorsum' => ['label' => 'Коллекция: Dorsum', 'fallback' => 'hit-1.jpg', 'size' => 'квадратная плитка — рекомендуется ~900×900 px'],
-        'coll_vilis' => ['label' => 'Коллекция: Vilis', 'fallback' => 'hit-2.jpg', 'size' => 'квадратная плитка — рекомендуется ~900×900 px'],
-        'coll_actus' => ['label' => 'Коллекция: Actus', 'fallback' => 'hit-5.jpg', 'size' => 'квадратная плитка — рекомендуется ~900×900 px'],
-        'coll_vitrum' => ['label' => 'Коллекция: Vitrum', 'fallback' => 'hit-6.jpg', 'size' => 'квадратная плитка — рекомендуется ~900×900 px'],
-        'coll_tabula' => ['label' => 'Коллекция: Tabula', 'fallback' => 'hit-7.jpg', 'size' => 'квадратная плитка — рекомендуется ~900×900 px'],
-        'coll_lacuna' => ['label' => 'Коллекция: Lacuna', 'fallback' => 'hit-8.jpg', 'size' => 'квадратная плитка — рекомендуется ~900×900 px'],
     ];
+    require_once($_SERVER['DOCUMENT_ROOT'] . '/local/lib/eporta_collections.php');
+    // Квадратная плитка 1:1, картинка вписывается целиком (object-fit:contain) — не обрезается,
+    // независимо от пропорций исходного фото. Точный размер не критичен, важна не слишком
+    // маленькая сторона (упирается в подложку #f2efe9 при несовпадении пропорций). Историческая
+    // fallback-картинка сохранена только для коллекций, у которых она уже была; для новых
+    // коллекций fallback пуст — плитка остаётся на нейтральной подложке, пока фото не залито.
+    $legacyFallback = [
+        'dorsum' => 'hit-1.jpg',
+        'vilis' => 'hit-2.jpg',
+        'actus' => 'hit-5.jpg',
+        'vitrum' => 'hit-6.jpg',
+        'tabula' => 'hit-7.jpg',
+        'lacuna' => 'hit-8.jpg',
+    ];
+    foreach (eportaCollections() as $coll) {
+        $slotCode = eportaCollectionSlotCode($coll['CODE']);
+        $slots[$slotCode] = [
+            'label' => 'Коллекция: ' . $coll['NAME'],
+            'fallback' => $legacyFallback[$coll['CODE']] ?? '',
+            'size' => 'квадратная плитка — рекомендуется ~900×900 px',
+        ];
+    }
+    return $slots;
 }
 
 function eportaBannersUserHasAccess(): bool {
@@ -158,7 +177,13 @@ function eportaBannersGetSlotElements(): array {
         }
         $overlayEnumId = $el['PROPERTY_OVERLAY_ENUM_ID'] ?? null;
         $overlayXmlId = $overlayEnumId ? ($overlayEnumIdToXmlId[$overlayEnumId] ?? '') : '';
-        $el['OVERLAY_ENABLED'] = ($overlayXmlId !== 'N');
+        // Пусто (свойство не заполнено — в т.ч. значение "(нет)" в штатной форме Битрикса,
+        // у которого нет XML_ID) трактуется как затенение ВЫКЛЮЧЕНО, а не включено, как было
+        // раньше. Иначе в штатной форме элемента IBLOCK 27 три положения "(нет)/Да/Нет" давали
+        // только два разных результата и непонятно было, что выбрать, чтобы отключить (заявка
+        // заказчика 05.09.2026). Существующие баннеры при миграции (scripts/setup_collections_
+        // order.php) получают явное "Да", чтобы не потерять затенение молча.
+        $el['OVERLAY_ENABLED'] = ($overlayXmlId === 'Y');
         // На случай дублей (несколько элементов с одним PLACEMENT) — берём последний по ID.
         if (!isset($bySlot[$xmlId]) || (int)$el['ID'] > (int)$bySlot[$xmlId]['ID']) {
             $bySlot[$xmlId] = $el;
