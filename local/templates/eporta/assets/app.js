@@ -395,34 +395,51 @@ document.addEventListener('DOMContentLoaded', function () {
 	});
 });
 
-// ---- Карточка товара в каталоге: клик по кружку цвета меняет фото на месте ----
-// (catalog.section/.default/template.php, .product-swatches .swatch). Разметка ссылок
-// сохранена (href ведёт на карточку этого цвета) — так свотчи остаются рабочими без JS и
-// по ctrl/cmd/middle-click всё равно открывают страницу того цвета в новой вкладке. Делегирование
-// на document, а не на сетку — карточки подгружаются AJAX'ом (кнопка "Показать ещё" выше).
-document.addEventListener('click', function (e) {
+// ---- Карточка товара в каталоге: наведение на кружок цвета меняет фото и цену на месте ----
+// (catalog.section/.default/template.php, .product-swatches .swatch). Без клика — превью по
+// hover, курсор ушёл со свотчей → карточка возвращается к дефолтному фото/цене (data-default-*
+// на .product-card, тот же HTML, что отрендерен по умолчанию). Ссылка остаётся рабочей —
+// клик/ctrl/middle-click как обычно ведут на страницу того цвета. Делегирование на document
+// через mouseover/mouseout (в отличие от mouseenter/mouseleave — всплывают), а не на сетку —
+// карточки подгружаются AJAX'ом (кнопка "Показать ещё" выше).
+function eportaApplySwatchPreview(swatch) {
+	var card = swatch.closest('.product-card');
+	if (!card) return;
+	var pictureHtml = swatch.getAttribute('data-picture');
+	if (pictureHtml) {
+		var imgWrap = card.querySelector('.img-wrap');
+		var oldPicture = imgWrap && imgWrap.querySelector('picture, .img-noimg');
+		if (oldPicture) oldPicture.outerHTML = pictureHtml;
+	}
+	var priceHtml = swatch.getAttribute('data-price');
+	if (priceHtml) {
+		var priceBlock = card.querySelector('.price-block');
+		if (priceBlock) priceBlock.innerHTML = priceHtml;
+	}
+}
+
+function eportaRevertCardDefault(card) {
+	if (!card) return;
+	var imgWrap = card.querySelector('.img-wrap');
+	var oldPicture = imgWrap && imgWrap.querySelector('picture, .img-noimg');
+	var defaultPicture = card.getAttribute('data-default-picture');
+	if (oldPicture && defaultPicture) oldPicture.outerHTML = defaultPicture;
+	var priceBlock = card.querySelector('.price-block');
+	var defaultPrice = card.getAttribute('data-default-price');
+	if (priceBlock && defaultPrice) priceBlock.innerHTML = defaultPrice;
+}
+
+document.addEventListener('mouseover', function (e) {
 	var swatch = e.target.closest('.product-swatches .swatch');
 	if (!swatch) return;
-	// Модификаторы/не левая кнопка — оставляем браузеру обычный переход по ссылке.
-	if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-	var pictureHtml = swatch.getAttribute('data-picture');
-	if (!pictureHtml) return; // фото для этого цвета не залито — обычная навигация по ссылке
+	eportaApplySwatchPreview(swatch);
+});
 
-	var card = swatch.closest('.product-card');
-	var imgWrap = card && card.querySelector('.img-wrap');
-	if (!imgWrap) return;
-	e.preventDefault();
-
-	var oldPicture = imgWrap.querySelector('picture, .img-noimg');
-	if (oldPicture) {
-		oldPicture.outerHTML = pictureHtml;
-	} else {
-		imgWrap.insertAdjacentHTML('afterbegin', pictureHtml);
-	}
-
-	var swatchesWrap = swatch.closest('.product-swatches');
-	if (swatchesWrap) {
-		swatchesWrap.querySelectorAll('.swatch.active').forEach(function (s) { s.classList.remove('active'); });
-	}
-	swatch.classList.add('active');
+document.addEventListener('mouseout', function (e) {
+	var swatchesWrap = e.target.closest('.product-swatches');
+	if (!swatchesWrap) return;
+	// Курсор всё ещё внутри той же строки свотчей (перешёл на соседний кружок) — ничего не
+	// возвращаем, его mouseover сам подставит превью следующего цвета без мигания дефолтом.
+	if (e.relatedTarget && swatchesWrap.contains(e.relatedTarget)) return;
+	eportaRevertCardDefault(swatchesWrap.closest('.product-card'));
 });
