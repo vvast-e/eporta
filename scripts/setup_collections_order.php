@@ -58,10 +58,13 @@ if ($existingVetusLoft) {
 }
 
 // 2) SORT для всех коллекций из таблицы.
+// Через eportaCollections(true) (все, включая скрытые), а не сырым CIBlockSection::GetList —
+// та же защита от испорченных данных (раздел 183 сам себе родитель, сиротская секция с пустым
+// CODE, найдено на проде 05.09.2026), что и на публичных страницах, см. local/lib/
+// eporta_collections.php.
 echo "\nШаг 2: порядок показа (SORT)\n";
-$allSections = CIBlockSection::GetList([], ['IBLOCK_ID' => EPORTA_COLLECTIONS_IBLOCK_ID, '=IBLOCK_SECTION_ID' => EPORTA_COLLECTIONS_PARENT_SECTION_ID], false, ['ID', 'CODE', 'NAME', 'SORT']);
 $byCode = [];
-while ($s = $allSections->Fetch()) {
+foreach (eportaCollections(true) as $s) {
     $byCode[$s['CODE']] = $s;
 }
 foreach ($order as $code => $sort) {
@@ -85,8 +88,7 @@ foreach ($order as $code => $sort) {
 
 // 3) Недостающие enum-значения PLACEMENT в IBLOCK 27 для слотов баннеров.
 echo "\nШаг 3: слоты баннеров (enum PLACEMENT в IBLOCK 27)\n";
-$allSections2 = CIBlockSection::GetList([], ['IBLOCK_ID' => EPORTA_COLLECTIONS_IBLOCK_ID, '=IBLOCK_SECTION_ID' => EPORTA_COLLECTIONS_PARENT_SECTION_ID], false, ['ID', 'CODE', 'NAME']);
-while ($s = $allSections2->Fetch()) {
+foreach (eportaCollections(true) as $s) {
     $slotCode = eportaCollectionSlotCode($s['CODE']);
     $propRes = CIBlockProperty::GetList([], ['IBLOCK_ID' => EPORTA_BANNERS_IBLOCK_ID, 'CODE' => 'PLACEMENT']);
     $prop = $propRes->Fetch();

@@ -46,6 +46,15 @@ function eportaCollections(bool $includeInactive = false): array {
         if ((int)$row['IBLOCK_SECTION_ID'] !== EPORTA_COLLECTIONS_PARENT_SECTION_ID) {
             continue;
         }
+        // Защита от испорченных данных, обнаруженных на проде 05.09.2026: раздел 183
+        // "Коллекции" сам на себя ссылается как на родителя (IBLOCK_SECTION_ID=183 у своей же
+        // записи) — без этой проверки родитель попадал бы в список как 12-я "коллекция". Плюс
+        // сиротская секция (ID=192, пустой CODE, 0 элементов, дубль неудачного первого запуска
+        // add_collections_dorsum_f_eco.php от 10.08.2026) — без CODE у неё нет ни слота баннера,
+        // ни рабочей ссылки /catalog/collections//.
+        if ((int)$row['ID'] === EPORTA_COLLECTIONS_PARENT_SECTION_ID || $row['CODE'] === '') {
+            continue;
+        }
         $collections[] = $row;
     }
     $cache[$cacheKey] = $collections;
