@@ -331,6 +331,9 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		// фильтров. Страницы коллекций и Распродажа/Новинки — не трогаем, у них свой заголовок.
 		$eportaSeoSlug = null;
 		$eportaSeoH1 = null;
+		// Query-параметры "чистого" состояния (для rel=canonical ниже) — тот единственный
+		// GET-параметр, которым описывается это SEO-состояние, без sort/PAGEN_1/прочего шума.
+		$eportaSeoCanonicalParams = null;
 		if (!$eportaCollectionSection && !$eportaOnlySale && !$eportaOnlyNew && !$eportaPriceActive) {
 			$eportaSeoActiveGroups = 0;
 			foreach (["style", "coating", "color"] as $eportaSeoKey) {
@@ -338,14 +341,19 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			}
 			if ($eportaSeoActiveGroups === 0 && !$eportaSelectedCategory) {
 				$eportaSeoSlug = "internal-doors";
+				$eportaSeoCanonicalParams = [];
 			} elseif ($eportaSeoActiveGroups === 0 && $eportaSelectedCategory === "hidden") {
 				$eportaSeoSlug = "invisible-internal-doors";
+				$eportaSeoCanonicalParams = ["category" => "hidden"];
 			} elseif ($eportaSeoActiveGroups === 1 && !$eportaSelectedCategory) {
 				require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/seo/_catalog_filter_map.php");
 				foreach (["style", "coating", "color"] as $eportaSeoKey) {
 					if (count($eportaSelected[$eportaSeoKey]) === 1) {
 						$eportaSeoEnumValue = $eportaPropDefs[$eportaSeoKey]["VALUES"][$eportaSelected[$eportaSeoKey][0]] ?? "";
 						$eportaSeoSlug = eportaMatchSeoSlug($eportaSeoKey, $eportaSeoEnumValue);
+						if ($eportaSeoSlug) {
+							$eportaSeoCanonicalParams = [$eportaSeoKey => [$eportaSelected[$eportaSeoKey][0]]];
+						}
 						break;
 					}
 				}
@@ -362,6 +370,66 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			} else {
 				// В реестре нет записи под слаг — не подставляем текст без заголовка/описания.
 				$eportaSeoSlug = null;
+				$eportaSeoCanonicalParams = null;
+			}
+		}
+
+		// rel=canonical — раньше не выводился вовсе ни для одного состояния /catalog/. У "чистых"
+		// SEO-состояний ($eportaSeoSlug) канонический адрес — путь + единственный описывающий его
+		// GET-параметр, без sort/PAGEN_1/price — благодаря этому 2+ страница пагинации внутри такого
+		// фильтра тоже канонизируется на его 1-ю страницу, а не считается отдельным документом.
+		// Комбинации 2+ фильтров, sort=, price_min/max, sale/new — не имеют отдельного SEO-текста,
+		// поэтому не должны плодить в индексе URL-дубли: канонизируем на корень /catalog/. Страницы
+		// коллекций — самостоятельный контент, канонический адрес на себя (только путь, без шума).
+		if ($eportaCollectionSection) {
+			$eportaCanonicalPath = parse_url($_SERVER["REQUEST_URI"] ?? "", PHP_URL_PATH) ?: "/catalog/";
+			$eportaCanonicalQuery = "";
+		} elseif ($eportaSeoSlug && $eportaSeoCanonicalParams !== null) {
+			$eportaCanonicalPath = "/catalog/";
+			$eportaCanonicalQuery = $eportaSeoCanonicalParams ? http_build_query($eportaSeoCanonicalParams) : "";
+		} else {
+			$eportaCanonicalPath = "/catalog/";
+			$eportaCanonicalQuery = "";
+		}
+		$eportaCanonicalUrl = "https://eporta.ru".$eportaCanonicalPath.($eportaCanonicalQuery ? "?".$eportaCanonicalQuery : "");
+		$APPLICATION->AddHeadString('<link rel="canonical" href="'.htmlspecialcharsbx($eportaCanonicalUrl).'">', true);
+
+		// Внутренние ссылки на 19 SEO-состояний каталога (цвет/стиль/покрытие/скрытые) — без них
+		// поисковик не находит эти URL при обходе (нигде на сайте прямых ссылок не было). Список
+		// строится из уже готовых $eportaFilterGroups (те же счётчики, что и у чекбоксов сайдбара —
+		// значения с 0 товаров туда не попадают, см. "if ($eportaCnt < 1) continue;" выше) через ту
+		// же связку eportaMatchSeoSlug(), а не отдельным хардкод-списком — иначе список рассинхронится
+		// с реальным ассортиментом (см. историю с Лофт/Прованс/Скандинавские в _catalog_filter_map.php).
+		$eportaSeoLinks = [];
+		if (!$eportaCollectionSection) {
+			require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/seo/_catalog_filter_map.php");
+			$eportaSeoLinkRegistry = include($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/seo/_registry_draft.php");
+			$eportaSeoLinkSeen = [];
+			foreach (["color", "style", "coating"] as $eportaLinkKey) {
+				foreach ($eportaFilterGroups[$eportaLinkKey]["ITEMS"] ?? [] as $eportaLinkItem) {
+					$eportaLinkSlug = eportaMatchSeoSlug($eportaLinkKey, $eportaLinkItem["VALUE"]);
+					if (!$eportaLinkSlug || isset($eportaSeoLinkSeen[$eportaLinkSlug])) continue;
+					$eportaLinkEntry = $eportaSeoLinkRegistry[$eportaLinkSlug] ?? null;
+					if (!$eportaLinkEntry) continue;
+					$eportaSeoLinkSeen[$eportaLinkSlug] = true;
+					$eportaSeoLinks[] = [
+						"URL" => "/catalog/?".http_build_query([$eportaLinkKey => [$eportaLinkItem["ID"]]]),
+						"LABEL" => $eportaLinkEntry["CRUMB"] ?: $eportaLinkEntry["H1"],
+					];
+				}
+			}
+			// "Скрытые" — не enum, а строковое свойство CATEGORY (см. inc/categories.php), считаем
+			// отдельным лёгким запросом в той же базовой области ($eportaScopeFilter).
+			if (!empty($eportaCategoryMap["hidden"]) && isset($eportaSeoLinkRegistry["invisible-internal-doors"])) {
+				$eportaHiddenLinkFilter = $eportaScopeFilter;
+				$eportaHiddenLinkFilter["PROPERTY_CATEGORY"] = $eportaCategoryMap["hidden"]["ALIASES"];
+				$eportaHiddenLinkCnt = \CIBlockElement::GetList([], $eportaHiddenLinkFilter, false, false, ["ID"])->SelectedRowsCount();
+				if ($eportaHiddenLinkCnt > 0) {
+					$eportaSeoLinks[] = [
+						"URL" => "/catalog/?category=hidden",
+						"LABEL" => $eportaSeoLinkRegistry["invisible-internal-doors"]["CRUMB"],
+					];
+				}
 			}
 		}
 
@@ -967,6 +1035,18 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		endif;
 	endif;
 	?>
+
+	<?php if (!empty($eportaSeoLinks)): ?>
+	<!-- Внутренние ссылки на SEO-состояния каталога — см. комментарий у $eportaSeoLinks выше. -->
+	<div class="eporta-catalog-seo-links" style="padding:0 var(--pad-x) 32px">
+		<div style="font:800 16px 'Manrope';margin:0 0 12px">Популярные разделы каталога</div>
+		<div style="display:flex;flex-wrap:wrap;gap:8px 16px">
+			<?php foreach ($eportaSeoLinks as $eportaSeoLink): ?>
+			<a href="<?=htmlspecialcharsbx($eportaSeoLink["URL"])?>" style="font:500 14px 'Manrope';color:var(--text-secondary,#666);text-decoration:none"><?=htmlspecialcharsbx($eportaSeoLink["LABEL"])?></a>
+			<?php endforeach; ?>
+		</div>
+	</div>
+	<?php endif; ?>
 
 	<script>
 	(function(){
