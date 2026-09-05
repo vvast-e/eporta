@@ -54,4 +54,53 @@ if ($action === 'update') {
     exit;
 }
 
+if ($action === 'upload_banner') {
+    $sectionId = (int)($_POST['id'] ?? 0);
+    if ($sectionId <= 0) {
+        eportaCollectionsJsonFail('Некорректный ID коллекции');
+    }
+    if (empty($_FILES['banner']) || $_FILES['banner']['error'] !== UPLOAD_ERR_OK) {
+        eportaCollectionsJsonFail('Файл не загружен');
+    }
+
+    $allowedExt = ['jpg', 'jpeg', 'png'];
+    $ext = strtolower(pathinfo($_FILES['banner']['name'], PATHINFO_EXTENSION));
+    if (!in_array($ext, $allowedExt, true)) {
+        eportaCollectionsJsonFail('Допустимые форматы: JPG, PNG');
+    }
+    // Полноразмерный баннер шапки страницы коллекции (не плитка) — лимит выше, чем у плиток
+    // в eporta_banners/ajax.php (8 МБ).
+    if ($_FILES['banner']['size'] > 15 * 1024 * 1024) {
+        eportaCollectionsJsonFail('Файл слишком большой (максимум 15 МБ)');
+    }
+
+    $tmpDir = eportaCollectionsTmpDir();
+    $tmpPath = $tmpDir . '/' . bin2hex(random_bytes(16)) . '.' . $ext;
+    if (!move_uploaded_file($_FILES['banner']['tmp_name'], $tmpPath)) {
+        eportaCollectionsJsonFail('Не удалось сохранить загруженный файл');
+    }
+    if (!@getimagesize($tmpPath)) {
+        @unlink($tmpPath);
+        eportaCollectionsJsonFail('Файл повреждён или не является изображением');
+    }
+
+    $fileArray = CFile::MakeFileArray($tmpPath);
+    if (!$fileArray) {
+        @unlink($tmpPath);
+        eportaCollectionsJsonFail('Не удалось подготовить файл для сохранения');
+    }
+
+    $error = null;
+    $ok = eportaCollectionsUpdateBanner($sectionId, $fileArray, $error);
+    @unlink($tmpPath);
+    if (!$ok) {
+        eportaCollectionsJsonFail($error ?: 'Ошибка сохранения баннера', 500);
+    }
+
+    $section = CIBlockSection::GetByID($sectionId)->GetNext();
+    $imgPath = $section && $section['DETAIL_PICTURE'] ? CFile::GetPath($section['DETAIL_PICTURE']) : '';
+    echo json_encode(['ok' => true, 'image' => $imgPath], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
 eportaCollectionsJsonFail('Неизвестное действие');

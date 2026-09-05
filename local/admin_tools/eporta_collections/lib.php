@@ -16,6 +16,20 @@ function eportaCollectionsUserHasAccess(): bool {
     return eportaBannersUserHasAccess();
 }
 
+// Временная папка для загрузки баннера страницы коллекции — своя (не eportaBannersTmpDir()),
+// та под eporta_banners/ концептуально про слотовые баннеры плиток IBLOCK 27.
+function eportaCollectionsTmpDir(): string {
+    $dir = $_SERVER['DOCUMENT_ROOT'] . '/local/tmp/eporta_collections';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0750, true);
+    }
+    $htaccess = $dir . '/.htaccess';
+    if (!file_exists($htaccess)) {
+        file_put_contents($htaccess, "Deny from all\n");
+    }
+    return $dir;
+}
+
 function eportaCollectionsGenerateCode(string $name): string {
     $code = \CUtil::translit($name, 'ru', [
         'max_len' => 100,
@@ -123,6 +137,22 @@ function eportaCollectionsUpdate(int $sectionId, string $name, string $descripti
     ]);
     if (!$ok) {
         $error = $sectionObj->LAST_ERROR ?: 'Не удалось сохранить коллекцию';
+    }
+    return $ok;
+}
+
+// Баннер страницы САМОЙ коллекции (/catalog/collections/<code>/ — шапка с фото и описанием,
+// catalog/index.php: $eportaCollectionSection["DETAIL_PICTURE"] ?: ["PICTURE"]). НЕ то же самое,
+// что слотовый баннер плитки коллекции на главной/на /collection/ — тот отдельный элемент
+// IBLOCK 27, редактируется в eporta_banners/. Это — обычное файловое поле DETAIL_PICTURE прямо
+// на разделе IBLOCK 19, Update() с ним не трогает остальные поля секции (в отличие от
+// CIBlockElement::Update()+PROPERTY_VALUES, см. предупреждение в eporta_banners/lib.php — та
+// ловушка про свойства элементов, полей разделов не касается).
+function eportaCollectionsUpdateBanner(int $sectionId, array $fileArray, ?string &$error = null): bool {
+    $sectionObj = new CIBlockSection;
+    $ok = $sectionObj->Update($sectionId, ['DETAIL_PICTURE' => $fileArray]);
+    if (!$ok) {
+        $error = $sectionObj->LAST_ERROR ?: 'Не удалось сохранить баннер';
     }
     return $ok;
 }

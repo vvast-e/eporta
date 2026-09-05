@@ -27,6 +27,11 @@ $collections = eportaCollections(true);
 $counts = eportaCollectionsElementCounts(true);
 
 $collectionsForJs = array_map(function ($coll) use ($counts) {
+    // Баннер страницы САМОЙ коллекции (DETAIL_PICTURE ?: PICTURE секции) — тот же приоритет
+    // полей, что и на публичной странице /catalog/collections/<code>/ (catalog/index.php).
+    // Не путать с плиткой на главной/на /collection/ — та отдельный слот IBLOCK 27, см. hint выше.
+    $bannerFile = $coll['DETAIL_PICTURE'] ?: $coll['PICTURE'];
+    $bannerPath = $bannerFile ? CFile::GetPath($bannerFile) : '';
     return [
         'id' => (int)$coll['ID'],
         'name' => $coll['NAME'],
@@ -35,6 +40,7 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
         'sort' => (int)$coll['SORT'],
         'active' => $coll['ACTIVE'] === 'Y',
         'cnt' => $counts[$coll['ID']] ?? 0,
+        'banner' => $bannerPath ?: '',
     ];
 }, $collections);
 ?>
@@ -66,6 +72,11 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
     .add-form { border: 1px dashed #ccc; border-radius: 8px; padding: 16px; margin-top: 10px; }
     .add-form label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
     .add-form input, .add-form textarea { width: 100%; box-sizing: border-box; font-size: 13px; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px; }
+    .banner-cell { display: flex; align-items: center; gap: 8px; }
+    .banner-thumb { width: 64px; height: 40px; object-fit: cover; border-radius: 4px; background: #f1f1f1; border: 1px solid #e2e2e2; flex: none; }
+    .banner-thumb.is-empty { display: flex; align-items: center; justify-content: center; font-size: 10px; color: #aaa; }
+    .banner-upload-btn { font-size: 12px; color: #2b6cb0; cursor: pointer; white-space: nowrap; }
+    .banner-upload-btn:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -74,7 +85,9 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
     Название, описание (подзаголовок на плитке) и порядок показа коллекций на главной и на
     <a href="/collection/" target="_blank">/collection/</a>. Фото плитки заливается отдельно —
     <a href="/local/admin_tools/eporta_banners/#grid-coll" target="_blank">в админке баннеров →</a>.
-    Новая коллекция сразу получает свой слот там же.
+    Новая коллекция сразу получает свой слот там же. Столбец «Баннер страницы» ниже — другое фото:
+    заглавная картинка на самой странице коллекции (<code>/catalog/collections/&lt;код&gt;/</code>),
+    не плитка на главной и не на хабе всех коллекций.
 </p>
 
 <table id="collections-table">
@@ -86,6 +99,7 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
             <th style="width:80px">Порядок</th>
             <th style="width:60px">Активна</th>
             <th style="width:90px">Моделей</th>
+            <th style="width:130px">Баннер страницы</th>
             <th style="width:100px"></th>
         </tr>
     </thead>
@@ -108,6 +122,12 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
     const COLLECTIONS = <?= json_encode($collectionsForJs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
     const tbody = document.querySelector('#collections-table tbody');
 
+    function bannerThumbHtml(url) {
+        return url
+            ? '<img class="banner-thumb" src="' + url.replace(/"/g, '&quot;') + '">'
+            : '<div class="banner-thumb is-empty">нет фото</div>';
+    }
+
     function renderRow(coll, index) {
         const tr = document.createElement('tr');
         tr.innerHTML =
@@ -118,11 +138,46 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
             '<td><input type="number" class="f-sort" value="' + coll.sort + '" step="100"></td>' +
             '<td style="text-align:center"><input type="checkbox" class="f-active"' + (coll.active ? ' checked' : '') + '></td>' +
             '<td class="cnt-cell">' + coll.cnt + '</td>' +
+            '<td><div class="banner-cell">' + bannerThumbHtml(coll.banner) +
+                '<label class="banner-upload-btn">Изменить<input type="file" class="f-banner" accept="image/jpeg,image/png" hidden></label>' +
+                '</div><div class="status banner-status"></div></td>' +
             '<td class="row-actions"><button type="button" class="f-save">Сохранить</button></td>';
 
         const status = document.createElement('div');
         status.className = 'status';
         tr.lastElementChild.appendChild(status);
+
+        const bannerStatus = tr.querySelector('.banner-status');
+        const bannerThumbWrap = tr.querySelector('.banner-cell');
+        tr.querySelector('.f-banner').addEventListener('change', async function () {
+            const fileInput = this;
+            const file = fileInput.files && fileInput.files[0];
+            if (!file) return;
+            bannerStatus.textContent = 'Загрузка...';
+            bannerStatus.className = 'status banner-status';
+            const fd = new FormData();
+            fd.append('action', 'upload_banner');
+            fd.append('sessid', SESSID);
+            fd.append('id', coll.id);
+            fd.append('banner', file);
+            try {
+                const r = await fetch('ajax.php', { method: 'POST', body: fd });
+                const resp = await r.json();
+                if (!resp.ok) {
+                    bannerStatus.textContent = resp.error || 'Ошибка';
+                    bannerStatus.classList.add('err');
+                } else {
+                    coll.banner = resp.image || '';
+                    bannerThumbWrap.querySelector('.banner-thumb').outerHTML = bannerThumbHtml(coll.banner);
+                    bannerStatus.textContent = 'Сохранено';
+                    bannerStatus.classList.add('ok');
+                }
+            } catch (e) {
+                bannerStatus.textContent = 'Ошибка сети: ' + e.message;
+                bannerStatus.classList.add('err');
+            }
+            fileInput.value = '';
+        });
 
         tr.querySelector('.f-save').addEventListener('click', async function () {
             const btn = tr.querySelector('.f-save');
