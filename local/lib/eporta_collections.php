@@ -77,12 +77,15 @@ function eportaCollectionsElementCounts(bool $includeInactive = false): array {
         $cache[$cacheKey] = $counts;
         return $counts;
     }
+    // "CNT" обязателен в списке полей при группировке (4-й параметр) — без него Bitrix не
+    // считает агрегат, $row['CNT'] всегда пуст и все коллекции показывают 0 моделей (баг,
+    // обнаружен на проде 06.09.2026 — карточки коллекций на главной все по 0).
     $res = CIBlockElement::GetList(
         [],
         ['IBLOCK_ID' => EPORTA_COLLECTIONS_IBLOCK_ID, 'SECTION_ID' => $sectionIds, 'ACTIVE' => 'Y'],
         ['SECTION_ID'],
         false,
-        ['ID', 'SECTION_ID']
+        ['ID', 'SECTION_ID', 'CNT']
     );
     while ($row = $res->Fetch()) {
         $sectionId = (int)$row['SECTION_ID'];
