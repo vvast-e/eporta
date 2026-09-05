@@ -64,10 +64,19 @@ function eportaMatchSeoSlug(string $groupKey, string $enumValue): ?string
 	$map = eportaSeoFilterMap();
 	if (empty($map[$groupKey])) return null;
 
+	// Значения MAIN_COLOR в проде бывают составными ("Бежевый, Светлый", "Бетон, Темный",
+	// "Светло-серый") — оттенок вроде "Светлый"/"Темный" почти никогда не идёт первым словом,
+	// поэтому сравниваем НЕ саму строку целиком, а КАЖДЫЙ токен (разбивка по запятой/пробелу/
+	// дефису) на совпадение по началу с ключом карты. Порядок ключей в eportaSeoFilterMap()
+	// задаёт приоритет при составных значениях (например "Темно-серый" уйдёт в "сер", не "темн" —
+	// стем "сер" объявлен раньше).
 	$normalized = eportaSeoNormalize($enumValue);
+	$tokens = preg_split('/[\s,;\-]+/u', $normalized, -1, PREG_SPLIT_NO_EMPTY);
 	foreach ($map[$groupKey] as $prefix => $slug) {
-		if (mb_strpos($normalized, $prefix, 0, "UTF-8") === 0) {
-			return $slug;
+		foreach ($tokens as $token) {
+			if (mb_strpos($token, $prefix, 0, "UTF-8") === 0) {
+				return $slug;
+			}
 		}
 	}
 	return null;
