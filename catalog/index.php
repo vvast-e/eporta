@@ -825,7 +825,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 
 	<!-- Активные фильтры: реально применённые GET-параметры -->
 	<?if ($eportaActiveChips):?>
-	<div style="display:flex;align-items:center;gap:9px;padding:14px var(--pad-x) 6px;flex-wrap:wrap">
+	<div class="eporta-catalog-chips" style="display:flex;align-items:center;gap:9px;padding:14px var(--pad-x) 6px;flex-wrap:wrap">
 		<?foreach ($eportaActiveChips as $eportaChip):
 			$eportaChipParams = [];
 			parse_str(parse_url($_SERVER["REQUEST_URI"] ?? "", PHP_URL_QUERY) ?: "", $eportaChipParams);

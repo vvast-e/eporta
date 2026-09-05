@@ -51,7 +51,7 @@ if ($eportaModels) {
 		["IBLOCK_ID" => $arParams["IBLOCK_ID"], "ACTIVE" => "Y", "PROPERTY_MODEL" => $eportaModels],
 		false,
 		false,
-		["ID", "CODE", "PROPERTY_MODEL", "PROPERTY_COATING_COLOR", "DETAIL_PAGE_URL", "PREVIEW_PICTURE", "DETAIL_PICTURE"]
+		["ID", "NAME", "CODE", "PROPERTY_MODEL", "PROPERTY_COATING_COLOR", "DETAIL_PAGE_URL", "PREVIEW_PICTURE", "DETAIL_PICTURE"]
 	);
 	while ($eportaV = $eportaVariantsRes->Fetch()) {
 		$eportaVModel = $eportaV["PROPERTY_MODEL_VALUE"] ?? "";
@@ -64,6 +64,7 @@ if ($eportaModels) {
 		if (!isset($eportaSwatchesByModel[$eportaVModel][$eportaVColor])) {
 			$eportaSwatchesByModel[$eportaVModel][$eportaVColor] = [
 				"id" => (int)$eportaV["ID"],
+				"name" => (string)($eportaV["NAME"] ?? ""),
 				"url" => $eportaVUrl,
 				"photo" => $eportaVImg ? \CFile::GetPath($eportaVImg) : "",
 				"color" => $eportaVColor,
@@ -163,11 +164,25 @@ if ($eportaModels) {
 	</a>
 	<?php if ($eportaSwatchesShown): ?>
 	<div class="product-swatches">
-		<?php foreach ($eportaSwatchesShown as $eportaSwatch): ?>
+		<?php foreach ($eportaSwatchesShown as $eportaSwatch):
+			// Фото этого цвета, заранее отрендеренное как <picture> (тот же webp/jpg, что и основное фото карточки выше), чтобы клик по кружку
+			// мог подменить картинку на месте (app.js) без перехода на карточку другого цвета.
+			// Без фото (вариант не залит) атрибут не выводится и клик остаётся обычной ссылкой на страницу варианта.
+			$eportaSwatchPictureHtml = "";
+			if ($eportaSwatch["photo"]) {
+				ob_start();
+				eportaPicture($eportaSwatch["photo"], trim($eportaSwatch["name"] . " — " . $eportaSwatch["color"]), [
+					"loading" => "eager",
+					"decoding" => "async",
+				], true);
+				$eportaSwatchPictureHtml = ob_get_clean();
+			}
+		?>
 		<a href="<?= $eportaSwatch["url"] ? htmlspecialcharsbx($eportaSwatch["url"]) : "javascript:void(0)" ?>"
 		   class="swatch"
 		   title="<?= htmlspecialcharsbx($eportaSwatch["color"]) ?>"
-		   <?= $eportaSwatch["photo"] ? 'style="background-image:url(' . htmlspecialcharsbx($eportaSwatch["photo"]) . ')"' : "" ?>></a>
+		   <?= $eportaSwatch["photo"] ? 'style="background-image:url(' . htmlspecialcharsbx($eportaSwatch["photo"]) . ')"' : "" ?>
+		   <?= $eportaSwatchPictureHtml ? 'data-picture="' . htmlspecialcharsbx($eportaSwatchPictureHtml) . '"' : "" ?>></a>
 		<?php endforeach; ?>
 		<?php if ($eportaSwatchesMore > 0): ?><span class="swatch-more">+<?= $eportaSwatchesMore ?></span><?php endif; ?>
 	</div>
