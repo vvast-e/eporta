@@ -2492,3 +2492,12 @@ img { display: block; }
 .store-detail-label { font: 700 12px var(--font); color: var(--text-hint); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 3px; }
 .store-detail-value { font: 600 14px var(--font); color: var(--dark); }
 .store-detail-back { margin-top: 8px; }
+
+/* SEO-текст категории каталога (Этап SEO, catalog/index.php + inc/seo/<slug>.php) —
+   сами файлы содержат голые h2/p/ul без классов, стили только на уровне обёртки. */
+.eporta-catalog-seo-text { border-top: 1px solid var(--border-soft); padding-top: 24px; }
+.eporta-catalog-seo-text h2 { margin: 0 0 12px; font: 800 20px var(--font); letter-spacing: -0.01em; color: var(--dark); }
+.eporta-catalog-seo-text p { margin: 0 0 14px; font: 500 14px/1.65 var(--font); color: var(--text-mid); }
+.eporta-catalog-seo-text ul { margin: 0 0 14px; padding-left: 20px; }
+.eporta-catalog-seo-text li { font: 500 14px/1.6 var(--font); color: var(--text-mid); margin: 4px 0; }
+.eporta-catalog-seo-text p:last-child, .eporta-catalog-seo-text ul:last-child { margin-bottom: 0; }

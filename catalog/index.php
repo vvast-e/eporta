@@ -324,6 +324,47 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			$eportaActiveChips[] = ["LABEL" => number_format($eportaPriceSelMin, 0, "", " ")." – ".number_format($eportaPriceSelMax, 0, "", " ")." ₽", "REMOVE_KEY" => "price", "REMOVE_VALUE" => null];
 		}
 
+		// SEO-тексты категорий: подключаем готовый H1/TITLE/DESC + текст (inc/seo/<slug>.php,
+		// реестр _registry_draft.php) только для "чистых" состояний каталога — ровно один
+		// выбранный фильтр из цвет/стиль/покрытие (без комбинаций — под них заголовок не
+		// придуман и не нужен), либо категория "Скрытые", либо корень каталога совсем без
+		// фильтров. Страницы коллекций и Распродажа/Новинки — не трогаем, у них свой заголовок.
+		$eportaSeoSlug = null;
+		$eportaSeoH1 = null;
+		if (!$eportaCollectionSection && !$eportaOnlySale && !$eportaOnlyNew && !$eportaPriceActive) {
+			$eportaSeoActiveGroups = 0;
+			foreach (["style", "coating", "color"] as $eportaSeoKey) {
+				if (!empty($eportaSelected[$eportaSeoKey])) $eportaSeoActiveGroups++;
+			}
+			if ($eportaSeoActiveGroups === 0 && !$eportaSelectedCategory) {
+				$eportaSeoSlug = "internal-doors";
+			} elseif ($eportaSeoActiveGroups === 0 && $eportaSelectedCategory === "hidden") {
+				$eportaSeoSlug = "invisible-internal-doors";
+			} elseif ($eportaSeoActiveGroups === 1 && !$eportaSelectedCategory) {
+				require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/seo/_catalog_filter_map.php");
+				foreach (["style", "coating", "color"] as $eportaSeoKey) {
+					if (count($eportaSelected[$eportaSeoKey]) === 1) {
+						$eportaSeoEnumValue = $eportaPropDefs[$eportaSeoKey]["VALUES"][$eportaSelected[$eportaSeoKey][0]] ?? "";
+						$eportaSeoSlug = eportaMatchSeoSlug($eportaSeoKey, $eportaSeoEnumValue);
+						break;
+					}
+				}
+			}
+		}
+		if ($eportaSeoSlug) {
+			$eportaSeoRegistry = include($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/seo/_registry_draft.php");
+			$eportaSeoEntry = $eportaSeoRegistry[$eportaSeoSlug] ?? null;
+			if ($eportaSeoEntry) {
+				$APPLICATION->SetPageProperty("title", $eportaSeoEntry["TITLE"]);
+				$APPLICATION->SetTitle($eportaSeoEntry["TITLE"]);
+				$APPLICATION->SetPageProperty("description", $eportaSeoEntry["DESC"]);
+				$eportaSeoH1 = $eportaSeoEntry["H1"];
+			} else {
+				// В реестре нет записи под слаг — не подставляем текст без заголовка/описания.
+				$eportaSeoSlug = null;
+			}
+		}
+
 		// Раскладка "круговая по моделям": раньше здесь схлопывали выдачу до одного
 		// представителя на модель (иначе одна модель со множеством цветов — в выгрузке каждый
 		// цвет отдельный элемент, см. eportaImportComposeName — занимала всю страницу своими же
@@ -770,6 +811,8 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Распродажа</h1>
 			<?elseif ($eportaOnlyNew):?>
 			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Новинки</h1>
+			<?elseif ($eportaSeoH1):?>
+			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em"><?=htmlspecialcharsbx($eportaSeoH1)?></h1>
 			<?else:?>
 			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Межкомнатные двери</h1>
 			<?endif;?>
@@ -910,6 +953,20 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			<?php eportaRenderCatalogLoadMoreBtn($eportaCurPage, $eportaTotalPages); ?>
 		</div>
 	</div>
+
+	<?php
+	// SEO-текст категории — под сеткой, во всю ширину контента (не в колонке сайдбара).
+	// $eportaSeoSlug определён выше вместе с переопределением Title/H1 (см. комментарий там же).
+	if ($eportaSeoSlug):
+		$eportaSeoTextFile = $_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/seo/".$eportaSeoSlug.".php";
+		$eportaSeoTextHtml = is_file($eportaSeoTextFile) ? include($eportaSeoTextFile) : "";
+		if ($eportaSeoTextHtml):
+	?>
+	<div class="eporta-catalog-seo-text" style="padding:0 var(--pad-x) 32px;max-width:900px"><?=$eportaSeoTextHtml?></div>
+	<?php
+		endif;
+	endif;
+	?>
 
 	<script>
 	(function(){
