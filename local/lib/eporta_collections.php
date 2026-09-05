@@ -106,20 +106,20 @@ function eportaCollectionSlotCode(string $collectionCode): string {
     return 'coll_' . $collectionCode;
 }
 
-// Склонение "модель/модели/моделей" по числу — используется на плитках коллекций.
+// Склонение "товар/товара/товаров" по числу — используется на плитках коллекций.
 function eportaCollectionsDeclension(int $count): string {
     $mod100 = $count % 100;
     if ($mod100 >= 11 && $mod100 <= 14) {
-        return 'моделей';
+        return 'товаров';
     }
     switch ($count % 10) {
         case 1:
-            return 'модель';
+            return 'товар';
         case 2:
         case 3:
         case 4:
-            return 'модели';
+            return 'товара';
         default:
-            return 'моделей';
+            return 'товаров';
     }
 }
