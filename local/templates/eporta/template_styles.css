@@ -719,35 +719,46 @@ img { display: block; }
 }
 .wishlist-remove-btn:hover { color: #e8820a; }
 .wishlist-remove-btn:disabled { opacity: .5; cursor: default; }
-.product-card .info { padding: 10px 12px 12px; }
+.product-card .info { padding: 10px 12px 8px; }
 .product-card .stars { color: var(--accent); font-size: 12px; letter-spacing: 1px; }
 .product-card .stars span { color: var(--text-hint); }
-/* Название — одна строка с многоточием (было 2 строки, clamp по vw) — полное название доступно
-   через title= на этом же элементе (см. catalog.section/.default/template.php). Задача 06.09.2026:
-   при фиксированной ширине карточки (6 в ряд, по аналогии с 169.ru) шрифт можно и нужно уменьшить,
-   иначе двухстрочное название не помещалось бы в узкую колонку без переноса. */
+/* Название — две строки (задача 06.09.2026): NAME делится в PHP по первой запятой на модель
+   (.name, крупнее/жирнее) и покрытие+цвет (.coating, мельче/приглушённый цвет) — раньше это была
+   одна обрезанная строка "Dorsum-Eco 12.2, Экошпон Дуб Мадейра янтарь Н", из которой на узкой
+   карточке толком не читалось ни то, ни другое. Обе строки — свой nowrap+ellipsis, обрезаются
+   независимо; полное название по-прежнему доступно через title= на .name. */
 .product-card .name {
   font-family: var(--font);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 13px;
-  line-height: 1.35;
-  height: auto;
+  line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin: 5px 0 8px;
+  margin: 5px 0 0;
 }
-/* Цена в узкой (200px) карточке: раньше price-block и price-row-tools (кнопки) делили строку
-   через justify-content:space-between без ограничений — кнопки отжимали блок цены до ~66px,
-   и "10 148 ₽" переносилось ВНУТРИ цены по обычному пробелу перед "₽" (жалоба 06.09.2026:
-   "₽ на своей строке"). Теперь: price-block и price-row-tools не сжимаются (flex:0 0 auto,
-   nowrap на самой цене — ₽ никогда не оторвётся от числа), а если вместе они не помещаются в
-   ширину карточки — flex-wrap переносит целиком БЛОК КНОПОК на следующую строку, а не рвёт
-   цифры/значок валюты. */
-.product-card .price-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 8px; }
-.product-card .price-block { display: flex; flex-direction: column; flex: 0 0 auto; }
+.product-card .coating {
+  font-family: var(--font);
+  font-weight: 500;
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 2px 0 8px;
+}
+/* Цена — одна строка, новая и старая (зачёркнутая) рядом (задача 06.09.2026: были раньше
+   строкой одна под другой). Кнопки живут отдельным .card-actions ниже, своей строкой во всю
+   ширину карточки — раньше делили строку с ценой и отжимали её до переноса "₽" на новую
+   строку. */
+.product-card .price-row { display: flex; align-items: baseline; gap: 8px; }
+.product-card .price-block { display: flex; align-items: baseline; gap: 8px; }
 .product-card .price { font-family: var(--font); font-weight: 800; font-size: 18px; white-space: nowrap; }
 .product-card .price-old { font-family: var(--font); font-weight: 600; font-size: 12px; color: var(--text-hint); text-decoration: line-through; white-space: nowrap; }
+.card-actions { display: flex; align-items: center; gap: 8px; padding: 0 12px 12px; }
+.card-actions .btn-cart { flex: 1 1 auto; }
+.card-actions .btn-compare { flex: 0 0 auto; }
 .product-card .btn-cart {
   background: var(--accent);
   color: #fff;
@@ -773,7 +784,6 @@ img { display: block; }
   white-space: nowrap;
 }
 .product-card .btn-compare:hover, .product-card .btn-compare.added { border-color: var(--accent); color: var(--accent-dark); }
-.product-card .price-row-tools { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 
 /* Сетка карточек каталога/коллекций — 6 в ряд на десктопе (по аналогии с 169.ru, задача
    Алексея/Сергея 06.09.2026). Раньше колонки были резиновые (repeat(N,1fr)) — при сужении/

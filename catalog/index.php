@@ -153,11 +153,11 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		);
 		$eportaModelBest = [];
 		$eportaModelColorCount = [];
-		// Кружки цвета для карточки модели (задача 06.09.2026: перенесены сюда из блока "Все
-		// товары коллекции" — там их убрали, см. SHOW_SWATCHES в eportaRenderCatalogGrid ниже).
-		// Один свотч на цвет (не на элемент), тот же принцип, что в catalog.section/.default/
-		// template.php — фото и ссылка первого попавшегося варианта этого цвета. Данные уже есть
-		// в этой же выборке, второго запроса не требуется.
+		// Кружки цвета для карточки модели (задача 06.09.2026: единственное место, где они теперь
+		// остались — в обычных карточках товара каталога их убрали совсем). Один свотч на цвет
+		// (не на элемент), тот же принцип, что раньше был в catalog.section/.default/template.php —
+		// фото и ссылка первого попавшегося варианта этого цвета. Данные уже есть в этой же
+		// выборке, второго запроса не требуется.
 		$eportaModelSwatches = [];
 		// Минимальная цена по группе модели — "От ..." на карточке должна вести на самый
 		// дешёвый цвет модели, не на цену конкретного (самого популярного) представителя.
@@ -642,7 +642,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		// FILTER_NAME=>"arrFilter" ниже читает ГЛОБАЛЬНУЮ переменную "arrFilter" — обязательно
 		// global, иначе компонент её не увидит (в отличие от вызова на верхнем уровне скрипта,
 		// внутри функции локальная переменная не совпадает с глобальной).
-		function eportaRenderCatalogGrid($eportaIds, $eportaSectionId, $eportaSortField, $eportaSortOrder, $eportaColsArg, $eportaPageElementCountArg, $eportaShowSwatchesArg = "Y") {
+		function eportaRenderCatalogGrid($eportaIds, $eportaSectionId, $eportaSortField, $eportaSortOrder, $eportaColsArg, $eportaPageElementCountArg) {
 			global $arrFilter, $APPLICATION;
 			// $eportaIds уже полностью отфильтрован (категория/распродажа/новинки/чекбоксы/цена/
 			// коллекция — см. $eportaGroupFilter выше), доп. условия компоненту не нужны.
@@ -669,10 +669,6 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 					"PAGE_ELEMENT_COUNT" => (string)$eportaPageElementCountArg,
 					"LINE_ELEMENT_COUNT" => (string)$eportaColsArg,
 					"PROPERTY_CODE" => ["STYLE", "COATING_COLOR", "GLAZING", "MAIN_COLOR", "PRODUCT_DAY", "RATING", "VOTE_COUNT", "CML2_ARTICLE"],
-					// На странице коллекции кружки цвета теперь показываются в блоке "Модели
-					// коллекции" выше — здесь, в блоке "Все товары коллекции", их убираем (задача
-					// Алексея/Сергея 06.09.2026, см. catalog/index.php ниже — сбор $eportaCollectionModelCards).
-					"SHOW_SWATCHES" => $eportaShowSwatchesArg,
 					"OFFERS_FIELD_CODE" => [],
 					"OFFERS_PROPERTY_CODE" => [],
 					"BACKGROUND_IMAGE" => "-",
@@ -851,8 +847,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			$eportaSortOptions[$eportaSort]["FIELD"],
 			$eportaSortOptions[$eportaSort]["ORDER"],
 			$eportaCols,
-			$eportaPageElementCount,
-			$eportaCollectionSection ? "N" : "Y"
+			$eportaPageElementCount
 		);
 		eportaRenderCatalogPager($eportaCurPage, $eportaTotalPages, $eportaCatalogPageUrl);
 		eportaRenderCatalogLoadMoreBtn($eportaCurPage, $eportaTotalPages);
@@ -1108,8 +1103,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 				$eportaSortOptions[$eportaSort]["FIELD"],
 				$eportaSortOptions[$eportaSort]["ORDER"],
 				$eportaCols,
-				$eportaPageElementCount,
-				$eportaCollectionSection ? "N" : "Y"
+				$eportaPageElementCount
 			); ?>
 			<?php eportaRenderCatalogPager($eportaCurPage, $eportaTotalPages, $eportaCatalogPageUrl); ?>
 			<!-- Кнопка "Показать ещё" (eportaRenderCatalogLoadMoreBtn — общая с AJAX-подгрузкой
