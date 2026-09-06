@@ -78,6 +78,27 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	}
 	}
 
+	// Enum ID List-свойства IBLOCK 19 по CODE+XML_ID (кэш на весь запрос — вызывается для
+	// SHOWCASE/SHOW_IN_LIST при каждом сравнении). ВАЖНО (найдено 06.09.2026): PROPERTY_CODE_VALUE
+	// в CIBlockElement::GetList — это VALUE энума ("Да"/"Нет", человекочитаемый текст), а НЕ
+	// XML_ID ("Y"/"N") — сравнивать нужно PROPERTY_CODE_ENUM_ID с ID, полученным отсюда, иначе
+	// сравнение с "Y"/"N" никогда не совпадает и любой ручной выбор в админке молча игнорируется.
+	if (!function_exists("eportaGetIblock19EnumId")) {
+	function eportaGetIblock19EnumId(string $propertyCode, string $xmlId): ?int {
+		static $cache = [];
+		$key = $propertyCode . ":" . $xmlId;
+		if (array_key_exists($key, $cache)) {
+			return $cache[$key];
+		}
+		$propRow = \CIBlockProperty::GetList([], ["IBLOCK_ID" => 19, "CODE" => $propertyCode])->Fetch();
+		if (!$propRow) {
+			return $cache[$key] = null;
+		}
+		$enumRow = \CIBlockPropertyEnum::GetList([], ["PROPERTY_ID" => $propRow["ID"], "XML_ID" => $xmlId])->Fetch();
+		return $cache[$key] = $enumRow ? (int)$enumRow["ID"] : null;
+	}
+	}
+
 	// Этап 5 — Коллекции: подразделы раздела 183 "Коллекции" в IBLOCK 19. URL приходит по
 	// штатному SEF-шаблону как /catalog/collections/<code>/ (SECTION_PAGE_URL секции). Список
 	// ID коллекций — общий источник local/lib/eporta_collections.php (фильтр
@@ -123,6 +144,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	$eportaCollectionModelCards = [];
 	$eportaCollectionModelCount = 0;
 	if ($eportaCollectionSection) {
+		$eportaShowcaseYEnumId = eportaGetIblock19EnumId("SHOWCASE", "Y");
 		$eportaModelRepRes = \CIBlockElement::GetList(
 			[],
 			["IBLOCK_ID" => 19, "ACTIVE" => "Y", "SECTION_ID" => $eportaCollectionSection["ID"]],
@@ -162,7 +184,9 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			// local/admin_tools/eporta_showcase/) побеждает всегда — даже вариант с более низким
 			// RATING; фолбэк на прежнюю логику (максимум RATING, тай-брейк больший ID) для
 			// моделей, где контент-менеджер витринный вариант ещё не выбрал.
-			$eportaModelIsShowcase = ($eportaModelRow["PROPERTY_SHOWCASE_VALUE"] ?? "") === "Y";
+			// ВАЖНО: сравнивать нужно ENUM_ID, а не _VALUE — см. комментарий у eportaGetIblock19EnumId.
+			$eportaModelIsShowcase = $eportaShowcaseYEnumId !== null
+				&& (int)($eportaModelRow["PROPERTY_SHOWCASE_ENUM_ID"] ?? 0) === $eportaShowcaseYEnumId;
 			$eportaModelCurrentIsShowcase = $eportaModelBest[$eportaModelKey]["IS_SHOWCASE"] ?? false;
 			$eportaModelWins = $eportaModelIsShowcase && !$eportaModelCurrentIsShowcase;
 			if (!$eportaModelWins && !$eportaModelCurrentIsShowcase && !isset($eportaModelBest[$eportaModelKey])) {
@@ -237,12 +261,9 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		// на прямую ссылку, карточку товара и переключение цвета там не влияет. Отсутствие свойства
 		// (ещё не создано) или значения у конкретного товара (создано позже 800+ уже существующих)
 		// трактуется как "показывать" — фильтруем только явное значение "N", а не "не Y".
-		$eportaHideFromListPropRow = \CIBlockProperty::GetList([], ["IBLOCK_ID" => 19, "CODE" => "SHOW_IN_LIST"])->Fetch();
-		if ($eportaHideFromListPropRow) {
-			$eportaHideFromListEnumRow = \CIBlockPropertyEnum::GetList([], ["PROPERTY_ID" => $eportaHideFromListPropRow["ID"], "XML_ID" => "N"])->Fetch();
-			if ($eportaHideFromListEnumRow) {
-				$eportaScopeFilter["!PROPERTY_SHOW_IN_LIST"] = (int)$eportaHideFromListEnumRow["ID"];
-			}
+		$eportaHideFromListEnumId = eportaGetIblock19EnumId("SHOW_IN_LIST", "N");
+		if ($eportaHideFromListEnumId !== null) {
+			$eportaScopeFilter["!PROPERTY_SHOW_IN_LIST"] = $eportaHideFromListEnumId;
 		}
 
 		// Категория (PROPERTY_CATEGORY, строковое свойство — см. inc/categories.php) — привязка
