@@ -5,6 +5,10 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();
 /** @var array $arParams */
 
 $eportaCols = (int)($arParams["LINE_ELEMENT_COUNT"] ?? 3) ?: 3;
+// На странице коллекции кружки цвета переехали в блок "Модели коллекции" (catalog/index.php) —
+// здесь, в блоке "Все товары коллекции", их не показываем (SHOW_SWATCHES="N" из вызывающего
+// кода). Во всех остальных местах (обычный каталог, главная, wishlist, simple.offers) — как раньше.
+$eportaShowSwatches = ($arParams["SHOW_SWATCHES"] ?? "Y") !== "N";
 // Вид плитка/список — общий для всех вызовов этого шаблона (каталог/коллекции/wishlist/
 // simple.offers), кука eporta_view переключается кнопками в catalog/index.php.
 $eportaGridView = ($_COOKIE["eporta_view"] ?? "") === "list" ? " eporta-product-grid--list" : "";
@@ -44,7 +48,7 @@ if ($eportaItemIds) {
 // странице (catalog.element/.default/template.php:101-142), но компактно и без выбора
 // остекления. Один общий запрос на все модели текущей страницы, не по одному на карточку.
 $eportaSwatchesByModel = [];
-$eportaModels = array_unique(array_filter(array_column($eportaExtraProps, "MODEL")));
+$eportaModels = $eportaShowSwatches ? array_unique(array_filter(array_column($eportaExtraProps, "MODEL"))) : [];
 if ($eportaModels) {
 	$eportaVariantsRes = \CIBlockElement::GetList(
 		[],
@@ -169,7 +173,7 @@ if ($eportaModels) {
 			заполняет), из-за чего рядом со звёздами у всех товаров стоял "0". Значение
 			рейтинга нагляднее и совпадает с тем, что показывается на детальной странице. -->
 			<div class="stars"><?= $stars ?><?php if ($rating > 0): ?> <span><?= number_format($rating, 1, ".", "") ?></span><?php endif; ?></div>
-			<div class="name"><?= htmlspecialcharsbx($arItem["NAME"]) ?></div>
+			<div class="name" title="<?= htmlspecialcharsbx($arItem["NAME"]) ?>"><?= htmlspecialcharsbx($arItem["NAME"]) ?></div>
 			<div class="price-row">
 				<div class="price-block"><?= $eportaDefaultPriceHtml ?></div>
 				<div class="price-row-tools">

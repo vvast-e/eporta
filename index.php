@@ -353,8 +353,10 @@ $APPLICATION->SetTitle("Eporta");?> <?
 					"FILTER_NAME" => "arrEportaHitsFilter",
 					"HIDE_NOT_AVAILABLE" => "N",
 					"HIDE_NOT_AVAILABLE_OFFERS" => "N",
-					"PAGE_ELEMENT_COUNT" => "8",
-					"LINE_ELEMENT_COUNT" => "4",
+					// 6 в ряд по аналогии с 169.ru (задача 06.09.2026, см. catalog/index.php) —
+					// PAGE_ELEMENT_COUNT кратен 6 (2 полных ряда), было 8 при 4 в ряду.
+					"PAGE_ELEMENT_COUNT" => "12",
+					"LINE_ELEMENT_COUNT" => "6",
 					"PROPERTY_CODE" => ["STYLE", "COATING_COLOR", "GLAZING", "MAIN_COLOR", "PRODUCT_DAY", "RATING", "VOTE_COUNT", "CML2_ARTICLE"],
 					"OFFERS_FIELD_CODE" => [],
 					"OFFERS_PROPERTY_CODE" => [],

@@ -24,8 +24,9 @@ global $APPLICATION, $arrFilter;
 			"ELEMENT_SORT_ORDER2" => "desc",
 			"HIDE_NOT_AVAILABLE" => $arParams["HIDE_NOT_AVAILABLE"] ?: "N",
 			"HIDE_NOT_AVAILABLE_OFFERS" => "N",
+			// 6 в ряд по аналогии с 169.ru (задача 06.09.2026) — 30 уже кратно 6.
 			"PAGE_ELEMENT_COUNT" => "30",
-			"LINE_ELEMENT_COUNT" => "3",
+			"LINE_ELEMENT_COUNT" => "6",
 			"PROPERTY_CODE" => ["STYLE", "COATING_COLOR", "GLAZING", "MAIN_COLOR", "PRODUCT_DAY", "RATING", "VOTE_COUNT", "CML2_ARTICLE"],
 			"OFFERS_FIELD_CODE" => [],
 			"OFFERS_PROPERTY_CODE" => [],
