@@ -395,15 +395,20 @@ document.addEventListener('DOMContentLoaded', function () {
 	});
 });
 
-// ---- Карточка товара в каталоге: наведение на кружок цвета меняет фото и цену на месте ----
-// (catalog.section/.default/template.php, .product-swatches .swatch). Без клика — превью по
-// hover, курсор ушёл со свотчей → карточка возвращается к дефолтному фото/цене (data-default-*
-// на .product-card, тот же HTML, что отрендерен по умолчанию). Ссылка остаётся рабочей —
-// клик/ctrl/middle-click как обычно ведут на страницу того цвета. Делегирование на document
-// через mouseover/mouseout (в отличие от mouseenter/mouseleave — всплывают), а не на сетку —
-// карточки подгружаются AJAX'ом (кнопка "Показать ещё" выше).
+// ---- Карточка товара в каталоге и карточка модели в коллекции: наведение на кружок цвета
+// меняет фото (и, у товарной карточки, цену) на месте ----
+// (catalog.section/.default/template.php И блок "Модели коллекции" в catalog/index.php — оба
+// используют .product-swatches .swatch, поэтому один общий делегированный обработчик). Без
+// клика — превью по hover, курсор ушёл со свотчей → карточка возвращается к дефолтному
+// фото/цене (data-default-* на самой карточке, тот же HTML, что отрендерен по умолчанию).
+// Ссылка остаётся рабочей — клик/ctrl/middle-click как обычно ведут на страницу того цвета.
+// Делегирование на document через mouseover/mouseout (в отличие от mouseenter/mouseleave —
+// всплывают), а не на сетку — карточки подгружаются AJAX'ом (кнопка "Показать ещё" выше).
+// Карточка модели (.eporta-model-card) хранит только data-default-picture — цена там "От X ₽"
+// за всю линейку, а не за конкретный цвет, поэтому data-price на её свотчах не рендерится и
+// подмена цены просто не происходит (см. guard ниже).
 function eportaApplySwatchPreview(swatch) {
-	var card = swatch.closest('.product-card');
+	var card = swatch.closest('.product-card, .eporta-model-card');
 	if (!card) return;
 	var pictureHtml = swatch.getAttribute('data-picture');
 	if (pictureHtml) {
@@ -441,5 +446,5 @@ document.addEventListener('mouseout', function (e) {
 	// Курсор всё ещё внутри той же строки свотчей (перешёл на соседний кружок) — ничего не
 	// возвращаем, его mouseover сам подставит превью следующего цвета без мигания дефолтом.
 	if (e.relatedTarget && swatchesWrap.contains(e.relatedTarget)) return;
-	eportaRevertCardDefault(swatchesWrap.closest('.product-card'));
+	eportaRevertCardDefault(swatchesWrap.closest('.product-card, .eporta-model-card'));
 });

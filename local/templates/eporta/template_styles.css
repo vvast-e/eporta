@@ -737,9 +737,17 @@ img { display: block; }
   text-overflow: ellipsis;
   margin: 5px 0 8px;
 }
-.product-card .price-row { display: flex; align-items: center; justify-content: space-between; }
-.product-card .price { font-family: var(--font); font-weight: 800; font-size: 18px; }
-.product-card .price-old { font-family: var(--font); font-weight: 600; font-size: 12px; color: var(--text-hint); text-decoration: line-through; }
+/* Цена в узкой (200px) карточке: раньше price-block и price-row-tools (кнопки) делили строку
+   через justify-content:space-between без ограничений — кнопки отжимали блок цены до ~66px,
+   и "10 148 ₽" переносилось ВНУТРИ цены по обычному пробелу перед "₽" (жалоба 06.09.2026:
+   "₽ на своей строке"). Теперь: price-block и price-row-tools не сжимаются (flex:0 0 auto,
+   nowrap на самой цене — ₽ никогда не оторвётся от числа), а если вместе они не помещаются в
+   ширину карточки — flex-wrap переносит целиком БЛОК КНОПОК на следующую строку, а не рвёт
+   цифры/значок валюты. */
+.product-card .price-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 8px; }
+.product-card .price-block { display: flex; flex-direction: column; flex: 0 0 auto; }
+.product-card .price { font-family: var(--font); font-weight: 800; font-size: 18px; white-space: nowrap; }
+.product-card .price-old { font-family: var(--font); font-weight: 600; font-size: 12px; color: var(--text-hint); text-decoration: line-through; white-space: nowrap; }
 .product-card .btn-cart {
   background: var(--accent);
   color: #fff;
@@ -765,7 +773,7 @@ img { display: block; }
   white-space: nowrap;
 }
 .product-card .btn-compare:hover, .product-card .btn-compare.added { border-color: var(--accent); color: var(--accent-dark); }
-.product-card .price-row-tools { display: flex; align-items: center; gap: 8px; }
+.product-card .price-row-tools { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 
 /* Сетка карточек каталога/коллекций — 6 в ряд на десктопе (по аналогии с 169.ru, задача
    Алексея/Сергея 06.09.2026). Раньше колонки были резиновые (repeat(N,1fr)) — при сужении/
@@ -814,7 +822,7 @@ img { display: block; }
 }
 
 /* ---- Фильтры каталога на мобильном (выезжающая шторка справа) ----
-   Форма фильтров (.eporta-catalog-filters-form) на десктопе — обычная колонка 248px
+   Форма фильтров (.eporta-catalog-filters-form) на десктопе — обычная колонка 216px
    рядом с сеткой. На узком экране это зажимало #eportaCatalogGrid до ~194px. Ниже
    860px форма уходит из потока (display:none) и открывается как fixed-панель по
    клику на .eporta-filters-toggle (JS — catalog/index.php, тот же паттерн, что у
