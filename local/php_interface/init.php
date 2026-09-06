@@ -69,6 +69,18 @@ function eportaPluralRu(int $n, string $one, string $few, string $many): string 
     return $many;
 }
 
+// Убирает соседний повтор одного и того же слова в названии товара — источник: выгрузка 1С,
+// где столбец "Цвет" для части значений уже сам содержит название покрытия ("Эмаль белая",
+// "Эмаль мокко"), а eportaImportComposeName (local/admin_tools/eporta_import/lib.php) клеит его
+// с отдельным столбцом "Покрытие" ("Эмаль"), давая на выходе "Эмаль Эмаль белая". Правило общее
+// (любые два одинаковых слова подряд, без учёта регистра), не завязано на конкретное слово —
+// задача 06.09.2026, подтверждено пользователем: дубли всегда идут подряд.
+// НЕ трогает NAME в базе/выгрузке — только то, что показывается покупателю (см. места вызова:
+// catalog.section/.default/template.php, catalog.element/.default/template.php).
+function eportaCleanDisplayName(string $name): string {
+    return preg_replace('/\b(\p{L}+)\s+\1\b/iu', '$1', $name);
+}
+
 function eportaFindArticleMatches(string $query, int $iblockId, int $limit = 50): array {
     $query = trim($query);
     if ($query === '' || $iblockId <= 0 || !CModule::IncludeModule('iblock')) {

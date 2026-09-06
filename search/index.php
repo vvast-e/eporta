@@ -373,10 +373,16 @@ $APPLICATION->SetTitle("Страница поиска");
 					$eportaItemUrl = "/catalog/".$eportaItem["CODE"].".html";
 				}
 			?>
+			<?php
+			// eportaCleanDisplayName — убирает соседний повтор слова ("Эмаль Эмаль белая" →
+			// "Эмаль белая"), см. local/php_interface/init.php, задача 06.09.2026. Не трогает
+			// $eportaItem["NAME"] в базе — только показ на странице поиска.
+			$eportaDisplayName = eportaCleanDisplayName((string)$eportaItem["NAME"]);
+			?>
 			<a href="<?=$eportaItemUrl ? htmlspecialcharsbx($eportaItemUrl) : "javascript:void(0)"?>" class="product-card">
 				<div class="img-wrap">
 					<?if ($eportaImgSrc !== ""):?>
-					<img src="<?=htmlspecialcharsbx($eportaImgSrc)?>" alt="<?=htmlspecialcharsbx($eportaItem["NAME"])?>">
+					<img src="<?=htmlspecialcharsbx($eportaImgSrc)?>" alt="<?=htmlspecialcharsbx($eportaDisplayName)?>">
 					<?else:?>
 					<div class="img-noimg">Нет фото</div>
 					<?endif;?>
@@ -386,7 +392,7 @@ $APPLICATION->SetTitle("Страница поиска");
 				</div>
 				<div class="info">
 					<div class="stars"><?=$eportaStars?><?if ($eportaRating > 0):?> <span><?=number_format($eportaRating, 1, ".", "")?></span><?endif;?></div>
-					<div class="name"><?=htmlspecialcharsbx($eportaItem["NAME"])?></div>
+					<div class="name"><?=htmlspecialcharsbx($eportaDisplayName)?></div>
 					<div class="price-row">
 						<?if ($eportaHasPrice):?>
 							<?if ($eportaHasDiscount):?>

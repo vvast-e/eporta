@@ -78,7 +78,11 @@ if ($eportaItemIds) {
 	// делим по первой запятой на модель (крупнее, жирнее) и покрытие+цвет (мельче, приглушённый
 	// цвет), каждая строка обрезается по своей ширине независимо. Названий без запятой в данных
 	// не встречалось, но на случай пустой второй части просто не выводим вторую строку.
-	$eportaNameParts = explode(",", (string)$arItem["NAME"], 2);
+	// eportaCleanDisplayName — убирает "Эмаль Эмаль белая" → "Эмаль белая" (см. init.php),
+	// склейка "Покрытие"+"Цвет" при импорте, столбец "Цвет" в выгрузке иногда сам уже содержит
+	// название покрытия. Не трогает NAME в базе, только то, что видит покупатель.
+	$eportaDisplayName = eportaCleanDisplayName((string)$arItem["NAME"]);
+	$eportaNameParts = explode(",", $eportaDisplayName, 2);
 	$eportaModelNamePart = trim($eportaNameParts[0]);
 	$eportaCoatingNamePart = isset($eportaNameParts[1]) ? trim($eportaNameParts[1]) : "";
 
@@ -88,7 +92,7 @@ if ($eportaItemIds) {
 	// гарантированно тот же HTML, не отдельная копия логики форматирования.
 	ob_start();
 	if ($eportaHasPhoto) {
-		eportaPicture($imgSrc, $arItem["NAME"], [
+		eportaPicture($imgSrc, $eportaDisplayName, [
 			"loading" => $eportaIsEager ? "eager" : "lazy",
 			"decoding" => "async",
 		], true);
@@ -125,7 +129,7 @@ if ($eportaItemIds) {
 			заполняет), из-за чего рядом со звёздами у всех товаров стоял "0". Значение
 			рейтинга нагляднее и совпадает с тем, что показывается на детальной странице. -->
 			<div class="stars"><?= $stars ?><?php if ($rating > 0): ?> <span><?= number_format($rating, 1, ".", "") ?></span><?php endif; ?></div>
-			<div class="name" title="<?= htmlspecialcharsbx($arItem["NAME"]) ?>"><?= htmlspecialcharsbx($eportaModelNamePart) ?></div>
+			<div class="name" title="<?= htmlspecialcharsbx($eportaDisplayName) ?>"><?= htmlspecialcharsbx($eportaModelNamePart) ?></div>
 			<?php if ($eportaCoatingNamePart !== ""): ?>
 			<div class="coating" title="<?= htmlspecialcharsbx($eportaCoatingNamePart) ?>"><?= htmlspecialcharsbx($eportaCoatingNamePart) ?></div>
 			<?php endif; ?>
