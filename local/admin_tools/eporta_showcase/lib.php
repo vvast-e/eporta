@@ -36,7 +36,7 @@ function eportaShowcaseGetModels(int $sectionId): array {
         ['IBLOCK_ID' => EPORTA_SHOWCASE_IBLOCK_ID, 'ACTIVE' => 'Y', 'SECTION_ID' => $sectionId],
         false,
         false,
-        ['ID', 'NAME', 'PREVIEW_PICTURE', 'DETAIL_PICTURE', 'PROPERTY_MODEL', 'PROPERTY_RATING', 'PROPERTY_SHOWCASE', 'PROPERTY_COATING_COLOR']
+        ['ID', 'NAME', 'PREVIEW_PICTURE', 'DETAIL_PICTURE', 'PROPERTY_MODEL', 'PROPERTY_RATING', 'PROPERTY_SHOWCASE', 'PROPERTY_COATING_COLOR', 'PROPERTY_GLAZING', 'PROPERTY_SHOW_IN_LIST']
     );
     $models = [];
     while ($row = $res->Fetch()) {
@@ -46,9 +46,13 @@ function eportaShowcaseGetModels(int $sectionId): array {
         $models[$modelKey]['variants'][] = [
             'id' => (int)$row['ID'],
             'color' => $row['PROPERTY_COATING_COLOR_VALUE'] ?? '',
+            'glazing' => $row['PROPERTY_GLAZING_VALUE'] ?? '',
             'rating' => (float)($row['PROPERTY_RATING_VALUE'] ?? 0),
             'photo' => $photoId ? CFile::GetPath($photoId) : '',
             'is_showcase' => ($row['PROPERTY_SHOWCASE_VALUE'] ?? '') === 'Y',
+            // Отсутствие значения = показывать (см. комментарий в scripts/add_iblock19_show_in_list.php
+            // и catalog/index.php $eportaScopeFilter) — скрыт только явный "N".
+            'show_in_list' => ($row['PROPERTY_SHOW_IN_LIST_VALUE'] ?? '') !== 'N',
         ];
     }
     return $models;
@@ -89,4 +93,13 @@ function eportaShowcaseSetVariant(int $selectedId, array $allVariantIds): bool {
         $ok = eportaShowcaseSetListProperty($variantId, 'SHOWCASE', $value) && $ok;
     }
     return $ok;
+}
+
+// Показывать/скрывать один конкретный вариант в общих списках (каталог/"Все товары коллекции") —
+// в отличие от SHOWCASE это НЕ эксклюзивный выбор "один из группы": у модели может быть скрыто
+// сразу несколько вариантов (только самые ходовые остаются в списке), поэтому переключаем только
+// переданный ID, без затрагивания остальных вариантов модели. См. catalog/index.php
+// $eportaScopeFilter (!PROPERTY_SHOW_IN_LIST) — фильтрует только явное значение "N".
+function eportaShowcaseSetShowInList(int $variantId, bool $show): bool {
+    return eportaShowcaseSetListProperty($variantId, 'SHOW_IN_LIST', $show ? 'Y' : 'N');
 }

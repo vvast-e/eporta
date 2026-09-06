@@ -23,31 +23,56 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !check_bitrix_sessid()) {
 }
 
 $action = $_POST['action'] ?? '';
-if ($action !== 'set_showcase') {
-    eportaShowcaseJsonFail('Неизвестное действие');
+
+if ($action === 'set_showcase') {
+    $selectedId = (int)($_POST['id'] ?? 0);
+    $allIdsRaw = $_POST['all_ids'] ?? '';
+    $allIds = array_filter(array_map('intval', explode(',', (string)$allIdsRaw)));
+
+    if (!$selectedId || !in_array($selectedId, $allIds, true)) {
+        eportaShowcaseJsonFail('Некорректные данные варианта');
+    }
+
+    // Все ID должны реально принадлежать IBLOCK 19 — защита от произвольной записи по чужим ID.
+    $verifyRes = CIBlockElement::GetList([], ['IBLOCK_ID' => EPORTA_SHOWCASE_IBLOCK_ID, 'ID' => $allIds], false, false, ['ID']);
+    $verifiedIds = [];
+    while ($row = $verifyRes->Fetch()) {
+        $verifiedIds[] = (int)$row['ID'];
+    }
+    if (count($verifiedIds) !== count($allIds) || !in_array($selectedId, $verifiedIds, true)) {
+        eportaShowcaseJsonFail('Некорректные данные варианта');
+    }
+
+    $ok = eportaShowcaseSetVariant($selectedId, $verifiedIds);
+    if (!$ok) {
+        eportaShowcaseJsonFail('Ошибка сохранения', 500);
+    }
+
+    echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
-$selectedId = (int)($_POST['id'] ?? 0);
-$allIdsRaw = $_POST['all_ids'] ?? '';
-$allIds = array_filter(array_map('intval', explode(',', (string)$allIdsRaw)));
+if ($action === 'set_show_in_list') {
+    $variantId = (int)($_POST['id'] ?? 0);
+    $show = ($_POST['show'] ?? '') === '1';
 
-if (!$selectedId || !in_array($selectedId, $allIds, true)) {
-    eportaShowcaseJsonFail('Некорректные данные варианта');
+    if (!$variantId) {
+        eportaShowcaseJsonFail('Некорректные данные варианта');
+    }
+
+    // ID должен реально принадлежать IBLOCK 19 — защита от произвольной записи по чужим ID.
+    $verifyRow = CIBlockElement::GetList([], ['IBLOCK_ID' => EPORTA_SHOWCASE_IBLOCK_ID, 'ID' => $variantId], false, false, ['ID'])->Fetch();
+    if (!$verifyRow) {
+        eportaShowcaseJsonFail('Некорректные данные варианта');
+    }
+
+    $ok = eportaShowcaseSetShowInList($variantId, $show);
+    if (!$ok) {
+        eportaShowcaseJsonFail('Ошибка сохранения', 500);
+    }
+
+    echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
-// Все ID должны реально принадлежать IBLOCK 19 — защита от произвольной записи по чужим ID.
-$verifyRes = CIBlockElement::GetList([], ['IBLOCK_ID' => EPORTA_SHOWCASE_IBLOCK_ID, 'ID' => $allIds], false, false, ['ID']);
-$verifiedIds = [];
-while ($row = $verifyRes->Fetch()) {
-    $verifiedIds[] = (int)$row['ID'];
-}
-if (count($verifiedIds) !== count($allIds) || !in_array($selectedId, $verifiedIds, true)) {
-    eportaShowcaseJsonFail('Некорректные данные варианта');
-}
-
-$ok = eportaShowcaseSetVariant($selectedId, $verifiedIds);
-if (!$ok) {
-    eportaShowcaseJsonFail('Ошибка сохранения', 500);
-}
-
-echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+eportaShowcaseJsonFail('Неизвестное действие');

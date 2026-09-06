@@ -230,6 +230,21 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			$eportaScopeFilter["SECTION_ID"] = $eportaFilterSectionId;
 		}
 
+		// Варианты (конкретные цвета/остекления), скрытые из общих списков — свойство SHOW_IN_LIST
+		// (List Y/N, IBLOCK 19), проставляется в админке local/admin_tools/eporta_showcase/ (задача
+		// 06.09.2026: "у модели 6 вариантов — не все ходовые, хочу выбрать, какие показывать в блоке
+		// вариантов"). Влияет ТОЛЬКО на попадание в плоский список каталога/"Все товары коллекции" —
+		// на прямую ссылку, карточку товара и переключение цвета там не влияет. Отсутствие свойства
+		// (ещё не создано) или значения у конкретного товара (создано позже 800+ уже существующих)
+		// трактуется как "показывать" — фильтруем только явное значение "N", а не "не Y".
+		$eportaHideFromListPropRow = \CIBlockProperty::GetList([], ["IBLOCK_ID" => 19, "CODE" => "SHOW_IN_LIST"])->Fetch();
+		if ($eportaHideFromListPropRow) {
+			$eportaHideFromListEnumRow = \CIBlockPropertyEnum::GetList([], ["PROPERTY_ID" => $eportaHideFromListPropRow["ID"], "XML_ID" => "N"])->Fetch();
+			if ($eportaHideFromListEnumRow) {
+				$eportaScopeFilter["!PROPERTY_SHOW_IN_LIST"] = (int)$eportaHideFromListEnumRow["ID"];
+			}
+		}
+
 		// Категория (PROPERTY_CATEGORY, строковое свойство — см. inc/categories.php) — привязка
 		// пунктов мега-меню "Тип дверей" и плиток "Каталог по категориям" на главной. Не enum,
 		// поэтому фильтруется по массиву точных строковых значений (ALIASES), а не по ID варианта.
@@ -869,22 +884,31 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		<div class="eporta-model-grid" style="--eporta-model-cols:<?=$eportaModelGridCols?>">
 			<?foreach ($eportaCollectionModelCards as $eportaModelCard):
 				// "От ..." — минимальная цена среди всех цветов модели (не цена конкретного
-				// "популярного" представителя на фото), т.к. это цена целой линейки, не одного цвета.
+				// "популярного" представителя на фото), т.к. это цена целой линейки, не одного цвета,
+				// поэтому при наведении на свотч цена НЕ подменяется (в отличие от товарной карточки
+				// каталога) — меняется только фото.
 				$eportaModelPriceLabel = $eportaModelCard["MIN_PRICE"] > 0
 					? "От " . \CCurrencyLang::CurrencyFormat($eportaModelCard["MIN_PRICE"], "RUB")
 					: "по запросу";
+				// Дефолтное фото рендерим один раз через ob_start и переиспользуем и в разметке, и в
+				// data-default-picture — тот же приём, что у товарной карточки каталога
+				// (catalog.section/.default/template.php), чтобы app.js мог вернуть карточку к
+				// исходному фото при уходе курсора со свотчей без повторного похода в PHP.
+				ob_start();
+				if ($eportaModelCard["PHOTO"]) {
+					eportaPicture($eportaModelCard["PHOTO"], $eportaModelCard["MODEL"], [
+						"style" => "width:100%;height:230px;object-fit:contain;background:" . EPORTA_CARD_BACKDROP . ";display:block",
+						"loading" => "lazy", "decoding" => "async",
+					]);
+				} else {
+					echo '<div class="img-noimg" style="height:230px">Нет фото</div>';
+				}
+				$eportaModelDefaultPictureHtml = ob_get_clean();
 			?>
-			<div class="eporta-model-card">
+			<div class="eporta-model-card" data-default-picture="<?= htmlspecialcharsbx($eportaModelDefaultPictureHtml) ?>">
 				<a href="<?=$eportaModelCard["URL"] ? htmlspecialcharsbx($eportaModelCard["URL"]) : "javascript:void(0)"?>" class="product-card-link">
-					<div style="position:relative">
-						<?if ($eportaModelCard["PHOTO"]):?>
-						<?php eportaPicture($eportaModelCard["PHOTO"], $eportaModelCard["MODEL"], [
-							"style" => "width:100%;height:230px;object-fit:contain;background:" . EPORTA_CARD_BACKDROP . ";display:block",
-							"loading" => "lazy", "decoding" => "async",
-						]); ?>
-						<?else:?>
-						<div class="img-noimg" style="height:230px">Нет фото</div>
-						<?endif;?>
+					<div class="img-wrap" style="position:relative">
+						<?= $eportaModelDefaultPictureHtml ?>
 					</div>
 					<div style="padding:12px 14px 14px">
 						<div style="font:800 15px 'Manrope';letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="<?=htmlspecialcharsbx($eportaModelCard["MODEL"])?>"><?=htmlspecialcharsbx($eportaModelCard["MODEL"])?></div>
@@ -894,13 +918,25 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 				<?php if ($eportaModelCard["SWATCHES"]): ?>
 				<!-- Кружки цвета модели (перенесены сюда из блока "Все товары коллекции" —
 				     задача 06.09.2026), тот же .product-swatches/.swatch, что и на товарной
-				     карточке каталога — переиспользуем существующий CSS. -->
+				     карточке каталога — переиспользуем существующий CSS и hover-подмену фото
+				     (assets/app.js: eportaApplySwatchPreview/eportaRevertCardDefault). -->
 				<div class="product-swatches">
-					<?php foreach ($eportaModelCard["SWATCHES"] as $eportaModelSwatch): ?>
+					<?php foreach ($eportaModelCard["SWATCHES"] as $eportaModelSwatch):
+						$eportaModelSwatchPictureHtml = "";
+						if ($eportaModelSwatch["photo"]) {
+							ob_start();
+							eportaPicture($eportaModelSwatch["photo"], trim($eportaModelCard["MODEL"] . " — " . $eportaModelSwatch["color"]), [
+								"style" => "width:100%;height:230px;object-fit:contain;background:" . EPORTA_CARD_BACKDROP . ";display:block",
+								"loading" => "eager", "decoding" => "async",
+							]);
+							$eportaModelSwatchPictureHtml = ob_get_clean();
+						}
+					?>
 					<a href="<?= $eportaModelSwatch["url"] ? htmlspecialcharsbx($eportaModelSwatch["url"]) : "javascript:void(0)" ?>"
 					   class="swatch"
 					   title="<?= htmlspecialcharsbx($eportaModelSwatch["color"]) ?>"
-					   <?= $eportaModelSwatch["photo"] ? 'style="background-image:url(' . htmlspecialcharsbx($eportaModelSwatch["photo"]) . ')"' : "" ?>></a>
+					   <?= $eportaModelSwatch["photo"] ? 'style="background-image:url(' . htmlspecialcharsbx($eportaModelSwatch["photo"]) . ')"' : "" ?>
+					   <?= $eportaModelSwatchPictureHtml ? 'data-picture="' . htmlspecialcharsbx($eportaModelSwatchPictureHtml) . '"' : "" ?>></a>
 					<?php endforeach; ?>
 					<?php if ($eportaModelCard["SWATCHES_MORE"] > 0): ?><span class="swatch-more">+<?= $eportaModelCard["SWATCHES_MORE"] ?></span><?php endif; ?>
 				</div>
@@ -1004,7 +1040,9 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		<!-- Боковой фильтр: обычный GET-submit, реальные свойства IBLOCK 19. На мобильном —
 		     выезжающая панель (.eporta-filters-open на body переключает видимость через CSS,
 		     см. template_styles.css), в потоке документа не участвует. -->
-		<form method="get" action="" id="eportaFiltersForm" class="eporta-catalog-filters-form" style="flex:none;width:248px">
+		<!-- Ширина сужена с 248 до 216px (06.09.2026) — освобождает больше места сетке карточек
+		     при фиксированной ширине плашки (200px), см. .eporta-product-grid в template_styles.css. -->
+		<form method="get" action="" id="eportaFiltersForm" class="eporta-catalog-filters-form" style="flex:none;width:216px">
 			<!-- Заголовок панели — виден только на мобильном (выезжающая шторка), на десктопе
 			     скрыт через display:none в базовых стилях .eporta-filters-panel-head. -->
 			<div class="eporta-filters-panel-head">
