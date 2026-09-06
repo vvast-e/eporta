@@ -87,7 +87,9 @@ if ($catalogIblockId && $query !== "" && mb_strlen($query) > 1) {
 
 			$items[] = [
 				"ID" => $id,
-				"NAME" => $row["NAME"],
+				// eportaCleanDisplayName — убирает соседний повтор слова ("Эмаль Эмаль белая" →
+				// "Эмаль белая"), см. local/php_interface/init.php, задача 06.09.2026.
+				"NAME" => eportaCleanDisplayName((string)$row["NAME"]),
 				"DETAIL_PAGE_URL" => $url,
 				"DETAIL_PICTURE" => $imgId ? \CFile::GetPath($imgId) : "",
 				// CurrencyFormat(..., true) отдаёт HTML-сущности (&nbsp;/&#8381;) — годится для

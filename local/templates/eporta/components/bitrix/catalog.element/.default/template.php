@@ -6,6 +6,11 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();
 
 $placeholderImg = SITE_TEMPLATE_PATH . "/assets/img/hit-1.jpg";
 
+// Убирает соседний повтор слова ("Эмаль Эмаль белая" → "Эмаль белая") — см. eportaCleanDisplayName
+// в local/php_interface/init.php, задача 06.09.2026. Не трогает $arResult["NAME"] саму по себе
+// (используется дальше, например SEF/чужой код) — только то, что рендерит этот шаблон.
+$eportaDisplayName = eportaCleanDisplayName((string)$arResult["NAME"]);
+
 if (!function_exists("plural")) {
 	function plural($n, $one, $few, $many) {
 		$m = abs($n) % 100;
@@ -207,7 +212,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 	<div class="product-detail-gallery" style="flex:1.15;display:flex;flex-direction:column;gap:12px;height:560px">
 		<div style="position:relative;flex:1;min-height:0">
 			<?php if ($eportaHasPhoto): ?>
-			<?php eportaPicture($galleryPhotos[0], $arResult["NAME"], [
+			<?php eportaPicture($galleryPhotos[0], $eportaDisplayName, [
 				"id" => "mainPhoto",
 				"style" => "width:100%;height:100%;object-fit:contain;background:#f6f4ef;border-radius:16px",
 			]); ?>
@@ -238,7 +243,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 
 	<!-- Панель покупки -->
 	<div class="product-detail-panel" style="flex:1;align-self:flex-start">
-		<h1 style="margin:0 0 8px;font:800 24px/1.2 'Manrope';letter-spacing:-0.01em"><?= htmlspecialcharsbx($arResult["NAME"]) ?></h1>
+		<h1 style="margin:0 0 8px;font:800 24px/1.2 'Manrope';letter-spacing:-0.01em"><?= htmlspecialcharsbx($eportaDisplayName) ?></h1>
 		<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
 			<?php if ($rating > 0): ?>
 				<span style="color:#e8820a;font-size:13px;letter-spacing:1px"><?= $stars ?></span>
@@ -477,7 +482,7 @@ var BX_SESSID = <?= json_encode(bitrix_sessid(), JSON_UNESCAPED_SLASHES) ?>; // 
 var HAS_SIZE_OPTIONS = <?= count($eportaSizeOptions) > 1 ? "true" : "false" ?>; // есть ли реальный выбор размера (не единственный вариант)
 var selectedSizeLabel = <?= json_encode($eportaSizeOptions[0]["label"] ?? "", JSON_UNESCAPED_UNICODE) ?>;
 var ADD_TO_BASKET_URL = <?= $addToBasketUrl ? json_encode($addToBasketUrl, JSON_UNESCAPED_SLASHES) : "null" ?>;
-var DOOR_NAME = <?= json_encode($arResult["NAME"], JSON_UNESCAPED_UNICODE) ?>;
+var DOOR_NAME = <?= json_encode($eportaDisplayName, JSON_UNESCAPED_UNICODE) ?>;
 var DOOR_PRICE_LABEL = <?= json_encode($price ? ($price["PRINT_VALUE"]) : "", JSON_UNESCAPED_UNICODE) ?>;
 var productKitSelection = {}; // сохраняем выбор допов между открытиями модалки на этой странице
 
