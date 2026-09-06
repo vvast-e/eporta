@@ -654,21 +654,8 @@ img { display: block; }
 }
 .eporta-model-card:hover { border-color: #e8820a; box-shadow: 0 6px 18px rgba(27,26,23,.08); transform: translateY(-2px); }
 
-/* Бейдж числа цветов поверх фото — "упор на количество цветов". Намеренно НЕ сплошной тёмный/
-   оранжевый (как у ХИТ/Новинка/скидки — это статусы акции, другой смысл), а мягкая "таблетка"
-   в фирменном оранжевом тоне (--accent) — своя, узнаваемая, но не путается со статусными бейджами. */
-.eporta-model-colors-badge {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: #fff3e5;
-  color: var(--accent-dark);
-  font: 700 11px var(--font);
-  padding: 5px 10px;
-  border-radius: 7px;
-  letter-spacing: .01em;
-  box-shadow: 0 1px 4px rgba(27,26,23,.12);
-}
+/* Бейдж числа цветов ("N цветов" поверх фото) убран 06.09.2026 — вместо него теперь кружки
+   цвета (.product-swatches, тот же CSS, что у товарной карточки), см. catalog/index.php. */
 
 /* Сетка карточек моделей — flex-wrap вместо grid: при неполном последнем ряду (например, у
    Vilis 10 моделей — 6 в ряду, 4 в следующем) карточки последней строки центрируются, а не
@@ -698,8 +685,11 @@ img { display: block; }
 /* Единый фон подложки под фото (раньше переключался по цвету двери — светлые/тёмные карточки
    вперемешку в сетке смотрелись пёстро, см. inc/card-backdrop.php). Один контрастный тон и для
    светлых, и для тёмных дверей. */
-.product-card .img-wrap img { width: 100%; height: clamp(180px, 15vw, 280px); object-fit: contain; background: #ece5d6; }
-.product-card .img-wrap .img-noimg { width: 100%; height: clamp(180px, 15vw, 280px); display: flex; align-items: center; justify-content: center; background: #ece5d6; color: #a39e95; font: 700 12px var(--font); }
+/* Высота фото фиксирована в px, не vw-clamp — при фиксированной ширине карточки (см.
+   .eporta-product-grid ниже) vw-зависимая высота продолжала бы "дышать" от ширины окна ровно
+   так же, как раньше "дышала" сама плашка (жалоба заказчика на 169.ru, задача 06.09.2026). */
+.product-card .img-wrap img { width: 100%; height: 210px; object-fit: contain; background: #ece5d6; }
+.product-card .img-wrap .img-noimg { width: 100%; height: 210px; display: flex; align-items: center; justify-content: center; background: #ece5d6; color: #a39e95; font: 700 12px var(--font); }
 .product-card .badge {
   position: absolute;
   top: 10px;
@@ -729,19 +719,33 @@ img { display: block; }
 }
 .wishlist-remove-btn:hover { color: #e8820a; }
 .wishlist-remove-btn:disabled { opacity: .5; cursor: default; }
-.product-card .info { padding: 12px 13px 14px; }
-.product-card .stars { color: var(--accent); font-size: clamp(11px, 0.8vw, 13px); letter-spacing: 1px; }
+.product-card .info { padding: 10px 12px 12px; }
+.product-card .stars { color: var(--accent); font-size: 12px; letter-spacing: 1px; }
 .product-card .stars span { color: var(--text-hint); }
-.product-card .name { font-family: var(--font); font-weight: 600; font-size: clamp(13px, 0.95vw, 16px); line-height: 1.3; height: 2.6em; overflow: hidden; margin: 5px 0 8px; }
+/* Название — одна строка с многоточием (было 2 строки, clamp по vw) — полное название доступно
+   через title= на этом же элементе (см. catalog.section/.default/template.php). Задача 06.09.2026:
+   при фиксированной ширине карточки (6 в ряд, по аналогии с 169.ru) шрифт можно и нужно уменьшить,
+   иначе двухстрочное название не помещалось бы в узкую колонку без переноса. */
+.product-card .name {
+  font-family: var(--font);
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.35;
+  height: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 5px 0 8px;
+}
 .product-card .price-row { display: flex; align-items: center; justify-content: space-between; }
-.product-card .price { font-family: var(--font); font-weight: 800; font-size: clamp(18px, 1.3vw, 24px); }
-.product-card .price-old { font-family: var(--font); font-weight: 600; font-size: clamp(12px, 0.85vw, 14px); color: var(--text-hint); text-decoration: line-through; }
+.product-card .price { font-family: var(--font); font-weight: 800; font-size: 18px; }
+.product-card .price-old { font-family: var(--font); font-weight: 600; font-size: 12px; color: var(--text-hint); text-decoration: line-through; }
 .product-card .btn-cart {
   background: var(--accent);
   color: #fff;
   font-weight: 700;
-  font-size: clamp(12px, 0.85vw, 14px);
-  padding: 9px 13px;
+  font-size: 12px;
+  padding: 8px 11px;
   border-radius: 9px;
   border: none;
   cursor: pointer;
@@ -752,8 +756,8 @@ img { display: block; }
   background: #fff;
   color: var(--dark);
   font-weight: 700;
-  font-size: clamp(12px, 0.85vw, 14px);
-  padding: 9px 11px;
+  font-size: 12px;
+  padding: 8px 9px;
   border-radius: 9px;
   border: 1.5px solid var(--border);
   cursor: pointer;
@@ -763,23 +767,39 @@ img { display: block; }
 .product-card .btn-compare:hover, .product-card .btn-compare.added { border-color: var(--accent); color: var(--accent-dark); }
 .product-card .price-row-tools { display: flex; align-items: center; gap: 8px; }
 
-/* Сетка карточек каталога/коллекций — число колонок задаёт inline custom property
-   --eporta-cols (константа 4 в catalog/index.php, ручной селектор 4/5/6 убран — сетка и так
-   адаптивная), медиа-запросы ниже дожимают её на узких экранах. */
-.eporta-product-grid { display: grid; grid-template-columns: repeat(var(--eporta-cols, 4), 1fr); gap: clamp(12px, 1.1vw, 20px); }
-@media (max-width: 1180px) { .eporta-product-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 860px)  { .eporta-product-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 560px)  { .eporta-product-grid { grid-template-columns: repeat(1, 1fr); } }
+/* Сетка карточек каталога/коллекций — 6 в ряд на десктопе (по аналогии с 169.ru, задача
+   Алексея/Сергея 06.09.2026). Раньше колонки были резиновые (repeat(N,1fr)) — при сужении/
+   расширении окна тянулась сама плашка ("разъезжались" карточки, а не поля вокруг них — жалоба
+   заказчика). Теперь ширина колонки фиксирована (200px), при лишней ширине контейнера
+   grid просто добавляет пустое место по бокам (justify-content:center) — сами карточки не растут
+   и не сжимаются внутри одного брейкпоинта. --eporta-cols остаётся inline-переменной из PHP
+   (catalog/index.php) для широкого экрана, медиа-запросы ниже дожимают число колонок на узких. */
+.eporta-product-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--eporta-cols, 6), 200px);
+  justify-content: center;
+  gap: 16px;
+}
+@media (max-width: 1560px) { .eporta-product-grid { grid-template-columns: repeat(5, 200px); } }
+@media (max-width: 1300px) { .eporta-product-grid { grid-template-columns: repeat(4, 200px); } }
+@media (max-width: 1040px) { .eporta-product-grid { grid-template-columns: repeat(3, 200px); } }
+/* Ниже 860px сайдбар фильтров уходит в fixed-шторку (см. .eporta-catalog-filters-form ниже) —
+   ширина под сетку освобождается, поэтому мобильный ландшафт возвращается к 4 в ряду
+   (пожелание Сергея: "2 или 4 в зависимости от ориентации"). */
+@media (max-width: 860px)  { .eporta-product-grid { grid-template-columns: repeat(4, 200px); } }
+/* Мобильный портрет — фиксированные 200px в 2 колонки не всегда помещаются на узких экранах
+   (320-400px), здесь сетка намеренно резиновая (minmax), а не фиксированная. */
+@media (max-width: 640px)  { .eporta-product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 /* Каталог на очень широких мониторах (2560px+/32", ultrawide): --pad-x (см. токены выше)
-   растит только боковой отступ, сама область контента ничем не ограничена — при
-   фиксированных --eporta-cols=4 карточки в строке просто становятся крупнее и растягиваются,
-   между ними/вокруг непропорционально много пустого места (жалоба заказчика, скрин Ozon).
-   Не трогаем --eporta-cols/PAGE_ELEMENT_COUNT (см. комментарий выше про убранный ручной
-   селектор 4/5/6 — это ломает гарантию целых рядов на последней странице), вместо этого
-   ограничиваем сверху ширину самого контента каталога и центрируем — по бокам просто
-   появляются поля, как у крупных маркетплейсов. */
-.eporta-catalog-headrow, .eporta-catalog-chips, .eporta-catalog-filters-wrap {
+   растит только боковой отступ. Сама сетка карточек теперь и так не растягивается (фиксированная
+   ширина колонки, см. .eporta-product-grid выше) — этот max-width ограничивает более широкие
+   строчные блоки страницы (заголовок, чипы фильтров, обёртку сайдбар+сетка), чтобы их кромка не
+   расползалась дальше сетки на очень широких экранах, и центрирует их так же, как сама сетка
+   центрируется через justify-content. .eporta-collection-models — блок "Модели коллекции"
+   (catalog/index.php), выровнен по той же рамке, что и "Все товары коллекции" ниже (задача
+   06.09.2026, было: блок моделей тянулся на всю ширину без ограничения). */
+.eporta-catalog-headrow, .eporta-catalog-chips, .eporta-catalog-filters-wrap, .eporta-collection-models {
   max-width: 1760px;
   margin-left: auto;
   margin-right: auto;
@@ -895,6 +915,8 @@ img { display: block; }
 .eporta-product-grid--list .product-card { display: flex; align-items: center; gap: 12px; }
 .eporta-product-grid--list .product-card-link { display: flex; align-items: stretch; gap: 16px; flex: 1; min-width: 0; }
 .eporta-product-grid--list .product-card .img-wrap { flex: none; width: 160px; aspect-ratio: 1; }
+.eporta-product-grid--list .product-card .img-wrap img,
+.eporta-product-grid--list .product-card .img-wrap .img-noimg { height: 100%; }
 .eporta-product-grid--list .product-card .info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
 .eporta-product-grid--list .product-swatches { flex: none; padding: 0 13px 0 0; max-width: 140px; }
 @media (max-width: 560px) {
