@@ -28,6 +28,27 @@ function eportaShowcaseGetCollections(): array {
     return eportaCollections();
 }
 
+// Enum ID List-свойства IBLOCK 19 по CODE+XML_ID. ВАЖНО (найдено 06.09.2026): "PROPERTY_CODE_VALUE"
+// в CIBlockElement::GetList — это VALUE энума ("Да"/"Нет", человекочитаемый текст для админки), а
+// НЕ XML_ID ("Y"/"N") — сравнивать нужно "PROPERTY_CODE_ENUM_ID" с ID, полученным отсюда, иначе
+// сравнение с "Y"/"N" никогда не совпадает и любой выбор в этой же админке молча не учитывается
+// при чтении (при этом запись через eportaShowcaseSetListProperty ниже работает верно — баг был
+// только в чтении). Та же функция продублирована в catalog/index.php (eportaGetIblock19EnumId) —
+// два независимых файла, не связанных общим includes.
+function eportaShowcaseGetEnumId(string $propertyCode, string $xmlId): ?int {
+    static $cache = [];
+    $key = $propertyCode . ':' . $xmlId;
+    if (array_key_exists($key, $cache)) {
+        return $cache[$key];
+    }
+    $propRow = CIBlockProperty::GetList([], ['IBLOCK_ID' => EPORTA_SHOWCASE_IBLOCK_ID, 'CODE' => $propertyCode])->Fetch();
+    if (!$propRow) {
+        return $cache[$key] = null;
+    }
+    $enumRow = CIBlockPropertyEnum::GetList([], ['PROPERTY_ID' => $propRow['ID'], 'XML_ID' => $xmlId])->Fetch();
+    return $cache[$key] = $enumRow ? (int)$enumRow['ID'] : null;
+}
+
 // Модели коллекции: группировка по PROPERTY_MODEL (тот же ключ, что и в catalog/index.php),
 // внутри каждой модели — все варианты (цвета) с фото и текущим флагом SHOWCASE.
 function eportaShowcaseGetModels(int $sectionId): array {
@@ -38,6 +59,8 @@ function eportaShowcaseGetModels(int $sectionId): array {
         false,
         ['ID', 'NAME', 'PREVIEW_PICTURE', 'DETAIL_PICTURE', 'PROPERTY_MODEL', 'PROPERTY_RATING', 'PROPERTY_SHOWCASE', 'PROPERTY_COATING_COLOR', 'PROPERTY_GLAZING', 'PROPERTY_SHOW_IN_LIST']
     );
+    $showcaseYEnumId = eportaShowcaseGetEnumId('SHOWCASE', 'Y');
+    $hideFromListEnumId = eportaShowcaseGetEnumId('SHOW_IN_LIST', 'N');
     $models = [];
     while ($row = $res->Fetch()) {
         $modelKey = $row['PROPERTY_MODEL_VALUE'] ?: ('__id_' . $row['ID']);
@@ -49,10 +72,12 @@ function eportaShowcaseGetModels(int $sectionId): array {
             'glazing' => $row['PROPERTY_GLAZING_VALUE'] ?? '',
             'rating' => (float)($row['PROPERTY_RATING_VALUE'] ?? 0),
             'photo' => $photoId ? CFile::GetPath($photoId) : '',
-            'is_showcase' => ($row['PROPERTY_SHOWCASE_VALUE'] ?? '') === 'Y',
+            'is_showcase' => $showcaseYEnumId !== null
+                && (int)($row['PROPERTY_SHOWCASE_ENUM_ID'] ?? 0) === $showcaseYEnumId,
             // Отсутствие значения = показывать (см. комментарий в scripts/add_iblock19_show_in_list.php
             // и catalog/index.php $eportaScopeFilter) — скрыт только явный "N".
-            'show_in_list' => ($row['PROPERTY_SHOW_IN_LIST_VALUE'] ?? '') !== 'N',
+            'show_in_list' => !($hideFromListEnumId !== null
+                && (int)($row['PROPERTY_SHOW_IN_LIST_ENUM_ID'] ?? 0) === $hideFromListEnumId),
         ];
     }
     return $models;
