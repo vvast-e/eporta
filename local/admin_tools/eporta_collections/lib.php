@@ -11,6 +11,12 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
 
 require_once($_SERVER['DOCUMENT_ROOT'] . '/local/lib/eporta_collections.php');
 require_once($_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools/eporta_banners/lib.php');
+// Модели/варианты коллекции (витринный вариант + видимость в общем списке) — задача 06.09.2026:
+// раньше отдельная страница local/admin_tools/eporta_showcase/, перенесена сюда единым разделом
+// на каждую коллекцию, чтобы всё управление коллекцией было в одном месте. Логика (свойства
+// SHOWCASE/SHOW_IN_LIST IBLOCK 19) осталась в eporta_showcase/lib.php без изменений — переиспользуем
+// функции оттуда, а не дублируем.
+require_once($_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools/eporta_showcase/lib.php');
 
 function eportaCollectionsUserHasAccess(): bool {
     return eportaBannersUserHasAccess();

@@ -63,7 +63,8 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
     td textarea { resize: vertical; min-height: 34px; }
     .code-cell { font-family: monospace; font-size: 12px; color: #888; }
     .cnt-cell { font-size: 12px; color: #888; white-space: nowrap; }
-    .row-actions { display: flex; gap: 8px; align-items: center; }
+    .row-actions { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; }
+    .row-actions .status { flex-basis: 100%; }
     button { background: #2b6cb0; color: #fff; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; }
     button:disabled { background: #999; cursor: default; }
     .status { font-size: 12px; margin-top: 4px; min-height: 16px; }
@@ -77,6 +78,30 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
     .banner-thumb.is-empty { display: flex; align-items: center; justify-content: center; font-size: 10px; color: #aaa; }
     .banner-upload-btn { font-size: 12px; color: #2b6cb0; cursor: pointer; white-space: nowrap; }
     .banner-upload-btn:hover { text-decoration: underline; }
+
+    /* Модели и варианты коллекции (задача 06.09.2026: перенесено из отдельной страницы
+       local/admin_tools/eporta_showcase/ — всё управление коллекцией в одном месте). */
+    .f-models-toggle { background: #fff; color: #2b6cb0; border: 1px solid #cfe0f0; }
+    .f-models-toggle:hover { background: #f2f7fc; }
+    .models-row > td { padding: 0; border-bottom: 1px solid #eee; }
+    .models-panel { background: #f9fafb; padding: 16px 18px; }
+    .models-panel .loading { color: #888; font-size: 13px; }
+    .models-panel .hint { color: #666; font-size: 12.5px; margin: 0 0 14px; }
+    .model-block { border: 1px solid #ddd; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; background: #fff; }
+    .model-block:last-child { margin-bottom: 0; }
+    .model-name { font-weight: 700; font-size: 13px; margin-bottom: 10px; }
+    .variant-row { display: flex; flex-wrap: wrap; gap: 12px; }
+    .variant-card { width: 104px; text-align: center; cursor: pointer; border: 2px solid transparent; border-radius: 8px; padding: 6px; }
+    .variant-card.active { border-color: #2f9e44; background: #f1fbf3; }
+    .variant-card.hidden-from-list { opacity: .5; }
+    .variant-card img { width: 100%; height: 84px; object-fit: contain; background: #f6f4ef; border-radius: 4px; display: block; }
+    .variant-card .noimg { width: 100%; height: 84px; background: #eee; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #999; }
+    .variant-card .color { font-size: 10.5px; margin-top: 5px; color: #444; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .variant-card .star { font-size: 10.5px; color: #2f9e44; font-weight: 700; margin-top: 2px; min-height: 13px; }
+    .variant-card .show-toggle { display: flex; align-items: center; gap: 4px; justify-content: center; margin-top: 6px; font-size: 10px; color: #666; cursor: pointer; }
+    .models-status { font-size: 12px; margin-top: 8px; min-height: 16px; }
+    .models-status.ok { color: #2f9e44; }
+    .models-status.err { color: #c0392b; }
 </style>
 </head>
 <body>
@@ -87,7 +112,10 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
     <a href="/local/admin_tools/eporta_banners/#grid-coll" target="_blank">в админке баннеров →</a>.
     Новая коллекция сразу получает свой слот там же. Столбец «Баннер страницы» ниже — другое фото:
     заглавная картинка на самой странице коллекции (<code>/catalog/collections/&lt;код&gt;/</code>),
-    не плитка на главной и не на хабе всех коллекций.
+    не плитка на главной и не на хабе всех коллекций.<br>
+    Кнопка «Модели/цвета» у каждой коллекции открывает выбор витринного варианта (какой цвет
+    показан на карточке модели в блоке «Модели коллекции») и видимость каждого варианта в блоке
+    «Все товары коллекции»/каталоге.
 </p>
 
 <table id="collections-table">
@@ -100,7 +128,7 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
             <th style="width:60px">Активна</th>
             <th style="width:90px">Моделей</th>
             <th style="width:130px">Баннер страницы</th>
-            <th style="width:100px"></th>
+            <th style="width:170px"></th>
         </tr>
     </thead>
     <tbody></tbody>
@@ -141,7 +169,8 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
             '<td><div class="banner-cell">' + bannerThumbHtml(coll.banner) +
                 '<label class="banner-upload-btn">Изменить<input type="file" class="f-banner" accept="image/jpeg,image/png" hidden></label>' +
                 '</div><div class="status banner-status"></div></td>' +
-            '<td class="row-actions"><button type="button" class="f-save">Сохранить</button></td>';
+            '<td class="row-actions"><button type="button" class="f-save">Сохранить</button>' +
+                '<button type="button" class="f-models-toggle">Модели/цвета</button></td>';
 
         const status = document.createElement('div');
         status.className = 'status';
@@ -209,11 +238,160 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
             btn.disabled = false;
         });
 
-        return tr;
+        // Разворачиваемая панель "Модели/цвета" (перенесено из local/admin_tools/eporta_showcase/,
+        // задача 06.09.2026) — своя строка под основной, во всю ширину таблицы, контент грузится
+        // по первому раскрытию (ajax get_models), а не сразу для всех коллекций на странице.
+        const modelsRow = document.createElement('tr');
+        modelsRow.className = 'models-row';
+        modelsRow.style.display = 'none';
+        const modelsCell = document.createElement('td');
+        modelsCell.colSpan = 8;
+        const modelsPanel = document.createElement('div');
+        modelsPanel.className = 'models-panel';
+        modelsCell.appendChild(modelsPanel);
+        modelsRow.appendChild(modelsCell);
+
+        let modelsLoaded = false;
+        tr.querySelector('.f-models-toggle').addEventListener('click', async function () {
+            const open = modelsRow.style.display !== 'none';
+            if (open) {
+                modelsRow.style.display = 'none';
+                return;
+            }
+            modelsRow.style.display = '';
+            if (modelsLoaded) return;
+            modelsLoaded = true;
+            modelsPanel.innerHTML = '<div class="loading">Загрузка…</div>';
+            try {
+                const fd = new FormData();
+                fd.append('action', 'get_models');
+                fd.append('sessid', SESSID);
+                fd.append('section_id', coll.id);
+                const r = await fetch('ajax.php', { method: 'POST', body: fd });
+                const resp = await r.json();
+                if (!resp.ok) {
+                    modelsPanel.innerHTML = '<div class="models-status err">' + (resp.error || 'Ошибка загрузки') + '</div>';
+                    modelsLoaded = false;
+                    return;
+                }
+                renderModelsPanel(modelsPanel, resp.models);
+            } catch (e) {
+                modelsPanel.innerHTML = '<div class="models-status err">Ошибка сети: ' + e.message + '</div>';
+                modelsLoaded = false;
+            }
+        });
+
+        return [tr, modelsRow];
+    }
+
+    // Разметка и обработчики блока "Модели/цвета" одной коллекции — тот же UX, что раньше был
+    // на отдельной странице local/admin_tools/eporta_showcase/: клик по фото делает вариант
+    // витринным (эксклюзивно в рамках модели), чекбокс "в списке" переключает видимость варианта
+    // в блоке "Все товары коллекции"/каталоге независимо для каждого варианта.
+    function renderModelsPanel(panel, models) {
+        const modelKeys = Object.keys(models);
+        if (!modelKeys.length) {
+            panel.innerHTML = '<p class="hint" style="margin:0">В этой коллекции нет товаров.</p>';
+            return;
+        }
+        panel.innerHTML = '';
+        modelKeys.forEach(function (modelKey) {
+            const model = models[modelKey];
+            const block = document.createElement('div');
+            block.className = 'model-block';
+            const allIds = model.variants.map(function (v) { return v.id; }).join(',');
+            block.innerHTML =
+                '<div class="model-name">' + model.name.replace(/</g, '&lt;') + '</div>' +
+                '<div class="variant-row" data-all-ids="' + allIds + '"></div>' +
+                '<div class="models-status"></div>';
+            const row = block.querySelector('.variant-row');
+            const status = block.querySelector('.models-status');
+
+            model.variants.forEach(function (variant) {
+                const card = document.createElement('div');
+                card.className = 'variant-card' + (variant.is_showcase ? ' active' : '') + (variant.show_in_list ? '' : ' hidden-from-list');
+                card.dataset.id = variant.id;
+                const colorLabel = (variant.color || '—') + (variant.glazing ? ', ' + variant.glazing : '');
+                card.innerHTML =
+                    (variant.photo
+                        ? '<img src="' + variant.photo.replace(/"/g, '&quot;') + '" alt="">'
+                        : '<div class="noimg">Нет фото</div>') +
+                    '<div class="color" title="' + colorLabel.replace(/"/g, '&quot;') + '">' + colorLabel.replace(/</g, '&lt;') + '</div>' +
+                    '<div class="star">' + (variant.is_showcase ? '★ витрина' : '') + '</div>' +
+                    '<label class="show-toggle"><input type="checkbox" class="show-in-list-checkbox"' + (variant.show_in_list ? ' checked' : '') + '> в списке</label>';
+
+                card.addEventListener('click', async function (e) {
+                    if (e.target.closest('.show-toggle')) return;
+                    status.textContent = 'Сохранение...';
+                    status.className = 'models-status';
+                    const fd = new FormData();
+                    fd.append('action', 'set_showcase');
+                    fd.append('sessid', SESSID);
+                    fd.append('id', variant.id);
+                    fd.append('all_ids', allIds);
+                    try {
+                        const r = await fetch('ajax.php', { method: 'POST', body: fd });
+                        const resp = await r.json();
+                        if (!resp.ok) {
+                            status.textContent = resp.error || 'Ошибка';
+                            status.classList.add('err');
+                            return;
+                        }
+                        row.querySelectorAll('.variant-card').forEach(function (c) {
+                            c.classList.remove('active');
+                            c.querySelector('.star').textContent = '';
+                        });
+                        card.classList.add('active');
+                        card.querySelector('.star').textContent = '★ витрина';
+                        status.textContent = 'Готово';
+                        status.classList.add('ok');
+                    } catch (err) {
+                        status.textContent = 'Ошибка сети: ' + err.message;
+                        status.classList.add('err');
+                    }
+                });
+
+                const checkbox = card.querySelector('.show-in-list-checkbox');
+                checkbox.addEventListener('click', function (e) { e.stopPropagation(); });
+                checkbox.addEventListener('change', async function () {
+                    const show = checkbox.checked;
+                    status.textContent = 'Сохранение...';
+                    status.className = 'models-status';
+                    const fd = new FormData();
+                    fd.append('action', 'set_show_in_list');
+                    fd.append('sessid', SESSID);
+                    fd.append('id', variant.id);
+                    fd.append('show', show ? '1' : '0');
+                    try {
+                        const r = await fetch('ajax.php', { method: 'POST', body: fd });
+                        const resp = await r.json();
+                        if (!resp.ok) {
+                            checkbox.checked = !show;
+                            status.textContent = resp.error || 'Ошибка';
+                            status.classList.add('err');
+                            return;
+                        }
+                        card.classList.toggle('hidden-from-list', !show);
+                        status.textContent = 'Готово';
+                        status.classList.add('ok');
+                    } catch (err) {
+                        checkbox.checked = !show;
+                        status.textContent = 'Ошибка сети: ' + err.message;
+                        status.classList.add('err');
+                    }
+                });
+
+                row.appendChild(card);
+            });
+
+            panel.appendChild(block);
+        });
     }
 
     COLLECTIONS.forEach(function (coll, index) {
-        tbody.appendChild(renderRow(coll, index));
+        const rows = renderRow(coll, index);
+        tbody.appendChild(rows[0]);
+        tbody.appendChild(rows[1]);
     });
 
     document.getElementById('new-submit').addEventListener('click', async function () {
