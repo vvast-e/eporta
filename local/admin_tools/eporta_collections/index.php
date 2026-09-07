@@ -294,7 +294,14 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
             panel.innerHTML = '<p class="hint" style="margin:0">В этой коллекции нет товаров.</p>';
             return;
         }
-        panel.innerHTML = '';
+        panel.innerHTML =
+            '<p class="hint">' +
+                'Кликните на фото цвета, чтобы сделать его витринным — именно этот цвет будет ' +
+                'показан на карточке модели в блоке «Модели коллекции» на странице коллекции ' +
+                '(зелёная рамка и подпись «★ витрина» — текущий выбор). Галочка «в списке» — ' +
+                'показывать этот цвет в блоке «Все товары коллекции»/каталоге или только по прямой ' +
+                'ссылке и при переключении цвета на карточке товара.' +
+            '</p>';
         modelKeys.forEach(function (modelKey) {
             const model = models[modelKey];
             const block = document.createElement('div');
