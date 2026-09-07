@@ -629,6 +629,7 @@ img { display: block; }
 
 /* ========== Карточка товара ========== */
 .product-card {
+  background: #fbfbfb;
   border: 1px solid var(--border);
   border-radius: 14px;
   overflow: hidden;
@@ -649,7 +650,7 @@ img { display: block; }
   display: block;
   text-decoration: none;
   color: inherit;
-  background: #fff;
+  background: #fbfbfb;
   transition: border-color .15s, box-shadow .2s, transform .2s;
 }
 .eporta-model-card:hover { border-color: #e8820a; box-shadow: 0 6px 18px rgba(27,26,23,.08); transform: translateY(-2px); }
