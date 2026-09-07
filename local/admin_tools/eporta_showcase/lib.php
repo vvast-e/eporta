@@ -1,32 +1,17 @@
 <?php
-// Общая логика страницы "Витрина моделей" — ручной выбор витринного варианта (свойство
-// SHOWCASE, IBLOCK 19) для каждой модели коллекции. Требует уже подключенный prolog_before.php
-// (модули main/iblock). По паттерну local/admin_tools/eporta_banners/lib.php — та же модель
-// прав (право записи в IBLOCK 19), те же контент-менеджеры.
+// Логика "Витрина моделей" — ручной выбор витринного варианта (свойство SHOWCASE, IBLOCK 19)
+// и видимости варианта в общих списках (SHOW_IN_LIST) для каждой модели коллекции. Требует уже
+// подключенный prolog_before.php (модули main/iblock).
+// UI перенесён в local/admin_tools/eporta_collections/ (задача 06.09.2026, "всё управление
+// коллекцией в одном месте") — этот файл теперь только логика, подключается оттуда через
+// require_once в eporta_collections/lib.php. Доступ и список коллекций для UI берутся напрямую
+// у eporta_collections (eportaCollectionsUserHasAccess()/eportaCollections()), не отсюда.
 
 if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
     die('Прямой доступ запрещён');
 }
 
 const EPORTA_SHOWCASE_IBLOCK_ID = 19;
-
-require_once($_SERVER['DOCUMENT_ROOT'] . '/local/lib/eporta_collections.php');
-
-function eportaShowcaseUserHasAccess(): bool {
-    global $USER;
-    if (!$USER->IsAuthorized()) {
-        return false;
-    }
-    if ($USER->IsAdmin()) {
-        return true;
-    }
-    return CIBlock::GetPermission(EPORTA_SHOWCASE_IBLOCK_ID) >= 'W';
-}
-
-// Список коллекций для селектора — общий источник, см. local/lib/eporta_collections.php.
-function eportaShowcaseGetCollections(): array {
-    return eportaCollections();
-}
 
 // Enum ID List-свойства IBLOCK 19 по CODE+XML_ID. ВАЖНО (найдено 06.09.2026): "PROPERTY_CODE_VALUE"
 // в CIBlockElement::GetList — это VALUE энума ("Да"/"Нет", человекочитаемый текст для админки), а

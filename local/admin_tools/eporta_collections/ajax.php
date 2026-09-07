@@ -103,4 +103,69 @@ if ($action === 'upload_banner') {
     exit;
 }
 
+// Модели/варианты коллекции (перенесено из local/admin_tools/eporta_showcase/, задача
+// 06.09.2026) — логика в eporta_showcase/lib.php (require_once в lib.php этой админки),
+// здесь только HTTP-обвязка и проверка принадлежности ID к IBLOCK 19.
+
+if ($action === 'get_models') {
+    $sectionId = (int)($_POST['section_id'] ?? 0);
+    if ($sectionId <= 0) {
+        eportaCollectionsJsonFail('Некорректный ID коллекции');
+    }
+    $models = eportaShowcaseGetModels($sectionId);
+    echo json_encode(['ok' => true, 'models' => $models], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+if ($action === 'set_showcase') {
+    $selectedId = (int)($_POST['id'] ?? 0);
+    $allIdsRaw = $_POST['all_ids'] ?? '';
+    $allIds = array_filter(array_map('intval', explode(',', (string)$allIdsRaw)));
+
+    if (!$selectedId || !in_array($selectedId, $allIds, true)) {
+        eportaCollectionsJsonFail('Некорректные данные варианта');
+    }
+
+    // Все ID должны реально принадлежать IBLOCK 19 — защита от произвольной записи по чужим ID.
+    $verifyRes = CIBlockElement::GetList([], ['IBLOCK_ID' => EPORTA_SHOWCASE_IBLOCK_ID, 'ID' => $allIds], false, false, ['ID']);
+    $verifiedIds = [];
+    while ($row = $verifyRes->Fetch()) {
+        $verifiedIds[] = (int)$row['ID'];
+    }
+    if (count($verifiedIds) !== count($allIds) || !in_array($selectedId, $verifiedIds, true)) {
+        eportaCollectionsJsonFail('Некорректные данные варианта');
+    }
+
+    $ok = eportaShowcaseSetVariant($selectedId, $verifiedIds);
+    if (!$ok) {
+        eportaCollectionsJsonFail('Ошибка сохранения', 500);
+    }
+
+    echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+if ($action === 'set_show_in_list') {
+    $variantId = (int)($_POST['id'] ?? 0);
+    $show = ($_POST['show'] ?? '') === '1';
+
+    if (!$variantId) {
+        eportaCollectionsJsonFail('Некорректные данные варианта');
+    }
+
+    // ID должен реально принадлежать IBLOCK 19 — защита от произвольной записи по чужим ID.
+    $verifyRow = CIBlockElement::GetList([], ['IBLOCK_ID' => EPORTA_SHOWCASE_IBLOCK_ID, 'ID' => $variantId], false, false, ['ID'])->Fetch();
+    if (!$verifyRow) {
+        eportaCollectionsJsonFail('Некорректные данные варианта');
+    }
+
+    $ok = eportaShowcaseSetShowInList($variantId, $show);
+    if (!$ok) {
+        eportaCollectionsJsonFail('Ошибка сохранения', 500);
+    }
+
+    echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 eportaCollectionsJsonFail('Неизвестное действие');
