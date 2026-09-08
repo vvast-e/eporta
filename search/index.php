@@ -388,7 +388,7 @@ $APPLICATION->SetTitle("Страница поиска");
 					<?endif;?>
 					<?if ($eportaIsHit):?><span class="badge hit">ХИТ</span><?endif;?>
 					<?if ($eportaIsNew):?><span class="badge new">Новинка</span><?endif;?>
-					<?if ($eportaHasDiscount):?><span class="badge" style="background:#c2670a;top:<?=($eportaIsHit || $eportaIsNew) ? "44px" : "10px"?>">−<?=round($eportaDiscountPercent)?>%</span><?endif;?>
+					<?if ($eportaHasDiscount):?><span class="badge" style="background:#c2670a;padding-left:6px;padding-right:6px;top:<?=($eportaIsHit || $eportaIsNew) ? "44px" : "10px"?>">−<?=round($eportaDiscountPercent)?>%</span><?endif;?>
 				</div>
 				<div class="info">
 					<div class="stars"><?=$eportaStars?><?if ($eportaRating > 0):?> <span><?=number_format($eportaRating, 1, ".", "")?></span><?endif;?></div>
