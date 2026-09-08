@@ -887,19 +887,11 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	     со звёздами/сравнением/кнопкой корзины и полным названием ("...Экошпон Орех тёмный
 	     рифлёный") тут была избыточна, только название модели+номер, фото, цена, число цветов. -->
 	<div class="eporta-collection-models" style="padding:8px var(--pad-x) 0">
-		<h2 style="margin:0 0 4px;font:800 20px 'Manrope';letter-spacing:-0.01em">Модели коллекции <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></h2>
-		<p style="margin:0 0 16px;font:500 13px;color:#8a857b">Показан витринный вариант каждой модели — остальные цвета доступны на карточке товара</p>
-		<?php
-		// Сетка моделей теперь буквально .eporta-product-grid (тот же CSS, что у товарных
-		// карточек ниже, см. catalog.section/.default/template.php) — задача 08.09.2026
-		// (Сергей: карточки моделей должны быть максимально похожи на товарные, включая точный
-		// размер). Раньше был отдельный .eporta-model-grid с урезанным потолком в 4 колонки и
-		// резиновой шириной — теперь те же фиксированные 200px-колонки и тот же --eporta-cols
-		// (реальное число моделей, не больше 6, чтобы при 2-3 моделях сетка не растягивала
-		// карточки пустыми колонками).
-		$eportaModelGridCols = max(1, min($eportaCollectionModelCount, 6));
-		?>
-		<div class="eporta-product-grid" style="--eporta-cols:<?=$eportaModelGridCols?>">
+		<h2 style="margin:0 0 16px;font:800 20px 'Manrope';letter-spacing:-0.01em">Модели коллекции <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></h2>
+		<!-- .eporta-model-grid — свой flex-wrap грид (не .eporta-product-grid), центрирует неполный
+		     последний ряд по отдельности; карточка внутри — .product-card, тот же размер/шрифты, что
+		     у товарной карточки ниже (см. template_styles.css). -->
+		<div class="eporta-model-grid">
 			<?foreach ($eportaCollectionModelCards as $eportaModelCard):
 				// "От ..." — минимальная цена среди всех цветов модели (не цена конкретного
 				// "популярного" представителя на фото), т.к. это цена целой линейки, не одного цвета,
