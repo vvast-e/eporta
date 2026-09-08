@@ -689,8 +689,8 @@ img { display: block; }
 /* Высота фото фиксирована в px, не vw-clamp — при фиксированной ширине карточки (см.
    .eporta-product-grid ниже) vw-зависимая высота продолжала бы "дышать" от ширины окна ровно
    так же, как раньше "дышала" сама плашка (жалоба заказчика на 169.ru, задача 06.09.2026). */
-.product-card .img-wrap img { width: 100%; height: 210px; object-fit: contain; background: #f0f0f0; }
-.product-card .img-wrap .img-noimg { width: 100%; height: 210px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: #a39e95; font: 700 12px var(--font); }
+.product-card .img-wrap img { width: 100%; height: 210px; object-fit: contain; background: #fbfbfb; }
+.product-card .img-wrap .img-noimg { width: 100%; height: 210px; display: flex; align-items: center; justify-content: center; background: #fbfbfb; color: #a39e95; font: 700 12px var(--font); }
 .product-card .badge {
   position: absolute;
   top: 10px;
