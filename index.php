@@ -197,15 +197,11 @@ $APPLICATION->SetTitle("Eporta");?> <?
 	</div>
 	<?endif;?>
 
-	<!-- Каталог по категориям: реальные счётчики PROPERTY_CATEGORY, см. inc/categories.php.
+	<!-- Каталог по категориям: подписи с количеством товаров/моделей под плитками убраны
+	     (заявка заказчика 08.09.2026) — считать их больше не нужно, остался только
+	     eportaGetCategoryMap() для общего числа категорий в "Все N категорий →" ниже.
 	     Ссылки ведут на /catalog/?category=<key> — фильтр обрабатывается в catalog/index.php. -->
 	<?
-		$eportaHomeCatMkd = eportaCategoryCount("mkd");
-		$eportaHomeCatHidden = eportaCategoryCount("hidden");
-		$eportaHomeCatSliding = eportaCategoryCount("sliding");
-		$eportaHomeCatEntrance = eportaCategoryCount("entrance");
-		$eportaHomeCatArch = eportaCategoryCount("arch");
-		$eportaHomeCatHardware = eportaCategoryCount("hardware");
 		$eportaHomeCatTotal = count(eportaGetCategoryMap());
 	?>
 	<div style="padding:28px var(--pad-x) 8px">
@@ -233,7 +229,7 @@ $APPLICATION->SetTitle("Eporta");?> <?
 				<?php eportaPicture(eportaBannersResolveImage("cat_mkd", SITE_TEMPLATE_PATH . "/assets/img/cat-mezh.jpg"), "Межкомнатные", ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
 				<?if ($eportaCatOverlayMkd):?><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 42%,rgba(20,17,12,.72) 100%)"></div><?endif;?>
 				<div style="position:absolute;left:20px;right:20px;bottom:18px;display:flex;align-items:flex-end;justify-content:space-between">
-					<div><div style="font:800 22px 'Manrope';color:#fff;line-height:1.05<?=$eportaCatOverlayMkd ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>">Межкомнатные</div><div style="font:600 12.5px 'Manrope';color:rgba(255,255,255,.72);margin-top:4px"><?=$eportaHomeCatMkd?> моделей</div></div>
+					<div><div style="font:800 22px 'Manrope';color:#fff;line-height:1.05<?=$eportaCatOverlayMkd ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>">Межкомнатные</div></div>
 					<span style="width:38px;height:38px;border-radius:50%;background:#e8820a;color:#fff;font-size:17px;display:flex;align-items:center;justify-content:center;flex:none">→</span>
 				</div>
 			</a>
@@ -242,24 +238,24 @@ $APPLICATION->SetTitle("Eporta");?> <?
 			<a href="/catalog/?category=hidden" style="grid-column:2;grid-row:1;position:relative;border-radius:14px;overflow:hidden;display:block">
 				<?php eportaPicture(eportaBannersResolveImage("cat_hidden", SITE_TEMPLATE_PATH . "/assets/img/cat-skryt.jpg"), "Скрытые", ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
 				<?if ($eportaCatOverlayHidden):?><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(20,17,12,.7) 100%)"></div><?endif;?>
-				<div style="position:absolute;left:15px;bottom:13px"><div style="font:700 15.5px 'Manrope';color:#fff<?=$eportaCatOverlayHidden ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>">Скрытые</div><div style="font:600 11.5px 'Manrope';color:rgba(255,255,255,.72);margin-top:2px"><?=$eportaHomeCatHidden?></div></div>
+				<div style="position:absolute;left:15px;bottom:13px"><div style="font:700 15.5px 'Manrope';color:#fff<?=$eportaCatOverlayHidden ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>">Скрытые</div></div>
 			</a>
 			<a href="/catalog/?category=sliding" style="grid-column:2;grid-row:2;position:relative;border-radius:14px;overflow:hidden;display:block">
 				<?php eportaPicture(eportaBannersResolveImage("cat_sliding", SITE_TEMPLATE_PATH . "/assets/img/cat-razdv.jpg"), "Раздвижные", ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
 				<?if ($eportaCatOverlaySliding):?><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(20,17,12,.7) 100%)"></div><?endif;?>
-				<div style="position:absolute;left:15px;bottom:13px"><div style="font:700 15.5px 'Manrope';color:#fff<?=$eportaCatOverlaySliding ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>">Раздвижные</div><div style="font:600 11.5px 'Manrope';color:rgba(255,255,255,.72);margin-top:2px"><?=$eportaHomeCatSliding?></div></div>
+				<div style="position:absolute;left:15px;bottom:13px"><div style="font:700 15.5px 'Manrope';color:#fff<?=$eportaCatOverlaySliding ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>">Раздвижные</div></div>
 			</a>
 
 			<!-- Пара: Входные / Арки -->
 			<a href="/catalog/?category=entrance" style="grid-column:3;grid-row:1;position:relative;border-radius:14px;overflow:hidden;display:block">
 				<?php eportaPicture(eportaBannersResolveImage("cat_entrance", SITE_TEMPLATE_PATH . "/assets/img/cat-vhod.jpg"), "Входные", ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
 				<?if ($eportaCatOverlayEntrance):?><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(20,17,12,.7) 100%)"></div><?endif;?>
-				<div style="position:absolute;left:15px;bottom:13px"><div style="font:700 15.5px 'Manrope';color:#fff<?=$eportaCatOverlayEntrance ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>">Входные</div><div style="font:600 11.5px 'Manrope';color:rgba(255,255,255,.72);margin-top:2px"><?=$eportaHomeCatEntrance?></div></div>
+				<div style="position:absolute;left:15px;bottom:13px"><div style="font:700 15.5px 'Manrope';color:#fff<?=$eportaCatOverlayEntrance ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>">Входные</div></div>
 			</a>
 			<a href="/catalog/?category=arch" style="grid-column:3;grid-row:2;position:relative;border-radius:14px;overflow:hidden;display:block">
 				<?php eportaPicture(eportaBannersResolveImage("cat_arch", SITE_TEMPLATE_PATH . "/assets/img/cat-arki.jpg"), "Арки и порталы", ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
 				<?if ($eportaCatOverlayArch):?><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(20,17,12,.7) 100%)"></div><?endif;?>
-				<div style="position:absolute;left:15px;bottom:13px"><div style="font:700 15.5px 'Manrope';color:#fff<?=$eportaCatOverlayArch ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>">Арки и порталы</div><div style="font:600 11.5px 'Manrope';color:rgba(255,255,255,.72);margin-top:2px"><?=$eportaHomeCatArch?></div></div>
+				<div style="position:absolute;left:15px;bottom:13px"><div style="font:700 15.5px 'Manrope';color:#fff<?=$eportaCatOverlayArch ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>">Арки и порталы</div></div>
 			</a>
 
 			<!-- Высокая: Фурнитура -->
@@ -267,7 +263,7 @@ $APPLICATION->SetTitle("Eporta");?> <?
 				<?php eportaPicture(eportaBannersResolveImage("cat_hardware", SITE_TEMPLATE_PATH . "/assets/img/cat-furn.jpg"), "Фурнитура", ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
 				<?if ($eportaCatOverlayHardware):?><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 48%,rgba(20,17,12,.72) 100%)"></div><?endif;?>
 				<div style="position:absolute;left:18px;right:18px;bottom:16px;display:flex;align-items:flex-end;justify-content:space-between">
-					<div><div style="font:800 18px 'Manrope';color:#fff<?=$eportaCatOverlayHardware ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>">Фурнитура</div><div style="font:600 12px 'Manrope';color:rgba(255,255,255,.72);margin-top:3px"><?=$eportaHomeCatHardware?> позиций</div></div>
+					<div><div style="font:800 18px 'Manrope';color:#fff<?=$eportaCatOverlayHardware ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>">Фурнитура</div></div>
 					<span style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.92);color:#1b1a17;font-size:15px;display:flex;align-items:center;justify-content:center;flex:none">→</span>
 				</div>
 			</a>
@@ -281,9 +277,10 @@ $APPLICATION->SetTitle("Eporta");?> <?
 	     template_styles.css), кнопка убрана (заявка заказчика 05.09.2026). Описание — реальное
 	     поле DESCRIPTION секции, редактируется в local/admin_tools/eporta_collections/. -->
 	<?
+		// Подпись с числом товаров под плиткой коллекции убрана (заявка заказчика 08.09.2026) —
+		// eportaCollectionsElementCounts() больше не нужен.
 		require_once($_SERVER["DOCUMENT_ROOT"]."/local/lib/eporta_collections.php");
 		$eportaHomeCollections = eportaCollections();
-		$eportaHomeCollectionCounts = eportaCollectionsElementCounts();
 	?>
 	<div style="padding:26px var(--pad-x) 4px">
 		<h2 style="margin:0 0 6px;font:800 27px 'Manrope';letter-spacing:-0.01em">Коллекции фабрики</h2>
@@ -294,14 +291,13 @@ $APPLICATION->SetTitle("Eporta");?> <?
 				// Квадрат 1:1 с фоновой подложкой (как на alfaporta.ru) — картинка вписывается
 				// целиком (object-fit:contain), не обрезается при несовпадении пропорций с блоком.
 				$eportaCollOverlayOn = eportaBannersSlotOverlayEnabled($eportaHomeCollSlot);
-				$eportaHomeCollCnt = $eportaHomeCollectionCounts[$eportaHomeColl["ID"]] ?? 0;
 			?>
 			<a href="/catalog/collections/<?=htmlspecialcharsbx($eportaHomeColl["CODE"])?>/" style="position:relative;border-radius:16px;overflow:hidden;cursor:pointer;aspect-ratio:1/1;display:block;text-decoration:none;background:#f2efe9">
 				<?php eportaPicture(eportaBannersResolveImage($eportaHomeCollSlot, ""), $eportaHomeColl["NAME"], ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:contain"]); ?>
 				<?if ($eportaCollOverlayOn):?>
 				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 38%,rgba(20,17,12,.8) 100%)"></div>
 				<?endif;?>
-				<div style="position:absolute;left:20px;right:20px;bottom:18px"><div style="font:800 22px 'Manrope';color:#fff;letter-spacing:.01em<?=$eportaCollOverlayOn ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>"><?=htmlspecialcharsbx($eportaHomeColl["NAME"])?></div><?if ($eportaHomeColl["DESCRIPTION"]):?><div style="font:600 12.5px 'Manrope';color:rgba(255,255,255,.78);margin-top:4px<?=$eportaCollOverlayOn ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>"><?=htmlspecialcharsbx($eportaHomeColl["DESCRIPTION"])?></div><?endif;?><span class="eporta-coll-count" style="display:block;font:700 12.5px 'Manrope';color:rgba(255,255,255,.78);margin-top:4px<?=$eportaCollOverlayOn ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>"><?=$eportaHomeCollCnt?> <?=eportaCollectionsDeclension($eportaHomeCollCnt)?></span></div>
+				<div style="position:absolute;left:20px;right:20px;bottom:18px"><div style="font:800 22px 'Manrope';color:#fff;letter-spacing:.01em<?=$eportaCollOverlayOn ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>"><?=htmlspecialcharsbx($eportaHomeColl["NAME"])?></div><?if ($eportaHomeColl["DESCRIPTION"]):?><div style="font:600 12.5px 'Manrope';color:rgba(255,255,255,.78);margin-top:4px<?=$eportaCollOverlayOn ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>"><?=htmlspecialcharsbx($eportaHomeColl["DESCRIPTION"])?></div><?endif;?></div>
 			</a>
 			<?endforeach;?>
 		</div>
