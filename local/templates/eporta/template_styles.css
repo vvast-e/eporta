@@ -640,47 +640,12 @@ img { display: block; }
 }
 .product-card:hover { box-shadow: 0 8px 24px rgba(27,26,23,.10); transform: translateY(-2px); }
 
-/* Компактная карточка модели на странице коллекции (см. catalog/index.php, блок "Модели
-   коллекции") — намеренно легче .product-card: без бейджей/звёзд/кнопок, только фото+название+
-   цена, чтобы витрина выбора модели не выглядела перегруженной. */
-.eporta-model-card {
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: hidden;
-  display: block;
-  text-decoration: none;
-  color: inherit;
-  background: #fcfcfc;
-  transition: border-color .15s, box-shadow .2s, transform .2s;
-}
-.eporta-model-card:hover { border-color: #e8820a; box-shadow: 0 6px 18px rgba(27,26,23,.08); transform: translateY(-2px); }
-
-/* Бейдж числа цветов ("N цветов" поверх фото) убран 06.09.2026 — вместо него теперь кружки
-   цвета (.product-swatches, тот же CSS, что у товарной карточки), см. catalog/index.php. */
-
-/* Сетка карточек моделей — flex-wrap вместо grid: при неполном последнем ряду (например, у
-   Vilis 10 моделей — 6 в ряду, 4 в следующем) карточки последней строки центрируются, а не
-   прижимаются к левому краю с пустым хвостом справа (то, что даёт grid с repeat(N,1fr)).
-   --eff-cols — эффективное число колонок на брейкпоинт: min(--eporta-model-cols, потолок) —
-   --eporta-model-cols (реальное число моделей коллекции, инлайн в catalog/index.php) не даёт
-   при малом числе моделей растягивать/множить колонки сверх факта, потолок по брейкпоинту —
-   не даёт карточкам сжиматься теснее, чем нужно на узких экранах. Ширина карточки считается
-   от --eff-cols, чтобы полные ряды заполняли строку ровно встык, без лишних зазоров. */
-.eporta-model-grid {
-  /* Потолок был 6 в ряду — карточки смотрелись мелко; PHP теперь передаёт --eporta-model-cols
-     не больше 4 (catalog/index.php), здесь оставлен тот же потолок 4 для явности. */
-  --eff-cols: min(var(--eporta-model-cols, 4), 4);
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 16px;
-}
-.eporta-model-card {
-  flex: 0 0 calc((100% - (var(--eff-cols) - 1) * 16px) / var(--eff-cols));
-  max-width: calc((100% - (var(--eff-cols) - 1) * 16px) / var(--eff-cols));
-}
-@media (max-width: 860px)  { .eporta-model-grid { --eff-cols: min(var(--eporta-model-cols, 4), 3); } }
-@media (max-width: 560px)  { .eporta-model-grid { --eff-cols: min(var(--eporta-model-cols, 4), 2); } }
+/* Карточка модели на странице коллекции (см. catalog/index.php, блок "Модели коллекции") —
+   задача 08.09.2026 (Сергей: должна быть максимально похожа на товарную карточку, включая точный
+   размер): разметка теперь буквально использует .product-card/.eporta-product-grid (см. ниже),
+   свой .eporta-model-card/.eporta-model-grid CSS убран как неиспользуемый. Единственные
+   сознательные отличия от товарной карточки — в самой PHP-разметке (нет бейджей/звёзд/
+   .card-actions, у модели в целом их не бывает). */
 
 .product-card .img-wrap { position: relative; }
 /* Единый фон подложки под фото (раньше переключался по цвету двери — светлые/тёмные карточки

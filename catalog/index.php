@@ -890,14 +890,16 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		<h2 style="margin:0 0 4px;font:800 20px 'Manrope';letter-spacing:-0.01em">Модели коллекции <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></h2>
 		<p style="margin:0 0 16px;font:500 13px;color:#8a857b">Показан витринный вариант каждой модели — остальные цвета доступны на карточке товара</p>
 		<?php
-		// Число колонок сетки моделей: не больше, чем реально моделей (иначе при 3 моделях на
-		// широком экране сетка тянула бы их на всю ширину пустыми "фантомными" колонками) —
-		// см. .eporta-model-grid в template_styles.css, где на каждом брейкпоинте
-		// min(--eporta-model-cols, брейкпоинт) дополнительно урезает и под размер экрана.
-		// Раньше упиралось в 6 в ряду — карточки были мелкие; теперь максимум 4, крупнее.
-		$eportaModelGridCols = max(1, min($eportaCollectionModelCount, 4));
+		// Сетка моделей теперь буквально .eporta-product-grid (тот же CSS, что у товарных
+		// карточек ниже, см. catalog.section/.default/template.php) — задача 08.09.2026
+		// (Сергей: карточки моделей должны быть максимально похожи на товарные, включая точный
+		// размер). Раньше был отдельный .eporta-model-grid с урезанным потолком в 4 колонки и
+		// резиновой шириной — теперь те же фиксированные 200px-колонки и тот же --eporta-cols
+		// (реальное число моделей, не больше 6, чтобы при 2-3 моделях сетка не растягивала
+		// карточки пустыми колонками).
+		$eportaModelGridCols = max(1, min($eportaCollectionModelCount, 6));
 		?>
-		<div class="eporta-model-grid" style="--eporta-model-cols:<?=$eportaModelGridCols?>">
+		<div class="eporta-product-grid" style="--eporta-cols:<?=$eportaModelGridCols?>">
 			<?foreach ($eportaCollectionModelCards as $eportaModelCard):
 				// "От ..." — минимальная цена среди всех цветов модели (не цена конкретного
 				// "популярного" представителя на фото), т.к. это цена целой линейки, не одного цвета,
@@ -909,26 +911,35 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 				// Дефолтное фото рендерим один раз через ob_start и переиспользуем и в разметке, и в
 				// data-default-picture — тот же приём, что у товарной карточки каталога
 				// (catalog.section/.default/template.php), чтобы app.js мог вернуть карточку к
-				// исходному фото при уходе курсора со свотчей без повторного похода в PHP.
+				// исходному фото при уходе курсора со свотчей без повторного похода в PHP. Без
+				// инлайновых width/height style — те же классы .product-card .img-wrap img
+				// (height:258px), что и у товарной карточки, чтобы фото было идентичного размера.
 				ob_start();
 				if ($eportaModelCard["PHOTO"]) {
 					eportaPicture($eportaModelCard["PHOTO"], $eportaModelCard["MODEL"], [
-						"style" => "width:100%;height:230px;object-fit:contain;background:" . EPORTA_CARD_BACKDROP . ";display:block",
 						"loading" => "lazy", "decoding" => "async",
-					]);
+					], true);
 				} else {
-					echo '<div class="img-noimg" style="height:230px">Нет фото</div>';
+					echo '<div class="img-noimg">Нет фото</div>';
 				}
 				$eportaModelDefaultPictureHtml = ob_get_clean();
 			?>
-			<div class="eporta-model-card" data-default-picture="<?= htmlspecialcharsbx($eportaModelDefaultPictureHtml) ?>">
+			<!-- .product-card — тот же класс, что у товарной карточки ниже (задача 08.09.2026):
+			     идентичные размер фото/карточки и шрифты названия/цены. Отличия от товарной карточки
+			     намеренные и относятся только к тому, что у витрины моделей нет смысла — без
+			     звёзд/бейджей (у модели в целом нет своего рейтинга/скидки, это атрибуты конкретного
+			     варианта) и без .card-actions (кнопки "В корзину"/сравнить ведут на конкретный товар,
+			     не на модель). -->
+			<div class="product-card" data-default-picture="<?= htmlspecialcharsbx($eportaModelDefaultPictureHtml) ?>">
 				<a href="<?=$eportaModelCard["URL"] ? htmlspecialcharsbx($eportaModelCard["URL"]) : "javascript:void(0)"?>" class="product-card-link">
-					<div class="img-wrap" style="position:relative">
+					<div class="img-wrap">
 						<?= $eportaModelDefaultPictureHtml ?>
 					</div>
-					<div style="padding:12px 14px 14px">
-						<div style="font:800 15px 'Manrope';letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="<?=htmlspecialcharsbx($eportaModelCard["MODEL"])?>"><?=htmlspecialcharsbx($eportaModelCard["MODEL"])?></div>
-						<div style="font:700 14px 'Manrope';color:#3a3631;margin-top:4px"><?=$eportaModelPriceLabel?></div>
+					<div class="info">
+						<div class="name" title="<?=htmlspecialcharsbx($eportaModelCard["MODEL"])?>"><?=htmlspecialcharsbx($eportaModelCard["MODEL"])?></div>
+						<div class="price-row">
+							<div class="price-block"><div class="price"><?=$eportaModelPriceLabel?></div></div>
+						</div>
 					</div>
 				</a>
 				<?php if ($eportaModelCard["SWATCHES"]): ?>
@@ -942,9 +953,8 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 						if ($eportaModelSwatch["photo"]) {
 							ob_start();
 							eportaPicture($eportaModelSwatch["photo"], trim($eportaModelCard["MODEL"] . " — " . $eportaModelSwatch["color"]), [
-								"style" => "width:100%;height:230px;object-fit:contain;background:" . EPORTA_CARD_BACKDROP . ";display:block",
 								"loading" => "eager", "decoding" => "async",
-							]);
+							], true);
 							$eportaModelSwatchPictureHtml = ob_get_clean();
 						}
 					?>
