@@ -119,7 +119,7 @@ if ($eportaItemIds) {
 			<?= $eportaDefaultPictureHtml ?>
 			<?php if ($isHit): ?><span class="badge hit">ХИТ</span><?php endif; ?>
 			<?php if ($isNew): ?><span class="badge new">Новинка</span><?php endif; ?>
-			<?php if ($hasDiscount): ?><span class="badge" style="background:#c2670a;top:<?= ($isHit || $isNew) ? "44px" : "10px" ?>">−<?= round($discountPercent) ?>%</span><?php endif; ?>
+			<?php if ($hasDiscount): ?><span class="badge" style="background:#c2670a;padding-left:6px;padding-right:6px;top:<?= ($isHit || $isNew) ? "44px" : "10px" ?>">−<?= round($discountPercent) ?>%</span><?php endif; ?>
 			<?php if (($arParams["SHOW_WISHLIST_REMOVE"] ?? "N") === "Y"): ?>
 				<button type="button" class="wishlist-remove-btn" data-id="<?= (int)$arItem["ID"] ?>" onclick="event.preventDefault();event.stopPropagation();removeFromWishlistCard(this)" title="Удалить из избранного">×</button>
 			<?php endif; ?>
