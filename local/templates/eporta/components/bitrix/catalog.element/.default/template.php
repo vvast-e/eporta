@@ -209,7 +209,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 <div class="product-detail-layout" style="display:flex;gap:30px;padding:14px var(--pad-x) 30px;align-items:flex-start">
 
 	<!-- Галерея -->
-	<div class="product-detail-gallery" style="flex:1.15;display:flex;flex-direction:column;gap:12px;height:560px;background:#fbfbfb;border-radius:20px;padding:16px;box-sizing:border-box">
+	<div class="product-detail-gallery" style="flex:1.15;display:flex;flex-direction:column;gap:12px;height:560px;background:#fcfcfc;border-radius:20px;padding:16px;box-sizing:border-box">
 		<div style="position:relative;flex:1;min-height:0">
 			<?php if ($eportaHasPhoto): ?>
 			<?php eportaPicture($galleryPhotos[0], $eportaDisplayName, [
@@ -242,7 +242,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 	</div>
 
 	<!-- Панель покупки -->
-	<div class="product-detail-panel" style="flex:1;align-self:flex-start;background:#fbfbfb;border-radius:20px;padding:20px;box-sizing:border-box">
+	<div class="product-detail-panel" style="flex:1;align-self:flex-start;background:#fcfcfc;border-radius:20px;padding:20px;box-sizing:border-box">
 		<h1 style="margin:0 0 8px;font:800 24px/1.2 'Manrope';letter-spacing:-0.01em"><?= htmlspecialcharsbx($eportaDisplayName) ?></h1>
 		<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
 			<?php if ($rating > 0): ?>

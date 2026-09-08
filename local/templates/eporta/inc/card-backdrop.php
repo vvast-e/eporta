@@ -5,8 +5,8 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();
 // дверь получала более тёмный фон), но в сетке карточек это выглядело пёстро/неровно — разные
 // карточки с разным фоном рядом друг с другом. Один тон для всех карточек.
 // Задача 06.09.2026: тот же цвет, что и фон самой плашки карточки (.product-card в
-// template_styles.css) — #fbfbfb, чтобы подложка под фото не отличалась от остальной карточки
+// template_styles.css) — #fcfcfc, чтобы подложка под фото не отличалась от остальной карточки
 // (раньше #ece5d6, потом #f0f0f0 — оба заметно отличались от плашки).
 if (!defined("EPORTA_CARD_BACKDROP")) {
-    define("EPORTA_CARD_BACKDROP", "#fbfbfb");
+    define("EPORTA_CARD_BACKDROP", "#fcfcfc");
 }
