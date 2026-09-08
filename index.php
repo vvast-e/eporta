@@ -297,7 +297,9 @@ $APPLICATION->SetTitle("Eporta");?> <?
 				<?if ($eportaCollOverlayOn):?>
 				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 38%,rgba(20,17,12,.8) 100%)"></div>
 				<?endif;?>
-				<div style="position:absolute;left:20px;right:20px;bottom:18px"><div style="font:800 22px 'Manrope';color:#fff;letter-spacing:.01em<?=$eportaCollOverlayOn ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>"><?=htmlspecialcharsbx($eportaHomeColl["NAME"])?></div><?if ($eportaHomeColl["DESCRIPTION"]):?><div style="font:600 12.5px 'Manrope';color:rgba(255,255,255,.78);margin-top:4px<?=$eportaCollOverlayOn ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>"><?=htmlspecialcharsbx($eportaHomeColl["DESCRIPTION"])?></div><?endif;?></div>
+				<!-- Описание коллекции под названием убрано (заявка заказчика 09.09.2026, вслед за
+				     подписью с числом товаров) — на плитке остаётся только название. -->
+				<div style="position:absolute;left:20px;right:20px;bottom:18px"><div style="font:800 22px 'Manrope';color:#fff;letter-spacing:.01em<?=$eportaCollOverlayOn ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>"><?=htmlspecialcharsbx($eportaHomeColl["NAME"])?></div></div>
 			</a>
 			<?endforeach;?>
 		</div>
