@@ -214,12 +214,12 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 			<?php if ($eportaHasPhoto): ?>
 			<?php eportaPicture($galleryPhotos[0], $eportaDisplayName, [
 				"id" => "mainPhoto",
-				"style" => "width:100%;height:100%;object-fit:contain;background:#f6f4ef;border-radius:16px",
+				"style" => "width:100%;height:100%;object-fit:contain;background:#fcfcfc;border-radius:16px",
 			]); ?>
 			<?php else: ?>
 			<!-- Фото у товара нет в базе (см. комментарий у $eportaHasPhoto выше) — явная заглушка
 			     вместо правдоподобной случайной картинки, чтобы админ сразу видел пробел. -->
-			<div id="mainPhoto" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f6f4ef;border-radius:16px;color:#a39e95;font:700 15px 'Manrope'">Нет фото</div>
+			<div id="mainPhoto" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#fcfcfc;border-radius:16px;color:#a39e95;font:700 15px 'Manrope'">Нет фото</div>
 			<?php endif; ?>
 			<?php if ($isHit): ?><span style="position:absolute;top:14px;left:14px;background:#e8820a;color:#fff;font:700 11px 'Manrope';padding:6px 12px;border-radius:7px">ХИТ ПРОДАЖ</span><?php endif; ?>
 			<?php if ($isNew): ?><span style="position:absolute;top:14px;left:14px;background:#1f8a4c;color:#fff;font:700 11px 'Manrope';padding:6px 12px;border-radius:7px">НОВИНКА</span><?php endif; ?>
@@ -233,7 +233,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 				// <picture>) оставался бы от предыдущего снимка, визуально ничего не менялось.
 				"data-webp" => eportaWebpVariant($photoSrc) ?: "",
 				"onclick" => "changePhoto(this)",
-				"style" => "width:96px;height:96px;object-fit:contain;background:#f6f4ef;border-radius:10px;border:" . ($i === 0 ? "2px solid #e8820a" : "1.5px solid #e7e3db") . ";cursor:pointer",
+				"style" => "width:96px;height:96px;object-fit:contain;background:#fcfcfc;border-radius:10px;border:" . ($i === 0 ? "2px solid #e8820a" : "1.5px solid #e7e3db") . ";cursor:pointer",
 				"loading" => $i === 0 ? "eager" : "lazy",
 				"decoding" => "async",
 			]); endforeach; ?>
