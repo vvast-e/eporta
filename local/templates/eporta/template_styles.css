@@ -688,9 +688,13 @@ img { display: block; }
    светлых, и для тёмных дверей. */
 /* Высота фото фиксирована в px, не vw-clamp — при фиксированной ширине карточки (см.
    .eporta-product-grid ниже) vw-зависимая высота продолжала бы "дышать" от ширины окна ровно
-   так же, как раньше "дышала" сама плашка (жалоба заказчика на 169.ru, задача 06.09.2026). */
-.product-card .img-wrap img { width: 100%; height: 210px; object-fit: contain; background: #fcfcfc; }
-.product-card .img-wrap .img-noimg { width: 100%; height: 210px; display: flex; align-items: center; justify-content: center; background: #fcfcfc; color: #a39e95; font: 700 12px var(--font); }
+   так же, как раньше "дышала" сама плашка (жалоба заказчика на 169.ru, задача 06.09.2026).
+   210→240px (задача 06.09.2026, "увеличить фото") — object-fit:contain при портретном кадре
+   двери масштабирует и высоту, и ширину пропорционально, так что дверь становится заметно
+   крупнее, а не просто выше; совпадает с высотой фото в блоке "Модели коллекции" (230-240px,
+   catalog/index.php). */
+.product-card .img-wrap img { width: 100%; height: 240px; object-fit: contain; background: #fcfcfc; }
+.product-card .img-wrap .img-noimg { width: 100%; height: 240px; display: flex; align-items: center; justify-content: center; background: #fcfcfc; color: #a39e95; font: 700 12px var(--font); }
 .product-card .badge {
   position: absolute;
   top: 10px;
