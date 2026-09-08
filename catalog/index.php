@@ -275,7 +275,9 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			? $_GET["category"] : null;
 		if ($eportaSelectedCategory) {
 			$eportaScopeFilter["PROPERTY_CATEGORY"] = $eportaCategoryMap[$eportaSelectedCategory]["ALIASES"];
-			$eportaActiveChips[] = ["LABEL" => $eportaCategoryMap[$eportaSelectedCategory]["LABEL"], "REMOVE_KEY" => "category", "REMOVE_VALUE" => null];
+			// Категория (шапка/плитки главной) — это раздел каталога, а не пользовательский фильтр,
+			// поэтому в чипы рядом с "Сбросить всё" не добавляется (задача 09.09.2026); вместо этого
+			// заголовок H1 ниже подстраивается под выбранную категорию (см. $eportaCategoryMap[...]["HEADING"]).
 		}
 
 		// "Распродажа" (шапка, /catalog/?sale=1) — те же товары, для которых карточка
@@ -977,6 +979,11 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Новинки</h1>
 			<?elseif ($eportaSeoH1):?>
 			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em"><?=htmlspecialcharsbx($eportaSeoH1)?></h1>
+			<?elseif ($eportaSelectedCategory):?>
+			<!-- Заголовок по выбранной категории (шапка/плитки главной) — задача 09.09.2026: раньше
+			     тут всегда был захардкожен "Межкомнатные двери" независимо от категории (SEO H1 выше
+			     покрывает только "чистые" состояния без доп. фильтров, см. $eportaSeoSlug). -->
+			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em"><?=htmlspecialcharsbx($eportaCategoryMap[$eportaSelectedCategory]["HEADING"])?></h1>
 			<?else:?>
 			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Межкомнатные двери</h1>
 			<?endif;?>
