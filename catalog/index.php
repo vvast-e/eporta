@@ -280,11 +280,19 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			// заголовок H1 ниже подстраивается под выбранную категорию (см. $eportaCategoryMap[...]["HEADING"]).
 		}
 
-		// "Распродажа" (шапка, /catalog/?sale=1) — те же товары, для которых карточка
-		// показывает бейдж скидки (см. $hasDiscount в catalog.section/.default/template.php).
+		// "Распродажа" (шапка, /catalog/?sale=1) — задача 09.09.2026: раньше это была та же
+		// выборка, что и бейдж скидки (">PROPERTY_DISCOUNT" > 0); заказчик попросил отдельное
+		// явное поле SALE (List Y/N, см. scripts/add_iblock19_sale.php) — товар может быть в
+		// распродаже без скидки в цене и наоборот. Бейдж на карточке НЕ добавляется, только фильтр.
 		$eportaOnlySale = !empty($_GET["sale"]);
 		if ($eportaOnlySale) {
-			$eportaScopeFilter[">PROPERTY_DISCOUNT"] = 0;
+			// Фильтр по ID варианта enum'а (не по тексту "Да") — тот же приём, что и у
+			// "!PROPERTY_SHOW_IN_LIST" выше.
+			$eportaSaleYEnumId = eportaGetIblock19EnumId("SALE", "Y");
+			// Свойство ещё может отсутствовать (до прогона add_iblock19_sale.php на проде) —
+			// тогда фильтр по несуществующему ID отдаёт пустой список, что честнее, чем молча
+			// показать вообще все товары.
+			$eportaScopeFilter["PROPERTY_SALE"] = $eportaSaleYEnumId ?: 0;
 			$eportaActiveChips[] = ["LABEL" => "Распродажа", "REMOVE_KEY" => "sale", "REMOVE_VALUE" => null];
 		}
 
