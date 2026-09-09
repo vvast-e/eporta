@@ -55,6 +55,12 @@ if ($action === 'save') {
 
     $elObj = new CIBlockElement;
     if ($elementId > 0) {
+        // IDOR-защита: без этой проверки чужой element_id из другого инфоблока (например,
+        // товара из IBLOCK 19 или статьи из IBLOCK 28) был бы принят Update() как есть —
+        // включая смену его IBLOCK_ID на 29, что молча портит данные другого раздела.
+        if (!eportaPromoGet($elementId)) {
+            eportaPromoJsonFail('Акция с таким ID не найдена', 404);
+        }
         $ok = $elObj->Update($elementId, $fields);
         if (!$ok) {
             eportaPromoJsonFail('Ошибка сохранения: ' . $elObj->LAST_ERROR, 500);
@@ -173,6 +179,11 @@ if ($action === 'delete') {
     $elementId = (int)($_POST['element_id'] ?? 0);
     if ($elementId <= 0) {
         eportaPromoJsonFail('Некорректный ID');
+    }
+    // Та же IDOR-защита, что и в 'save' — без неё можно было бы удалить произвольный элемент
+    // любого инфоблока (товар, статью), просто подставив его ID.
+    if (!eportaPromoGet($elementId)) {
+        eportaPromoJsonFail('Акция с таким ID не найдена', 404);
     }
     $ok = (new CIBlockElement)->Delete($elementId);
     if (!$ok) {
