@@ -50,6 +50,10 @@ const EPORTA_IMPORT_FIELD_MAP = [
     // из-за чего галерея не импортировалась НИКОГДА, независимо от расширения файлов в ссылках.
     'Галерея' => 'gallery',
     'Рейтинг' => 'rating',
+    // Явный флаг распродажи (задача 09.09.2026) — отдельно от "Скидка": скидка может быть у
+    // товара без участия в акции "Распродажа", и наоборот. Принимает да/нет/y/n/1/0 без учёта
+    // регистра, см. eportaImportNormalizeYesNo ниже.
+    'Распродажа' => 'sale',
 ];
 
 const EPORTA_IMPORT_MULTI_FIELDS = ['style', 'open_type', 'material'];
@@ -228,6 +232,14 @@ function eportaImportNormalizeGallery(string $value): array {
     }
     $parts = preg_split('/[;,]/', $value);
     return array_values(array_filter(array_map('trim', $parts), fn($s) => $s !== ''));
+}
+
+// "да"/"нет"/"y"/"n"/"1"/"0" (любой регистр) -> "Да"/"Нет" (совпадает с VALUE энумов свойства
+// SALE, см. add_iblock19_sale.php). Пусто или нераспознанное -> "Нет" (по умолчанию — не в
+// распродаже, как и у существующих товаров при первом появлении свойства).
+function eportaImportNormalizeYesNo(string $value): string {
+    $v = mb_strtolower(trim($value));
+    return in_array($v, ['да', 'y', 'yes', '1', 'true'], true) ? 'Да' : 'Нет';
 }
 
 // Разбирает грид листа на заголовки + строки-товары. Возвращает:
@@ -536,6 +548,14 @@ function eportaImportOneProduct(array $p): array {
         if ($enumId) {
             $propertyValues[$code] = $enumId;
         }
+    }
+
+    // SALE ("Распродажа") — в отличие от SHOWCASE это ПОЛЕ ФИДА, не ручной выбор в другой
+    // админке, поэтому импорт имеет право задавать его напрямую при каждом переимпорте (в
+    // отличие от SHOWCASE ниже, значение SALE не нужно перечитывать из базы перед Update()).
+    $saleEnumId = eportaImportGetOrCreateEnumId(EPORTA_IMPORT_IBLOCK_ID, 'SALE', eportaImportNormalizeYesNo($p['sale'] ?? ''));
+    if ($saleEnumId) {
+        $propertyValues['SALE'] = $saleEnumId;
     }
 
     $styleEnumIds = [];

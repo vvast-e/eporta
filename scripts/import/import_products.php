@@ -171,6 +171,15 @@ foreach ($products as $p) {
         }
     }
 
+    // SALE ("Распродажа", задача 09.09.2026) — "да"/"нет"/"y"/"n"/"1"/"0" -> "Да"/"Нет"
+    // (совпадает с VALUE энумов, см. scripts/add_iblock19_sale.php).
+    $saleRaw = mb_strtolower(trim((string)($p['sale'] ?? '')));
+    $saleValue = in_array($saleRaw, ['да', 'y', 'yes', '1', 'true'], true) ? 'Да' : 'Нет';
+    $saleEnumId = getOrCreateEnumId($IBLOCK_ID, 'SALE', $saleValue);
+    if ($saleEnumId) {
+        $propertyValues['SALE'] = $saleEnumId;
+    }
+
     $styleEnumIds = [];
     foreach ($p['style'] ?? [] as $styleValue) {
         $enumId = getOrCreateEnumId($IBLOCK_ID, 'STYLE', $styleValue);
