@@ -131,6 +131,11 @@ if ($eportaItemIds) {
 	$eportaDefaultPriceHtml = ob_get_clean();
 ?>
 	<div class="product-card" data-id="<?= (int)$arItem["ID"] ?>" data-default-picture="<?= htmlspecialcharsbx($eportaDefaultPictureHtml) ?>" data-default-price="<?= htmlspecialcharsbx($eportaDefaultPriceHtml) ?>">
+	<!-- .card-clip — раньше overflow:hidden+border-radius висели прямо на .product-card, но тогда
+	     они же обрезали .card-hover-actions (задача 10.09.2026: кнопка "В корзину" должна выезжать
+	     НИЖЕ карточки, поверх ряда снизу, не раздвигая сетку) — вынесены в отдельную обёртку вокруг
+	     видимого содержимого, .card-hover-actions остаётся сиблингом снаружи неё. -->
+	<div class="card-clip">
 	<a href="<?= $elementUrl ? htmlspecialcharsbx($elementUrl) : "javascript:void(0)" ?>" class="product-card-link">
 		<div class="img-wrap">
 			<?= $eportaDefaultPictureHtml ?>
@@ -161,13 +166,14 @@ if ($eportaItemIds) {
 			</div>
 		</div>
 	</a>
-		<!-- "В корзину" убрали с плитки насовсем (задача 10.09.2026), но по правке заказчика в тот
-		     же день вернули — теперь только по наведению: карточка "проседает" вниз и освобождает
-		     место под кнопку (.card-hover-actions, max-height 0→auto в template_styles.css). Вне
-		     <a> — отдельное действие, как и раньше. -->
-		<div class="card-hover-actions">
-			<button class="btn-cart" onclick="addCartAjax(event, <?= (int)$arItem["ID"] ?>)">В корзину</button>
-		</div>
+	</div>
+	<!-- "В корзину" убрали с плитки насовсем (задача 10.09.2026), но по правке заказчика в тот же
+	     день вернули — по наведению, position:absolute ниже карточки (top:100%), не участвует в
+	     потоке и не раздвигает строку сетки; выезжает поверх ряда снизу (z-index на :hover в
+	     template_styles.css). Вне .card-clip — иначе overflow:hidden обрезал бы её. -->
+	<div class="card-hover-actions">
+		<button class="btn-cart" onclick="addCartAjax(event, <?= (int)$arItem["ID"] ?>)">В корзину</button>
+	</div>
 	</div>
 <?php endforeach; ?>
 </div>

@@ -628,18 +628,26 @@ img { display: block; }
 #personalMenu a.selected { background: var(--dark); color: #fff; }
 
 /* ========== Карточка товара ========== */
+/* .product-card — внешний позиционирующий блок, сам без фона/скругления/overflow:hidden (это
+   теперь на .card-clip, см. ниже) — нужен "чистым", чтобы .card-hover-actions (задача
+   10.09.2026, "В корзину" по наведению) могла выезжать НИЖЕ его границ без обрезки. z-index на
+   :hover поднимает карточку над рядом снизу — иначе более поздние по DOM карточки следующего
+   ряда рисовались бы поверх выехавшей кнопки. */
 .product-card {
   position: relative;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+.product-card:hover { z-index: 5; }
+.product-card .card-clip {
   background: #fcfcfc;
   border: 1px solid var(--border);
   border-radius: 14px;
   overflow: hidden;
-  display: block;
-  text-decoration: none;
-  color: inherit;
   transition: box-shadow .2s, transform .2s;
 }
-.product-card:hover { box-shadow: 0 8px 24px rgba(27,26,23,.10); transform: translateY(-2px); }
+.product-card:hover .card-clip { box-shadow: 0 8px 24px rgba(27,26,23,.10); transform: translateY(-2px); }
 
 /* Карточка модели на странице коллекции (см. catalog/index.php, блок "Модели коллекции") —
    задача 08.09.2026 (Сергей: должна быть максимально похожа на товарную карточку, включая точный
@@ -795,28 +803,28 @@ img { display: block; }
 }
 .product-card .btn-compare:hover, .product-card .btn-compare.added { border-color: var(--accent); color: var(--accent-dark); }
 /* "В корзину" убрали с плитки насовсем (задача 10.09.2026), но по правке заказчика в тот же день
-   вернули — по наведению на карточку, оверлеем поверх низа карточки (задача уточнена в тот же
-   день: первая версия раздвигала строку сетки вниз и сдвигала соседние ряды — не годится).
-   position:absolute внутри .product-card (см. position:relative там же) — не участвует в потоке,
-   высота ряда грида не меняется. Уезжает вниз за пределы карточки (translateY(100%) + overflow:
-   hidden на .product-card прячет её) и выезжает наверх при :hover, поверх цены. */
+   вернули — по наведению на карточку. Две прошлые попытки не подошли: max-height 0→auto в потоке
+   раздвигал(а) строку сетки и сдвигал(а) соседние ряды; оверлей поверх цены внутри
+   .product-card обрезался бы, если бы .product-card сохранял overflow:hidden (задачу решает
+   вынос overflow:hidden на .card-clip, см. выше) — здесь блок ВНЕ .card-clip, поэтому ничем не
+   обрезается. position:absolute, top:100% — не участвует в потоке, высота строки грида не
+   меняется; при наведении появляется НИЖЕ карточки, поверх карточки следующего ряда
+   (.product-card:hover получает z-index, см. выше, иначе более поздняя по DOM карточка снизу
+   рисовалась бы поверх). */
 .product-card .card-hover-actions {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
-  padding: 10px 12px;
-  background: linear-gradient(0deg, #fcfcfc 65%, rgba(252,252,252,0));
-  transform: translateY(100%);
+  top: 100%;
+  padding-top: 8px;
   opacity: 0;
-  transition: transform .2s ease, opacity .2s ease;
-  pointer-events: none;
+  visibility: hidden;
+  transition: opacity .15s ease;
 }
 .product-card:hover .card-hover-actions,
 .product-card:focus-within .card-hover-actions {
-  transform: translateY(0);
   opacity: 1;
-  pointer-events: auto;
+  visibility: visible;
 }
 .product-card .card-hover-actions .btn-cart {
   display: block;
@@ -829,7 +837,7 @@ img { display: block; }
   border-radius: 9px;
   border: none;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(27,26,23,.15);
+  box-shadow: 0 4px 14px rgba(27,26,23,.25);
   transition: background .15s;
 }
 .product-card .card-hover-actions .btn-cart:hover { background: var(--accent-dark); }
@@ -988,15 +996,17 @@ img { display: block; }
    .product-card, без изменений в PHP-шаблоне карточки. */
 .eporta-product-grid--list { grid-template-columns: 1fr !important; gap: 10px; }
 .eporta-product-grid--list .product-card { display: flex; align-items: center; gap: 12px; }
+.eporta-product-grid--list .product-card .card-clip { flex: 1; min-width: 0; display: flex; }
 .eporta-product-grid--list .product-card-link { display: flex; align-items: stretch; gap: 16px; flex: 1; min-width: 0; }
 .eporta-product-grid--list .product-card .img-wrap { flex: none; width: 160px; aspect-ratio: 1; }
 .eporta-product-grid--list .product-card .img-wrap img,
 .eporta-product-grid--list .product-card .img-wrap .img-noimg { height: 100%; }
 .eporta-product-grid--list .product-card .info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
 .eporta-product-grid--list .product-swatches { flex: none; padding: 0 13px 0 0; max-width: 140px; }
-/* .card-hover-actions рассчитан на карточку-плитку (раздвигает высоту вниз) — в списке
-   .product-card сам flex-row, оверлей встал бы сбоку от .info, а не под ним. Проще скрыть,
-   чем городить отдельную раскладку под режим, которым и так редко пользуются. */
+/* Оверлей "В корзину" по наведению (.card-hover-actions) рассчитан на карточку-плитку —
+   позиционируется top:100% от .product-card, а в списке .product-card сам flex-row, всплыл бы
+   не под строкой, а как попало. Проще скрыть, чем городить отдельную раскладку под режим,
+   которым и так редко пользуются. */
 .eporta-product-grid--list .card-hover-actions { display: none; }
 @media (max-width: 560px) {
   .eporta-product-grid--list .product-card-link { flex-direction: row; }
