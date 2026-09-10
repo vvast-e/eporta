@@ -98,7 +98,7 @@ function eportaHomeTabsSanitizeConfig(array $raw): array {
         $config[$tabKey]['title'] = $title !== '' ? mb_substr($title, 0, 60) : $config[$tabKey]['title'];
 
         $limit = (int)($raw[$tabKey]['limit'] ?? $config[$tabKey]['limit']);
-        $config[$tabKey]['limit'] = $limit > 0 ? min($limit, 60) : $config[$tabKey]['limit'];
+        $config[$tabKey]['limit'] = $limit > 0 ? min($limit, EPORTA_HOME_TABS_MAX_LIMIT) : $config[$tabKey]['limit'];
 
         $pinnedRaw = is_array($raw[$tabKey]['pinned'] ?? null) ? $raw[$tabKey]['pinned'] : [];
         $pinnedIds = array_values(array_unique(array_map('intval', $pinnedRaw)));

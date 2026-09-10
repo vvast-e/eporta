@@ -19,11 +19,16 @@ function eportaHomeTabsKeys(): array {
     return ['hit', 'sale', 'new'];
 }
 
+// limit — 10 по умолчанию и жёсткий потолок (см. eportaHomeTabsGetConfig ниже): блок теперь
+// один ряд с горизонтальной прокруткой, а не сетка на N страниц, больше 10 карточек в ряду
+// не задумано дизайном (заявка заказчика 10.09.2026).
+const EPORTA_HOME_TABS_MAX_LIMIT = 10;
+
 function eportaHomeTabsDefaults(): array {
     return [
-        'hit' => ['title' => 'Хиты', 'limit' => 8, 'pinned' => []],
-        'sale' => ['title' => 'Распродажа', 'limit' => 8, 'pinned' => []],
-        'new' => ['title' => 'Новинки', 'limit' => 8, 'pinned' => []],
+        'hit' => ['title' => 'Хиты', 'limit' => EPORTA_HOME_TABS_MAX_LIMIT, 'pinned' => []],
+        'sale' => ['title' => 'Распродажа', 'limit' => EPORTA_HOME_TABS_MAX_LIMIT, 'pinned' => []],
+        'new' => ['title' => 'Новинки', 'limit' => EPORTA_HOME_TABS_MAX_LIMIT, 'pinned' => []],
     ];
 }
 
@@ -62,7 +67,7 @@ function eportaHomeTabsGetConfig(): array {
             $title = trim((string)($decoded[$key]['title'] ?? ''));
             $config[$key]['title'] = $title !== '' ? $title : $default['title'];
             $limit = (int)($decoded[$key]['limit'] ?? $default['limit']);
-            $config[$key]['limit'] = $limit > 0 ? min($limit, 60) : $default['limit'];
+            $config[$key]['limit'] = $limit > 0 ? min($limit, EPORTA_HOME_TABS_MAX_LIMIT) : $default['limit'];
             $pinned = $decoded[$key]['pinned'] ?? [];
             $config[$key]['pinned'] = is_array($pinned)
                 ? array_values(array_unique(array_map('intval', $pinned)))
@@ -194,8 +199,13 @@ function eportaHomeTabsRenderCatalogSection(string $tabKey, string $filterGlobal
             'FILTER_NAME' => $filterGlobalName,
             'HIDE_NOT_AVAILABLE' => 'N',
             'HIDE_NOT_AVAILABLE_OFFERS' => 'N',
-            'PAGE_ELEMENT_COUNT' => '12',
-            'LINE_ELEMENT_COUNT' => '6',
+            // Один ряд с горизонтальной прокруткой (не пейджинг) — PAGE_ELEMENT_COUNT равен
+            // максимально допустимому лимиту (EPORTA_HOME_TABS_MAX_LIMIT), чтобы компонент не
+            // обрезал список раньше, чем это сделает сам $ids. LINE_ELEMENT_COUNT на вывод не
+            // влияет — обёртка .eporta-product-grid отключена через display:contents в CSS
+            // (.home-tabs-banner__scroll), карточки — обычные flex-элементы прокручиваемой строки.
+            'PAGE_ELEMENT_COUNT' => (string)EPORTA_HOME_TABS_MAX_LIMIT,
+            'LINE_ELEMENT_COUNT' => (string)EPORTA_HOME_TABS_MAX_LIMIT,
             'PROPERTY_CODE' => ['STYLE', 'COATING_COLOR', 'GLAZING', 'MAIN_COLOR', 'PRODUCT_DAY', 'RATING', 'VOTE_COUNT', 'CML2_ARTICLE'],
             'OFFERS_FIELD_CODE' => [],
             'OFFERS_PROPERTY_CODE' => [],

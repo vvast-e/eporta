@@ -199,7 +199,7 @@ foreach (eportaHomeTabsKeys() as $tabKey) {
             '<div class="tab-hint">' + esc(TAB_HINTS[tabKey]) + '</div>' +
             '<div class="tab-fields">' +
                 '<label>Заголовок таба<input type="text" data-field="title" data-tab="' + tabKey + '" value="' + esc(state[tabKey].title) + '"></label>' +
-                '<label>Кол-во товаров<input type="number" min="1" max="60" data-field="limit" data-tab="' + tabKey + '" value="' + esc(state[tabKey].limit) + '"></label>' +
+                '<label>Кол-во товаров<input type="number" min="1" max="10" data-field="limit" data-tab="' + tabKey + '" value="' + esc(state[tabKey].limit) + '"></label>' +
             '</div>' +
             '<ul class="pinned-list" data-tab="' + tabKey + '"></ul>' +
             '<div class="search-box">' +
