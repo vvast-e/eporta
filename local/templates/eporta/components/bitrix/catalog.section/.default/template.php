@@ -140,12 +140,18 @@ if ($eportaItemIds) {
 			<?php if (($arParams["SHOW_WISHLIST_REMOVE"] ?? "N") === "Y"): ?>
 				<button type="button" class="wishlist-remove-btn" data-id="<?= (int)$arItem["ID"] ?>" onclick="event.preventDefault();event.stopPropagation();removeFromWishlistCard(this)" title="Удалить из избранного">×</button>
 			<?php endif; ?>
+			<!-- Рейтинг перенесён сюда из .info оверлеем в правый верхний угол (задача 10.09.2026:
+			"карточки каталога") — компактный формат "★ 4.9" вместо пяти символов звёзд. Бейджи
+			выше — в левом углу, не пересекаются. При rating<=0 (он же "Новинка") не показываем. -->
+			<?php if ($rating > 0): ?><span class="card-rating">★ <?= number_format($rating, 1, ".", "") ?></span><?php endif; ?>
+			<!-- Сравнение — раньше жило в .card-actions под ценой вместе с "В корзину" (задача
+			10.09.2026: кнопку "В корзину" с плитки убрали целиком, сравнение осталось единственным
+			действием — вынесено иконкой в угол фото, .card-actions больше не нужен). Внутри
+			.img-wrap, а не <a>, клик по нему не переходит по ссылке товара — addCompare() сам
+			останавливает всплытие, как и раньше. -->
+			<button class="btn-compare" onclick="addCompare(event, <?= (int)$arItem["ID"] ?>)" title="Сравнить">⇄</button>
 		</div>
 		<div class="info">
-			<!-- Раньше тут выводился $voteCount (число отзывов, всегда 0 — импорт его не
-			заполняет), из-за чего рядом со звёздами у всех товаров стоял "0". Значение
-			рейтинга нагляднее и совпадает с тем, что показывается на детальной странице. -->
-			<div class="stars"><?= $stars ?><?php if ($rating > 0): ?> <span><?= number_format($rating, 1, ".", "") ?></span><?php endif; ?></div>
 			<div class="name" title="<?= htmlspecialcharsbx($eportaDisplayName) ?>"><?= htmlspecialcharsbx($eportaModelNamePart) ?></div>
 			<?php if ($eportaCoatingNamePart !== ""): ?>
 			<div class="coating" title="<?= htmlspecialcharsbx($eportaCoatingNamePart) ?>"><?= htmlspecialcharsbx($eportaCoatingNamePart) ?></div>
@@ -155,14 +161,7 @@ if ($eportaItemIds) {
 			</div>
 		</div>
 	</a>
-	<!-- Кнопки на своей строке, во всю ширину карточки (задача 06.09.2026) — раньше делили
-	     строку с ценой и отжимали её до переноса "₽" на новую строку (см. .price-row в
-	     template_styles.css). Вне <a> — те же кнопки, что и раньше, отдельные действия. -->
-	<div class="card-actions">
-		<button class="btn-compare" onclick="addCompare(event, <?= (int)$arItem["ID"] ?>)" title="Сравнить">⇄</button>
-		<button class="btn-cart" onclick="addCartAjax(event, <?= (int)$arItem["ID"] ?>)">В корзину</button>
 	</div>
-</div>
 <?php endforeach; ?>
 </div>
 
