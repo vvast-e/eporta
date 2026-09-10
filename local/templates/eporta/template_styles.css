@@ -629,6 +629,7 @@ img { display: block; }
 
 /* ========== Карточка товара ========== */
 .product-card {
+  position: relative;
   background: #fcfcfc;
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -794,26 +795,32 @@ img { display: block; }
 }
 .product-card .btn-compare:hover, .product-card .btn-compare.added { border-color: var(--accent); color: var(--accent-dark); }
 /* "В корзину" убрали с плитки насовсем (задача 10.09.2026), но по правке заказчика в тот же день
-   вернули — теперь по наведению на карточку: .card-hover-actions в обычном потоке (не absolute),
-   схлопнута до 0 высоты и раскрывается при :hover — карточка физически "проседает" вниз,
-   раздвигая строку сетки (grid сам пересчитывает высоту ряда под самую высокую ячейку), соседние
-   карточки не наезжают друг на друга. transition на max-height, а не height — auto-высоту так
-   не анимировать, но 60px с запасом хватает на одну строку кнопки. */
+   вернули — по наведению на карточку, оверлеем поверх низа карточки (задача уточнена в тот же
+   день: первая версия раздвигала строку сетки вниз и сдвигала соседние ряды — не годится).
+   position:absolute внутри .product-card (см. position:relative там же) — не участвует в потоке,
+   высота ряда грида не меняется. Уезжает вниз за пределы карточки (translateY(100%) + overflow:
+   hidden на .product-card прячет её) и выезжает наверх при :hover, поверх цены. */
 .product-card .card-hover-actions {
-  max-height: 0;
-  overflow: hidden;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px 12px;
+  background: linear-gradient(0deg, #fcfcfc 65%, rgba(252,252,252,0));
+  transform: translateY(100%);
   opacity: 0;
-  transition: max-height .2s ease, opacity .15s ease;
+  transition: transform .2s ease, opacity .2s ease;
+  pointer-events: none;
 }
 .product-card:hover .card-hover-actions,
 .product-card:focus-within .card-hover-actions {
-  max-height: 60px;
+  transform: translateY(0);
   opacity: 1;
+  pointer-events: auto;
 }
 .product-card .card-hover-actions .btn-cart {
   display: block;
-  width: calc(100% - 24px);
-  margin: 0 12px 12px;
+  width: 100%;
   background: var(--accent);
   color: #fff;
   font-weight: 700;
@@ -822,6 +829,7 @@ img { display: block; }
   border-radius: 9px;
   border: none;
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(27,26,23,.15);
   transition: background .15s;
 }
 .product-card .card-hover-actions .btn-cart:hover { background: var(--accent-dark); }
