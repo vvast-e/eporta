@@ -662,6 +662,15 @@ img { display: block; }
   gap: 16px;
 }
 .eporta-model-grid > .product-card { flex: 0 0 200px; width: 200px; }
+/* Мобилка — по 2 модели в ряд (задача 10.09.2026: fixed flex:0 0 200px даёт 1 в ряд на экранах
+   уже 416px, т.к. 200px+200px+16px gap не помещается). CSS grid с 2 явными колонками вместо
+   flex — десктопное центрирование неполного последнего ряда (сам смысл flex-wrap выше) на
+   мобилке не нужно: 2 в ряд почти всегда даёт чётное число моделей, а нечётный хвост из одной
+   карточки в grid просто остаётся слева, что и ожидается для сетки. */
+@media (max-width: 640px) {
+  .eporta-model-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .eporta-model-grid > .product-card { flex: initial; width: auto; }
+}
 
 .product-card .img-wrap { position: relative; }
 /* Единый фон подложки под фото (раньше переключался по цвету двери — светлые/тёмные карточки
@@ -670,11 +679,12 @@ img { display: block; }
 /* Высота фото фиксирована в px, не vw-clamp — при фиксированной ширине карточки (см.
    .eporta-product-grid ниже) vw-зависимая высота продолжала бы "дышать" от ширины окна ровно
    так же, как раньше "дышала" сама плашка (жалоба заказчика на 169.ru, задача 06.09.2026).
-   210→240→258px (задача 06.09.2026, "увеличить фото") — object-fit:contain при портретном
-   кадре двери масштабирует и высоту, и ширину пропорционально, так что дверь становится
-   заметно крупнее, а не просто выше. */
-.product-card .img-wrap img { width: 100%; height: 258px; object-fit: contain; background: #fcfcfc; }
-.product-card .img-wrap .img-noimg { width: 100%; height: 258px; display: flex; align-items: center; justify-content: center; background: #fcfcfc; color: #a39e95; font: 700 12px var(--font); }
+   210→240→258→340px (задача 10.09.2026, "увеличить фото" ещё раз — две строки карточек должны
+   занимать высоту экрана) — object-fit:contain при портретном кадре двери масштабирует и
+   высоту, и ширину пропорционально, так что дверь становится заметно крупнее, а не просто
+   выше. Ширина карточки (200px) и число колонок не меняются. */
+.product-card .img-wrap img { width: 100%; height: 340px; object-fit: contain; background: #fcfcfc; }
+.product-card .img-wrap .img-noimg { width: 100%; height: 340px; display: flex; align-items: center; justify-content: center; background: #fcfcfc; color: #a39e95; font: 700 12px var(--font); }
 .product-card .badge {
   position: absolute;
   top: 10px;
@@ -704,9 +714,28 @@ img { display: block; }
 }
 .wishlist-remove-btn:hover { color: #e8820a; }
 .wishlist-remove-btn:disabled { opacity: .5; cursor: default; }
+/* Рейтинг — раньше .stars внутри .info (пять символов звёзд + число отдельной строкой над
+   названием), теперь оверлей поверх фото в правом верхнем углу, компактный формат "★ 4.9"
+   (задача 10.09.2026, "карточки каталога"). Бейджи hit/new/sale — тот же угол, но слева
+   (.product-card .badge, left:10px), друг с другом не пересекаются. Если на карточке ещё и
+   кнопка "Удалить из избранного" (.wishlist-remove-btn, только на /wishlist/) — та же точка
+   top:10/right:10 — сдвигаем рейтинг ниже через :has(), а не порядком разметки. */
+.product-card .card-rating {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(255,255,255,.88);
+  color: var(--dark);
+  font: 700 11px var(--font);
+  padding: 3px 8px;
+  border-radius: 8px;
+  line-height: 1.3;
+}
+.img-wrap:has(.wishlist-remove-btn) .card-rating { top: 44px; }
 .product-card .info { padding: 10px 12px 8px; }
-.product-card .stars { color: var(--accent); font-size: 12px; letter-spacing: 1px; }
-.product-card .stars span { color: var(--text-hint); }
 /* Название — две строки (задача 06.09.2026): NAME делится в PHP по первой запятой на модель
    (.name, крупнее/жирнее) и покрытие+цвет (.coating, мельче/приглушённый цвет) — раньше это была
    одна обрезанная строка "Dorsum-Eco 12.2, Экошпон Дуб Мадейра янтарь Н", из которой на узкой
@@ -734,39 +763,35 @@ img { display: block; }
   margin: 2px 0 8px;
 }
 /* Цена — одна строка, новая и старая (зачёркнутая) рядом (задача 06.09.2026: были раньше
-   строкой одна под другой). Кнопки живут отдельным .card-actions ниже, своей строкой во всю
-   ширину карточки — раньше делили строку с ценой и отжимали её до переноса "₽" на новую
-   строку. */
+   строкой одна под другой). */
 .product-card .price-row { display: flex; align-items: baseline; gap: 8px; }
 .product-card .price-block { display: flex; align-items: baseline; gap: 8px; }
 .product-card .price { font-family: var(--font); font-weight: 800; font-size: 18px; white-space: nowrap; }
 .product-card .price-old { font-family: var(--font); font-weight: 600; font-size: 12px; color: var(--text-hint); text-decoration: line-through; white-space: nowrap; }
-.card-actions { display: flex; align-items: center; gap: 8px; padding: 0 12px 12px; }
-.card-actions .btn-cart { flex: 1 1 auto; }
-.card-actions .btn-compare { flex: 0 0 auto; }
-.product-card .btn-cart {
-  background: var(--accent);
-  color: #fff;
-  font-weight: 700;
-  font-size: 12px;
-  padding: 8px 11px;
-  border-radius: 9px;
-  border: none;
-  cursor: pointer;
-  transition: background .15s;
-}
-.product-card .btn-cart:hover { background: var(--accent-dark); }
+/* "В корзину" убрана с плитки каталога целиком (задача 10.09.2026) — освободившееся место
+   отдано фото (см. .img-wrap img выше). Сравнение осталось единственным действием карточки —
+   .card-actions больше не нужен, кнопка переехала иконкой в правый нижний угол фото (тот же
+   паттерн круглой кнопки, что у .wishlist-remove-btn в правом верхнем). На детальной странице
+   (catalog.element, #ctaBtn) кнопка "В корзину" не тронута — другой шаблон. */
 .product-card .btn-compare {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #fff;
   color: var(--dark);
   font-weight: 700;
-  font-size: 12px;
-  padding: 8px 9px;
-  border-radius: 9px;
+  font-size: 15px;
+  padding: 0;
+  border-radius: 50%;
   border: 1.5px solid var(--border);
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(27,26,23,.12);
   transition: border-color .15s, color .15s;
-  white-space: nowrap;
 }
 .product-card .btn-compare:hover, .product-card .btn-compare.added { border-color: var(--accent); color: var(--accent-dark); }
 
@@ -793,6 +818,14 @@ img { display: block; }
 /* Мобильный портрет — фиксированные 200px в 2 колонки не всегда помещаются на узких экранах
    (320-400px), здесь сетка намеренно резиновая (minmax), а не фиксированная. */
 @media (max-width: 640px)  { .eporta-product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* На резиновых сетках (эта и .eporta-model-grid ниже) карточка сама не имеет фиксированной
+   ширины 200px — фиксированная высота фото (340px, см. .img-wrap img выше) на узкой карточке
+   рисовала бы непропорционально высокое фото. Здесь высота — пропорция от той же ширины/высоты
+   200:340, а не пиксели (задача 10.09.2026). */
+@media (max-width: 640px) {
+  .product-card .img-wrap img,
+  .product-card .img-wrap .img-noimg { height: auto; aspect-ratio: 200 / 340; }
+}
 
 /* Каталог на очень широких мониторах (2560px+/32", ultrawide): --pad-x (см. токены выше)
    растит только боковой отступ. Сама сетка карточек теперь и так не растягивается (фиксированная
