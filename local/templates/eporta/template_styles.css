@@ -679,12 +679,13 @@ img { display: block; }
 /* Высота фото фиксирована в px, не vw-clamp — при фиксированной ширине карточки (см.
    .eporta-product-grid ниже) vw-зависимая высота продолжала бы "дышать" от ширины окна ровно
    так же, как раньше "дышала" сама плашка (жалоба заказчика на 169.ru, задача 06.09.2026).
-   210→240→258→340px (задача 10.09.2026, "увеличить фото" ещё раз — две строки карточек должны
-   занимать высоту экрана) — object-fit:contain при портретном кадре двери масштабирует и
-   высоту, и ширину пропорционально, так что дверь становится заметно крупнее, а не просто
-   выше. Ширина карточки (200px) и число колонок не меняются. */
-.product-card .img-wrap img { width: 100%; height: 340px; object-fit: contain; background: #fcfcfc; }
-.product-card .img-wrap .img-noimg { width: 100%; height: 340px; display: flex; align-items: center; justify-content: center; background: #fcfcfc; color: #a39e95; font: 700 12px var(--font); }
+   210→240→258→340→296px (задача 10.09.2026: 340px оказалось лишним — по фидбэку заказчика на
+   реальном экране на два ряда карточек уже не хватало высоты, цена уезжала за нижний край) —
+   object-fit:contain при портретном кадре двери масштабирует и высоту, и ширину пропорционально,
+   так что дверь всё равно крупнее исходных 258px. Ширина карточки (200px) и число колонок не
+   меняются. */
+.product-card .img-wrap img { width: 100%; height: 296px; object-fit: contain; background: #fcfcfc; }
+.product-card .img-wrap .img-noimg { width: 100%; height: 296px; display: flex; align-items: center; justify-content: center; background: #fcfcfc; color: #a39e95; font: 700 12px var(--font); }
 .product-card .badge {
   position: absolute;
   top: 10px;
@@ -768,11 +769,9 @@ img { display: block; }
 .product-card .price-block { display: flex; align-items: baseline; gap: 8px; }
 .product-card .price { font-family: var(--font); font-weight: 800; font-size: 18px; white-space: nowrap; }
 .product-card .price-old { font-family: var(--font); font-weight: 600; font-size: 12px; color: var(--text-hint); text-decoration: line-through; white-space: nowrap; }
-/* "В корзину" убрана с плитки каталога целиком (задача 10.09.2026) — освободившееся место
-   отдано фото (см. .img-wrap img выше). Сравнение осталось единственным действием карточки —
-   .card-actions больше не нужен, кнопка переехала иконкой в правый нижний угол фото (тот же
-   паттерн круглой кнопки, что у .wishlist-remove-btn в правом верхнем). На детальной странице
-   (catalog.element, #ctaBtn) кнопка "В корзину" не тронута — другой шаблон. */
+/* Сравнение — убрано из .card-actions под ценой, кнопка переехала иконкой в правый нижний угол
+   фото (тот же паттерн круглой кнопки, что у .wishlist-remove-btn в правом верхнем). На
+   детальной странице (catalog.element, #ctaBtn) кнопка "В корзину" не тронута — другой шаблон. */
 .product-card .btn-compare {
   position: absolute;
   bottom: 10px;
@@ -794,6 +793,38 @@ img { display: block; }
   transition: border-color .15s, color .15s;
 }
 .product-card .btn-compare:hover, .product-card .btn-compare.added { border-color: var(--accent); color: var(--accent-dark); }
+/* "В корзину" убрали с плитки насовсем (задача 10.09.2026), но по правке заказчика в тот же день
+   вернули — теперь по наведению на карточку: .card-hover-actions в обычном потоке (не absolute),
+   схлопнута до 0 высоты и раскрывается при :hover — карточка физически "проседает" вниз,
+   раздвигая строку сетки (grid сам пересчитывает высоту ряда под самую высокую ячейку), соседние
+   карточки не наезжают друг на друга. transition на max-height, а не height — auto-высоту так
+   не анимировать, но 60px с запасом хватает на одну строку кнопки. */
+.product-card .card-hover-actions {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height .2s ease, opacity .15s ease;
+}
+.product-card:hover .card-hover-actions,
+.product-card:focus-within .card-hover-actions {
+  max-height: 60px;
+  opacity: 1;
+}
+.product-card .card-hover-actions .btn-cart {
+  display: block;
+  width: calc(100% - 24px);
+  margin: 0 12px 12px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 8px 11px;
+  border-radius: 9px;
+  border: none;
+  cursor: pointer;
+  transition: background .15s;
+}
+.product-card .card-hover-actions .btn-cart:hover { background: var(--accent-dark); }
 
 /* Сетка карточек каталога/коллекций — 6 в ряд на десктопе (по аналогии с 169.ru, задача
    Алексея/Сергея 06.09.2026). Раньше колонки были резиновые (repeat(N,1fr)) — при сужении/
@@ -819,12 +850,12 @@ img { display: block; }
    (320-400px), здесь сетка намеренно резиновая (minmax), а не фиксированная. */
 @media (max-width: 640px)  { .eporta-product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 /* На резиновых сетках (эта и .eporta-model-grid ниже) карточка сама не имеет фиксированной
-   ширины 200px — фиксированная высота фото (340px, см. .img-wrap img выше) на узкой карточке
+   ширины 200px — фиксированная высота фото (296px, см. .img-wrap img выше) на узкой карточке
    рисовала бы непропорционально высокое фото. Здесь высота — пропорция от той же ширины/высоты
    200:340, а не пиксели (задача 10.09.2026). */
 @media (max-width: 640px) {
   .product-card .img-wrap img,
-  .product-card .img-wrap .img-noimg { height: auto; aspect-ratio: 200 / 340; }
+  .product-card .img-wrap .img-noimg { height: auto; aspect-ratio: 200 / 296; }
 }
 
 /* Каталог на очень широких мониторах (2560px+/32", ultrawide): --pad-x (см. токены выше)
@@ -955,6 +986,10 @@ img { display: block; }
 .eporta-product-grid--list .product-card .img-wrap .img-noimg { height: 100%; }
 .eporta-product-grid--list .product-card .info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
 .eporta-product-grid--list .product-swatches { flex: none; padding: 0 13px 0 0; max-width: 140px; }
+/* .card-hover-actions рассчитан на карточку-плитку (раздвигает высоту вниз) — в списке
+   .product-card сам flex-row, оверлей встал бы сбоку от .info, а не под ним. Проще скрыть,
+   чем городить отдельную раскладку под режим, которым и так редко пользуются. */
+.eporta-product-grid--list .card-hover-actions { display: none; }
 @media (max-width: 560px) {
   .eporta-product-grid--list .product-card-link { flex-direction: row; }
   .eporta-product-grid--list .product-card .img-wrap { width: 96px; }
