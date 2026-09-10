@@ -1190,6 +1190,13 @@ img { display: block; }
 .home-tabs-banner__scroll::-webkit-scrollbar { display: none; }
 .home-tabs-banner__scroll .eporta-product-grid { display: contents; }
 .home-tabs-banner__scroll .product-card { flex: 0 0 200px; width: 200px; scroll-snap-align: start; }
+/* .card-hover-actions (задача 10.09.2026, "В корзину" по наведению) больше не обрезается
+   overflow:hidden карточки (см. .card-clip выше) — здесь это аукнулось багом: overflow-x:auto
+   у флекс-браузеров автоматически домысливает overflow-y в auto же (спека CSS2.1 §11.1.1), и
+   невидимый (opacity:0), но не вырезанный из потока блок под карточкой раздувал scrollHeight
+   полосы — внутри баннера появлялся лишний вертикальный скролл. В карусели наведение мышью и
+   так не главный сценарий (тач/свайп) — проще скрыть, как и в режиме "Список" ниже. */
+.home-tabs-banner__scroll .card-hover-actions { display: none; }
 .home-tabs-banner__arrow {
   position: absolute;
   top: 50%;
