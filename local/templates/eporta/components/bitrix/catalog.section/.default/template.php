@@ -9,6 +9,23 @@ $eportaCols = (int)($arParams["LINE_ELEMENT_COUNT"] ?? 3) ?: 3;
 // simple.offers), кука eporta_view переключается кнопками в catalog/index.php.
 $eportaGridView = ($_COOKIE["eporta_view"] ?? "") === "list" ? " eporta-product-grid--list" : "";
 
+// Явный порядок вывода (закреплённые товары в заданном порядке, потом автоотбор) — компонентными
+// параметрами не выражается, задаётся глобальной переменной перед IncludeComponent (см. табы
+// главной, eportaHomeTabsRenderCatalogSection в eporta_home_tabs_common.php). Необязательно —
+// если не задано, порядок остаётся как отдал компонент (ELEMENT_SORT_FIELD).
+global $arrEportaHomeTabOrder;
+if (!empty($arrEportaHomeTabOrder) && is_array($arrEportaHomeTabOrder)) {
+	$eportaOrderPos = array_flip(array_map("strval", $arrEportaHomeTabOrder));
+	usort($arResult["ITEMS"], function ($a, $b) use ($eportaOrderPos) {
+		$posA = $eportaOrderPos[$a["ID"]] ?? PHP_INT_MAX;
+		$posB = $eportaOrderPos[$b["ID"]] ?? PHP_INT_MAX;
+		return $posA <=> $posB;
+	});
+	// Одноразово — следующий вызов компонента (другой таб/другая секция) не должен унаследовать
+	// чужой порядок.
+	$arrEportaHomeTabOrder = null;
+}
+
 // Компонент bitrix:catalog.section (single-iblock режим) не досчитывает $arItem["PROPERTIES"]
 // для RATING/VOTE_COUNT/PRODUCT_DAY в этой связке параметров — подтягиваем их напрямую
 // классическим CIBlockElement::GetList, это не зависит от внутренней кухни компонента.

@@ -180,4 +180,15 @@ function eportaOnBuildGlobalMenu(&$aGlobalMenu, &$aModuleMenu) {
         'url' => '/local/admin_tools/eporta_promo/',
         'more_url' => ['/local/admin_tools/eporta_promo/'],
     ];
+    $aModuleMenu[] = [
+        'parent_menu' => 'global_menu_content',
+        'sort' => 730,
+        'text' => 'Табы главной (Хиты/Распродажа/Новинки)',
+        'title' => 'Заголовки, лимиты и закреплённые товары табов главной страницы',
+        'icon' => 'iblock_menu_icon',
+        'page_icon' => 'iblock_menu_icon',
+        'items_id' => 'menu_eporta_home_tabs',
+        'url' => '/local/admin_tools/eporta_home_tabs/',
+        'more_url' => ['/local/admin_tools/eporta_home_tabs/'],
+    ];
 }
