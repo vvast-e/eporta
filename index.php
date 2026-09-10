@@ -318,87 +318,56 @@ $APPLICATION->SetTitle("Eporta");?> <?
 		</div>
 	</div>
 
-	<!-- Хиты продаж: реальные данные IBLOCK 19. В выгрузке из 1С нет отдельной колонки
-	     "хит/спецпредложение" — раньше блок фильтровался по легаси-свойству OFFERS (значения
-	     294/296/297 из старого dresscode), которое импортёр eporta не заполняет, поэтому блок
-	     всегда был пуст. Заменили на RATING >= 4.8 — тот же порог, что даёт плашку "ХИТ" на
-	     карточке (template.php catalog.section:44), так что здесь и там одни и те же товары. -->
+	<!-- Табы "Хиты / Распродажа / Новинки" (Этап 3, 10.09.2026) — заменяют прежний статичный блок
+	     "Хиты продаж" (RATING >= 4.8, легаси-свойство OFFERS импортёр eporta не заполняет, см. был
+	     старый комментарий здесь). Три грида рендерятся серверно сразу все — переключение только
+	     display в JS ниже (не AJAX, чтобы не ломать LCP и не заводить новый эндпоинт). Настройки
+	     (заголовки/лимиты/закреплённые товары) — local/admin_tools/eporta_home_tabs/,
+	     local/php_interface/include/eporta_home_tabs_common.php. -->
+	<?
+		require_once($_SERVER["DOCUMENT_ROOT"]."/local/php_interface/include/eporta_home_tabs_common.php");
+		$eportaHomeTabsKeys = eportaHomeTabsKeys();
+		$eportaHomeTabsConfig = eportaHomeTabsGetConfig();
+		$eportaHomeTabsVarNames = [
+			"hit" => "arrEportaHomeTabHit",
+			"sale" => "arrEportaHomeTabSale",
+			"new" => "arrEportaHomeTabNew",
+		];
+		$eportaHomeTabsIds = [];
+		foreach ($eportaHomeTabsKeys as $eportaHomeTabKey) {
+			$eportaHomeTabsIds[$eportaHomeTabKey] = eportaHomeTabsResolveIds($eportaHomeTabKey, $eportaHomeTabsConfig[$eportaHomeTabKey]);
+		}
+	?>
 	<div style="padding:26px var(--pad-x) 16px">
 		<div class="section-heading">
-			<h2>Хиты продаж</h2>
+			<div class="home-tabs">
+				<?foreach ($eportaHomeTabsKeys as $eportaHomeTabIndex => $eportaHomeTabKey):?>
+				<div class="home-tab<?=$eportaHomeTabIndex === 0 ? " active" : ""?>" data-home-tab="<?=$eportaHomeTabKey?>"><?=htmlspecialcharsbx($eportaHomeTabsConfig[$eportaHomeTabKey]["title"])?></div>
+				<?endforeach;?>
+			</div>
 			<a href="/catalog/">Весь каталог →</a>
 		</div>
-		<?
-			global $arrEportaHitsFilter;
-			$arrEportaHitsFilter = [
-				"IBLOCK_ID" => 19,
-				"ACTIVE" => "Y",
-				">=PROPERTY_RATING" => 4.8,
-			];
-			$APPLICATION->IncludeComponent(
-				"bitrix:catalog.section",
-				".default",
-				[
-					"IBLOCK_TYPE" => "catalog",
-					"IBLOCK_ID" => "19",
-					"SECTION_ID" => false,
-					"SECTION_CODE" => "",
-					"SECTION_USER_FIELDS" => [],
-					"ELEMENT_SORT_FIELD" => "sort",
-					"ELEMENT_SORT_ORDER" => "asc",
-					"ELEMENT_SORT_FIELD2" => "id",
-					"ELEMENT_SORT_ORDER2" => "desc",
-					"FILTER_NAME" => "arrEportaHitsFilter",
-					"HIDE_NOT_AVAILABLE" => "N",
-					"HIDE_NOT_AVAILABLE_OFFERS" => "N",
-					// 6 в ряд по аналогии с 169.ru (задача 06.09.2026, см. catalog/index.php) —
-					// PAGE_ELEMENT_COUNT кратен 6 (2 полных ряда), было 8 при 4 в ряду.
-					"PAGE_ELEMENT_COUNT" => "12",
-					"LINE_ELEMENT_COUNT" => "6",
-					"PROPERTY_CODE" => ["STYLE", "COATING_COLOR", "GLAZING", "MAIN_COLOR", "PRODUCT_DAY", "RATING", "VOTE_COUNT", "CML2_ARTICLE"],
-					"OFFERS_FIELD_CODE" => [],
-					"OFFERS_PROPERTY_CODE" => [],
-					"BACKGROUND_IMAGE" => "-",
-					"LABEL_PROP" => "-",
-					"PRODUCT_SUBSCRIPTION" => "N",
-					"SHOW_DISCOUNT_PERCENT" => "Y",
-					"SHOW_OLD_PRICE" => "Y",
-					"PRICE_CODE" => ["BASE"],
-					"USE_PRICE_COUNT" => "N",
-					"SHOW_PRICE_COUNT" => "1",
-					"PRICE_VAT_INCLUDE" => "Y",
-					"CONVERT_CURRENCY" => "N",
-					"BASKET_URL" => "/personal/cart/",
-					"ACTION_VARIABLE" => "action",
-					"PRODUCT_ID_VARIABLE" => "id",
-					"PRODUCT_QUANTITY_VARIABLE" => "quantity",
-					"ADD_PROPERTIES_TO_BASKET" => "Y",
-					"PRODUCT_PROPS_VARIABLE" => "prop",
-					"PARTIAL_PRODUCT_PROPERTIES" => "N",
-					"USE_PRODUCT_QUANTITY" => "N",
-					"CACHE_TYPE" => "A",
-					"CACHE_TIME" => "3600",
-					"CACHE_GROUPS" => "N",
-					"CACHE_FILTER" => "N",
-					"DISPLAY_COMPARE" => "N",
-					"SET_TITLE" => "N",
-					"SET_STATUS_404" => "N",
-					"SEF_MODE" => "N",
-					"PAGER_TEMPLATE" => "round",
-					"DISPLAY_TOP_PAGER" => "N",
-					"DISPLAY_BOTTOM_PAGER" => "N",
-					"PAGER_TITLE" => "Товары",
-					"PAGER_SHOW_ALWAYS" => "N",
-					"PAGER_SHOW_ALL" => "N",
-					"ADD_SECTIONS_CHAIN" => "N",
-					"COMPATIBLE_MODE" => "Y",
-					"AJAX_MODE" => "N",
-					"TEMPLATE_THEME" => "site",
-				],
-				false
-			);
-		?>
+		<?foreach ($eportaHomeTabsKeys as $eportaHomeTabIndex => $eportaHomeTabKey):?>
+		<div class="home-tab-panel" data-home-tab-panel="<?=$eportaHomeTabKey?>"<?=$eportaHomeTabIndex === 0 ? "" : ' style="display:none"'?>>
+			<?eportaHomeTabsRenderCatalogSection($eportaHomeTabKey, $eportaHomeTabsVarNames[$eportaHomeTabKey], $eportaHomeTabsIds[$eportaHomeTabKey]);?>
+		</div>
+		<?endforeach;?>
 	</div>
+	<script>
+	(function () {
+		var tabs = document.querySelectorAll(".home-tabs .home-tab");
+		var panels = document.querySelectorAll(".home-tab-panel");
+		tabs.forEach(function (tab) {
+			tab.addEventListener("click", function () {
+				var key = tab.getAttribute("data-home-tab");
+				tabs.forEach(function (t) { t.classList.toggle("active", t === tab); });
+				panels.forEach(function (p) {
+					p.style.display = (p.getAttribute("data-home-tab-panel") === key) ? "" : "none";
+				});
+			});
+		});
+	})();
+	</script>
 
 	<!-- Соцдоказательство -->
 	<div class="social-proof">
