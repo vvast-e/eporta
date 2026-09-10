@@ -270,6 +270,89 @@ $APPLICATION->SetTitle("Eporta");?> <?
 		</div>
 	</div>
 
+	<!-- Баннер-табы "Хиты / Распродажа / Новинки" (Этап 3.1, 10.09.2026) — между блоками
+	     "Каталог по категориям" и "Коллекции фабрики". Слева вертикальный список переключателей,
+	     справа один ряд карточек с горизонтальной прокруткой (стрелки), максимум 10 карточек на
+	     таб. Все три ряда рендерятся серверно сразу — переключение только display в JS ниже
+	     (не AJAX, чтобы не ломать LCP и не заводить новый эндпоинт). Настройки (заголовки/лимиты/
+	     закреплённые товары) — local/admin_tools/eporta_home_tabs/,
+	     local/php_interface/include/eporta_home_tabs_common.php. -->
+	<?
+		require_once($_SERVER["DOCUMENT_ROOT"]."/local/php_interface/include/eporta_home_tabs_common.php");
+		$eportaHomeTabsKeys = eportaHomeTabsKeys();
+		$eportaHomeTabsConfig = eportaHomeTabsGetConfig();
+		$eportaHomeTabsVarNames = [
+			"hit" => "arrEportaHomeTabHit",
+			"sale" => "arrEportaHomeTabSale",
+			"new" => "arrEportaHomeTabNew",
+		];
+		$eportaHomeTabsIds = [];
+		foreach ($eportaHomeTabsKeys as $eportaHomeTabKey) {
+			$eportaHomeTabsIds[$eportaHomeTabKey] = eportaHomeTabsResolveIds($eportaHomeTabKey, $eportaHomeTabsConfig[$eportaHomeTabKey]);
+		}
+	?>
+	<div class="home-tabs-banner">
+		<div class="home-tabs-banner__nav">
+			<?foreach ($eportaHomeTabsKeys as $eportaHomeTabIndex => $eportaHomeTabKey):?>
+			<div class="home-tabs-banner__tab<?=$eportaHomeTabIndex === 0 ? " active" : ""?>" data-home-tab="<?=$eportaHomeTabKey?>"><?=htmlspecialcharsbx($eportaHomeTabsConfig[$eportaHomeTabKey]["title"])?></div>
+			<?endforeach;?>
+		</div>
+		<div class="home-tabs-banner__body">
+			<button type="button" class="home-tabs-banner__arrow home-tabs-banner__arrow--left" aria-label="Назад">‹</button>
+			<?foreach ($eportaHomeTabsKeys as $eportaHomeTabIndex => $eportaHomeTabKey):?>
+			<div class="home-tabs-banner__scroll" data-home-tab-panel="<?=$eportaHomeTabKey?>"<?=$eportaHomeTabIndex === 0 ? "" : ' style="display:none"'?>>
+				<?eportaHomeTabsRenderCatalogSection($eportaHomeTabKey, $eportaHomeTabsVarNames[$eportaHomeTabKey], $eportaHomeTabsIds[$eportaHomeTabKey]);?>
+			</div>
+			<?endforeach;?>
+			<button type="button" class="home-tabs-banner__arrow home-tabs-banner__arrow--right" aria-label="Вперёд">›</button>
+		</div>
+	</div>
+	<script>
+	(function () {
+		var root = document.querySelector(".home-tabs-banner");
+		if (!root) return;
+		var tabs = root.querySelectorAll(".home-tabs-banner__tab");
+		var panels = root.querySelectorAll(".home-tabs-banner__scroll");
+		var btnLeft = root.querySelector(".home-tabs-banner__arrow--left");
+		var btnRight = root.querySelector(".home-tabs-banner__arrow--right");
+		var activeKey = tabs.length ? tabs[0].getAttribute("data-home-tab") : null;
+
+		function activePanel() {
+			return root.querySelector('.home-tabs-banner__scroll[data-home-tab-panel="' + activeKey + '"]');
+		}
+		function updateArrows() {
+			var p = activePanel();
+			if (!p || !btnLeft || !btnRight) return;
+			btnLeft.disabled = p.scrollLeft <= 2;
+			btnRight.disabled = p.scrollLeft >= (p.scrollWidth - p.clientWidth - 2);
+		}
+		tabs.forEach(function (tab) {
+			tab.addEventListener("click", function () {
+				activeKey = tab.getAttribute("data-home-tab");
+				tabs.forEach(function (t) { t.classList.toggle("active", t === tab); });
+				panels.forEach(function (p) {
+					p.style.display = (p.getAttribute("data-home-tab-panel") === activeKey) ? "" : "none";
+				});
+				updateArrows();
+			});
+		});
+		if (btnLeft) btnLeft.addEventListener("click", function () {
+			var p = activePanel();
+			if (p) p.scrollBy({ left: -432, behavior: "smooth" });
+		});
+		if (btnRight) btnRight.addEventListener("click", function () {
+			var p = activePanel();
+			if (p) p.scrollBy({ left: 432, behavior: "smooth" });
+		});
+		panels.forEach(function (p) {
+			p.addEventListener("scroll", function () {
+				if (p.getAttribute("data-home-tab-panel") === activeKey) updateArrows();
+			});
+		});
+		updateArrows();
+	})();
+	</script>
+
 	<!-- Коллекции фабрики: единый источник данных local/lib/eporta_collections.php (все активные
 	     подразделы 183 из IBLOCK 19, в порядке SORT). Раньше здесь были захардкожены ровно 6
 	     коллекций с фиксированным описанием и кнопкой "Все коллекции" на отдельный хаб — теперь
@@ -317,57 +400,6 @@ $APPLICATION->SetTitle("Eporta");?> <?
 			<a href="/catalog/" style="font:600 13px 'Manrope';color:#3a3631;background:#f4f1ea;border:1px solid #ece7de;border-radius:999px;padding:9px 16px;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s">Ульяновские двери</a>
 		</div>
 	</div>
-
-	<!-- Табы "Хиты / Распродажа / Новинки" (Этап 3, 10.09.2026) — заменяют прежний статичный блок
-	     "Хиты продаж" (RATING >= 4.8, легаси-свойство OFFERS импортёр eporta не заполняет, см. был
-	     старый комментарий здесь). Три грида рендерятся серверно сразу все — переключение только
-	     display в JS ниже (не AJAX, чтобы не ломать LCP и не заводить новый эндпоинт). Настройки
-	     (заголовки/лимиты/закреплённые товары) — local/admin_tools/eporta_home_tabs/,
-	     local/php_interface/include/eporta_home_tabs_common.php. -->
-	<?
-		require_once($_SERVER["DOCUMENT_ROOT"]."/local/php_interface/include/eporta_home_tabs_common.php");
-		$eportaHomeTabsKeys = eportaHomeTabsKeys();
-		$eportaHomeTabsConfig = eportaHomeTabsGetConfig();
-		$eportaHomeTabsVarNames = [
-			"hit" => "arrEportaHomeTabHit",
-			"sale" => "arrEportaHomeTabSale",
-			"new" => "arrEportaHomeTabNew",
-		];
-		$eportaHomeTabsIds = [];
-		foreach ($eportaHomeTabsKeys as $eportaHomeTabKey) {
-			$eportaHomeTabsIds[$eportaHomeTabKey] = eportaHomeTabsResolveIds($eportaHomeTabKey, $eportaHomeTabsConfig[$eportaHomeTabKey]);
-		}
-	?>
-	<div style="padding:26px var(--pad-x) 16px">
-		<div class="section-heading">
-			<div class="home-tabs">
-				<?foreach ($eportaHomeTabsKeys as $eportaHomeTabIndex => $eportaHomeTabKey):?>
-				<div class="home-tab<?=$eportaHomeTabIndex === 0 ? " active" : ""?>" data-home-tab="<?=$eportaHomeTabKey?>"><?=htmlspecialcharsbx($eportaHomeTabsConfig[$eportaHomeTabKey]["title"])?></div>
-				<?endforeach;?>
-			</div>
-			<a href="/catalog/">Весь каталог →</a>
-		</div>
-		<?foreach ($eportaHomeTabsKeys as $eportaHomeTabIndex => $eportaHomeTabKey):?>
-		<div class="home-tab-panel" data-home-tab-panel="<?=$eportaHomeTabKey?>"<?=$eportaHomeTabIndex === 0 ? "" : ' style="display:none"'?>>
-			<?eportaHomeTabsRenderCatalogSection($eportaHomeTabKey, $eportaHomeTabsVarNames[$eportaHomeTabKey], $eportaHomeTabsIds[$eportaHomeTabKey]);?>
-		</div>
-		<?endforeach;?>
-	</div>
-	<script>
-	(function () {
-		var tabs = document.querySelectorAll(".home-tabs .home-tab");
-		var panels = document.querySelectorAll(".home-tab-panel");
-		tabs.forEach(function (tab) {
-			tab.addEventListener("click", function () {
-				var key = tab.getAttribute("data-home-tab");
-				tabs.forEach(function (t) { t.classList.toggle("active", t === tab); });
-				panels.forEach(function (p) {
-					p.style.display = (p.getAttribute("data-home-tab-panel") === key) ? "" : "none";
-				});
-			});
-		});
-	})();
-	</script>
 
 	<!-- Соцдоказательство -->
 	<div class="social-proof">

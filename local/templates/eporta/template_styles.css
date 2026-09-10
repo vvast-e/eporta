@@ -1068,16 +1068,70 @@ img { display: block; }
 .section-heading h2 { font: 800 27px var(--font); letter-spacing: -0.01em; }
 .section-heading a { font: 600 14px var(--font); color: var(--accent); }
 
-/* Табы "Хиты / Распродажа / Новинки" на главной (Этап 3, замена блока "Хиты продаж") —
-   переключатели вместо статичного h2, тот же .section-heading как обёртка (baseline+space-between
-   с "Весь каталог →" справа не меняются). */
-.home-tabs { display: flex; gap: 28px; flex-wrap: wrap; }
-.home-tab { font: 800 22px var(--font); letter-spacing: -0.01em; color: var(--text-hint); cursor: pointer; transition: color .15s; }
-.home-tab:hover { color: var(--text-mid); }
-.home-tab.active { color: var(--dark); }
-@media (max-width: 640px) {
-  .home-tab { font-size: 18px; }
-  .home-tabs { gap: 16px; }
+/* Баннер-табы "Хиты / Распродажа / Новинки" на главной (Этап 3, 10.09.2026, между блоками
+   "Каталог по категориям" и "Коллекции фабрики") — слева вертикальный список переключателей,
+   справа один ряд карточек товара с горизонтальной прокруткой (стрелки + свайп/трекпад),
+   максимум 10 карточек на таб (см. eportaHomeTabsGetConfig). Карточки — тот же компонент
+   bitrix:catalog.section/.default, что и в каталоге: его штатную обёртку .eporta-product-grid
+   (CSS grid с фиксированным числом колонок) отключаем через display:contents, чтобы
+   .product-card стали прямыми flex-элементами прокручиваемой строки — без правки template.php. */
+.home-tabs-banner { display: flex; gap: 32px; padding: 26px var(--pad-x); align-items: stretch; }
+.home-tabs-banner__nav { flex: 0 0 188px; display: flex; flex-direction: column; gap: 2px; justify-content: center; }
+.home-tabs-banner__tab {
+  font: 800 20px var(--font);
+  letter-spacing: -0.01em;
+  color: var(--text-hint);
+  cursor: pointer;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border-soft);
+  transition: color .15s;
+}
+.home-tabs-banner__tab:last-child { border-bottom: none; }
+.home-tabs-banner__tab:hover { color: var(--text-mid); }
+.home-tabs-banner__tab.active { color: var(--dark); }
+.home-tabs-banner__body { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; }
+.home-tabs-banner__scroll {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  width: 100%;
+  padding: 4px 2px 10px;
+  scrollbar-width: none;
+}
+.home-tabs-banner__scroll::-webkit-scrollbar { display: none; }
+.home-tabs-banner__scroll .eporta-product-grid { display: contents; }
+.home-tabs-banner__scroll .product-card { flex: 0 0 200px; width: 200px; scroll-snap-align: start; }
+.home-tabs-banner__arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--dark);
+  font: 700 18px var(--font);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(27,26,23,.08);
+  z-index: 2;
+  transition: opacity .15s;
+}
+.home-tabs-banner__arrow--left { left: -8px; }
+.home-tabs-banner__arrow--right { right: -8px; }
+.home-tabs-banner__arrow[disabled] { opacity: 0; pointer-events: none; }
+@media (max-width: 900px) {
+  .home-tabs-banner { flex-direction: column; gap: 14px; padding-top: 22px; }
+  .home-tabs-banner__nav { flex-direction: row; flex: none; gap: 22px; overflow-x: auto; justify-content: flex-start; }
+  .home-tabs-banner__tab { padding: 4px 0; border-bottom: none; white-space: nowrap; }
+  .home-tabs-banner__arrow--left { left: 0; }
+  .home-tabs-banner__arrow--right { right: 0; }
 }
 
 /* ========== Сетка товаров ========== */
