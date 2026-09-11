@@ -77,15 +77,7 @@ if ($eportaItemIds) {
 	// правдоподобное, но не относящееся к товару фото (см. catalog.element/.default/template.php,
 	// найдено на арт. 0593 через поиск по каталогу). Теперь явная "Нет фото" вместо угадывания.
 	$eportaHasPhoto = !empty($arItem["PREVIEW_PICTURE"]["SRC"]) || !empty($arItem["DETAIL_PICTURE"]["SRC"]);
-	// Debug-переключатель "старое/новое превью" (см. кнопка в footer.php, задача 11.09.2026):
-	// PREVIEW_PICTURE у товара — часто мелкое фото от поставщика (реальный пример — 237×520),
-	// заметно хуже качеством, чем DETAIL_PICTURE (548×1200 и крупнее), из которого уже готов
-	// уменьшенный .480-вариант (см. eportaSmallVariant() в inc/webp.php). Ничего не пишем в
-	// базу — источник картинки выбирается на лету по куке, временно, для визуального сравнения.
-	$eportaDebugHqPreview = ($_COOKIE["eporta_debug_hq_photo"] ?? "") === "1";
-	$imgSrc = ($eportaDebugHqPreview && !empty($arItem["DETAIL_PICTURE"]["SRC"]))
-		? $arItem["DETAIL_PICTURE"]["SRC"]
-		: ($arItem["PREVIEW_PICTURE"]["SRC"] ?? ($arItem["DETAIL_PICTURE"]["SRC"] ?? ""));
+	$imgSrc = $arItem["PREVIEW_PICTURE"]["SRC"] ?? ($arItem["DETAIL_PICTURE"]["SRC"] ?? "");
 	// Первый ряд карточек — кандидат в LCP, грузим сразу; остальные ниже экрана — lazy.
 	$eportaIsEager = $eportaImgIndex < $eportaCols;
 	$eportaImgIndex++;
