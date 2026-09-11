@@ -40,7 +40,7 @@ function eportaCollections(bool $includeInactive = false): array {
         ['SORT' => 'ASC'],
         $filter,
         false,
-        ['ID', 'NAME', 'CODE', 'DESCRIPTION', 'SORT', 'ACTIVE', 'PICTURE', 'DETAIL_PICTURE', 'IBLOCK_SECTION_ID']
+        ['ID', 'NAME', 'CODE', 'DESCRIPTION', 'SORT', 'ACTIVE', 'PICTURE', 'DETAIL_PICTURE', 'IBLOCK_SECTION_ID', 'UF_BANNER_OVERLAY', 'UF_BANNER_CTA_TEXT', 'UF_BANNER_CTA_LINK']
     );
     while ($row = $res->GetNext()) {
         if ((int)$row['IBLOCK_SECTION_ID'] !== EPORTA_COLLECTIONS_PARENT_SECTION_ID) {

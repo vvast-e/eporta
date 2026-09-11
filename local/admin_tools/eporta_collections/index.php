@@ -41,6 +41,10 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
         'active' => $coll['ACTIVE'] === 'Y',
         'cnt' => $counts[$coll['ID']] ?? 0,
         'banner' => $bannerPath ?: '',
+        // Пусто/поле ещё не заведено — затемнение включено (тот же дефолт, что и в catalog/index.php).
+        'banner_overlay' => ($coll['UF_BANNER_OVERLAY'] ?? '') !== 'N',
+        'banner_cta_text' => (string)($coll['UF_BANNER_CTA_TEXT'] ?? ''),
+        'banner_cta_link' => (string)($coll['UF_BANNER_CTA_LINK'] ?? ''),
     ];
 }, $collections);
 ?>
@@ -78,6 +82,12 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
     .banner-thumb.is-empty { display: flex; align-items: center; justify-content: center; font-size: 10px; color: #aaa; }
     .banner-upload-btn { font-size: 12px; color: #2b6cb0; cursor: pointer; white-space: nowrap; }
     .banner-upload-btn:hover { text-decoration: underline; }
+    .banner-meta-cell label { display: block; font-size: 11px; color: #888; margin: 4px 0 2px; }
+    .banner-meta-cell label:first-child { margin-top: 0; }
+    .banner-meta-cell input[type=text] { width: 100%; box-sizing: border-box; font-size: 12px; padding: 4px 6px; border: 1px solid #ddd; border-radius: 4px; }
+    .banner-meta-cell .row-check { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: #444; margin: 6px 0; }
+    .banner-meta-cell .row-check input { margin: 0; }
+    .banner-meta-cell button { font-size: 11.5px; padding: 4px 10px; }
 
     /* Модели и варианты коллекции (задача 06.09.2026: перенесено из отдельной страницы
        local/admin_tools/eporta_showcase/ — всё управление коллекцией в одном месте). */
@@ -115,7 +125,9 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
     не плитка на главной и не на хабе всех коллекций.<br>
     Кнопка «Модели/цвета» у каждой коллекции открывает выбор витринного варианта (какой цвет
     показан на карточке модели в блоке «Модели коллекции») и видимость каждого варианта в блоке
-    «Все товары коллекции»/каталоге.
+    «Все товары коллекции»/каталоге.<br>
+    Столбец «Кнопка/затемнение баннера» — необязательная кнопка на баннере страницы коллекции
+    (пустой текст = кнопки нет) и включение/выключение тёмного градиента поверх фото.
 </p>
 
 <table id="collections-table">
@@ -128,6 +140,7 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
             <th style="width:60px">Активна</th>
             <th style="width:90px">Моделей</th>
             <th style="width:130px">Баннер страницы</th>
+            <th style="width:200px">Кнопка/затемнение баннера</th>
             <th style="width:170px"></th>
         </tr>
     </thead>
@@ -169,6 +182,14 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
             '<td><div class="banner-cell">' + bannerThumbHtml(coll.banner) +
                 '<label class="banner-upload-btn">Изменить<input type="file" class="f-banner" accept="image/jpeg,image/png" hidden></label>' +
                 '</div><div class="status banner-status"></div></td>' +
+            '<td class="banner-meta-cell">' +
+                '<label>Текст кнопки (пусто — без кнопки)</label>' +
+                '<input type="text" class="f-banner-cta-text" value="' + coll.banner_cta_text.replace(/"/g, '&quot;') + '">' +
+                '<label>Ссылка кнопки</label>' +
+                '<input type="text" class="f-banner-cta-link" value="' + coll.banner_cta_link.replace(/"/g, '&quot;') + '" placeholder="/catalog/">' +
+                '<label class="row-check"><input type="checkbox" class="f-banner-overlay"' + (coll.banner_overlay ? ' checked' : '') + '> Затемнение</label>' +
+                '<button type="button" class="f-banner-meta-save">Сохранить баннер</button>' +
+                '<div class="status banner-meta-status"></div></td>' +
             '<td class="row-actions"><button type="button" class="f-save">Сохранить</button>' +
                 '<button type="button" class="f-models-toggle">Модели/цвета</button></td>';
 
@@ -208,6 +229,36 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
             fileInput.value = '';
         });
 
+        tr.querySelector('.f-banner-meta-save').addEventListener('click', async function () {
+            const btn = tr.querySelector('.f-banner-meta-save');
+            const metaStatus = tr.querySelector('.banner-meta-status');
+            btn.disabled = true;
+            metaStatus.textContent = '';
+            metaStatus.className = 'status banner-meta-status';
+            const fd = new FormData();
+            fd.append('action', 'update_banner_meta');
+            fd.append('sessid', SESSID);
+            fd.append('id', coll.id);
+            fd.append('cta_text', tr.querySelector('.f-banner-cta-text').value.trim());
+            fd.append('cta_link', tr.querySelector('.f-banner-cta-link').value.trim());
+            fd.append('overlay', tr.querySelector('.f-banner-overlay').checked ? 'Y' : 'N');
+            try {
+                const r = await fetch('ajax.php', { method: 'POST', body: fd });
+                const resp = await r.json();
+                if (!resp.ok) {
+                    metaStatus.textContent = resp.error || 'Ошибка';
+                    metaStatus.classList.add('err');
+                } else {
+                    metaStatus.textContent = 'Сохранено';
+                    metaStatus.classList.add('ok');
+                }
+            } catch (e) {
+                metaStatus.textContent = 'Ошибка сети: ' + e.message;
+                metaStatus.classList.add('err');
+            }
+            btn.disabled = false;
+        });
+
         tr.querySelector('.f-save').addEventListener('click', async function () {
             const btn = tr.querySelector('.f-save');
             btn.disabled = true;
@@ -245,7 +296,7 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
         modelsRow.className = 'models-row';
         modelsRow.style.display = 'none';
         const modelsCell = document.createElement('td');
-        modelsCell.colSpan = 8;
+        modelsCell.colSpan = 9;
         const modelsPanel = document.createElement('div');
         modelsPanel.className = 'models-panel';
         modelsCell.appendChild(modelsPanel);

@@ -162,3 +162,22 @@ function eportaCollectionsUpdateBanner(int $sectionId, array $fileArray, ?string
     }
     return $ok;
 }
+
+// Затемнение/кнопка баннера страницы коллекции (Этап 5b, 11.09.2026) — UF-поля секции
+// (scripts/add_section_banner_ufields.php), заголовок/подзаголовок баннера берутся из уже
+// существующих NAME/DESCRIPTION секции, новых полей под них не заводим. В отличие от свойств
+// элементов IBLOCK 27 (см. предупреждение в eporta_banners/lib.php), Update() поля секции не
+// затрагивает остальные поля секции, если их не передавать — точечное обновление безопасно
+// обычным вызовом.
+function eportaCollectionsUpdateBannerMeta(int $sectionId, bool $overlay, string $ctaText, string $ctaLink, ?string &$error = null): bool {
+    $sectionObj = new CIBlockSection;
+    $ok = $sectionObj->Update($sectionId, [
+        'UF_BANNER_OVERLAY' => $overlay ? 'Y' : 'N',
+        'UF_BANNER_CTA_TEXT' => $ctaText,
+        'UF_BANNER_CTA_LINK' => $ctaLink,
+    ]);
+    if (!$ok) {
+        $error = $sectionObj->LAST_ERROR ?: 'Не удалось сохранить настройки баннера';
+    }
+    return $ok;
+}

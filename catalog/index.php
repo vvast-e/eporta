@@ -117,7 +117,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 				[],
 				["IBLOCK_ID" => 19, "CODE" => $eportaCollMatch[1], "ID" => $eportaCollectionIds, "ACTIVE" => "Y"],
 				false,
-				["ID", "NAME", "DESCRIPTION", "PICTURE", "DETAIL_PICTURE", "UF_TOP_DESCRIPTION", "UF_DESC"]
+				["ID", "NAME", "DESCRIPTION", "PICTURE", "DETAIL_PICTURE", "UF_TOP_DESCRIPTION", "UF_DESC", "UF_BANNER_OVERLAY", "UF_BANNER_CTA_TEXT", "UF_BANNER_CTA_LINK"]
 			)->Fetch();
 			if ($eportaCollectionSection) {
 				$APPLICATION->SetPageProperty("title", "Коллекция ".$eportaCollectionSection["NAME"]);
@@ -873,18 +873,31 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 
 	<?if ($eportaCollectionSection):
 		$eportaCollBannerSrc = \CFile::GetPath($eportaCollectionSection["DETAIL_PICTURE"] ?: $eportaCollectionSection["PICTURE"]);
+		// Пусто/поле ещё не заведено (см. scripts/add_section_banner_ufields.php) — затемнение
+		// ВКЛЮЧЕНО, как и было раньше (безусловный градиент) — тот же принцип дефолта, что и у
+		// OVERLAY_ENABLED слотовых баннеров плиток (eporta_banners/lib.php).
+		$eportaCollBannerOverlay = ($eportaCollectionSection["UF_BANNER_OVERLAY"] ?? "") !== "N";
+		$eportaCollBannerCtaText = trim((string)($eportaCollectionSection["UF_BANNER_CTA_TEXT"] ?? ""));
+		$eportaCollBannerCtaLink = trim((string)($eportaCollectionSection["UF_BANNER_CTA_LINK"] ?? ""));
 	?>
-	<!-- Баннер коллекции: DETAIL_PICTURE/PICTURE + DESCRIPTION секции IBLOCK 19 -->
+	<!-- Баннер коллекции: DETAIL_PICTURE/PICTURE + DESCRIPTION секции IBLOCK 19, затемнение и
+	     кнопка — UF_BANNER_OVERLAY/UF_BANNER_CTA_TEXT/UF_BANNER_CTA_LINK, редактируются в
+	     local/admin_tools/eporta_collections/ (Этап 5b, 11.09.2026). -->
 	<div style="position:relative;margin:18px var(--pad-x) 0;border-radius:22px;overflow:hidden;min-height:220px;background:#e5e0d5<?=$eportaCollBannerSrc ? ";background-image:url('".htmlspecialcharsbx($eportaCollBannerSrc)."');background-size:cover;background-position:center" : ""?>">
+		<?if ($eportaCollBannerOverlay):?>
 		<div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,17,12,.86) 0%,rgba(20,17,12,.5) 55%,rgba(20,17,12,.08) 100%)"></div>
+		<?endif;?>
 		<div style="position:relative;padding:36px 40px;max-width:560px">
 			<div style="font:700 12.5px 'Manrope';letter-spacing:.08em;color:#ffd7b0;text-transform:uppercase;margin-bottom:10px">Коллекция фабрики EPORTA</div>
-			<h1 style="margin:0;font:800 36px 'Manrope';color:#fff;letter-spacing:-0.01em"><?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></h1>
+			<h1 style="margin:0;font:800 36px 'Manrope';color:#fff<?=$eportaCollBannerOverlay ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>;letter-spacing:-0.01em"><?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></h1>
 			<?if ($eportaCollectionSection["DESCRIPTION"]):?>
 			<div style="font:700 14px 'Manrope';color:#ffd7b0;margin-top:8px"><?=htmlspecialcharsbx($eportaCollectionSection["DESCRIPTION"])?></div>
 			<?endif;?>
 			<?if ($eportaCollectionSection["UF_TOP_DESCRIPTION"] || $eportaCollectionSection["UF_DESC"]):?>
 			<p style="margin:14px 0 0;font:500 14px/1.6 'Manrope';color:rgba(255,255,255,.88)"><?=htmlspecialcharsbx($eportaCollectionSection["UF_TOP_DESCRIPTION"] ?: $eportaCollectionSection["UF_DESC"])?></p>
+			<?endif;?>
+			<?if ($eportaCollBannerCtaText !== ""):?>
+			<a href="<?=htmlspecialcharsbx($eportaCollBannerCtaLink ?: "/catalog/")?>" style="display:inline-flex;align-items:center;margin-top:18px;padding:11px 22px;border-radius:10px;background:#e8820a;color:#fff;font:700 14px 'Manrope';text-decoration:none"><?=htmlspecialcharsbx($eportaCollBannerCtaText)?></a>
 			<?endif;?>
 		</div>
 	</div>
