@@ -659,14 +659,6 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			// $eportaIds уже полностью отфильтрован (категория/распродажа/новинки/чекбоксы/цена/
 			// коллекция — см. $eportaGroupFilter выше), доп. условия компоненту не нужны.
 			$arrFilter = ["ID" => $eportaIds ?: [0]];
-			// Debug-переключатель фото карточки (footer.php + catalog.section/.default/template.php,
-			// задача 11.09.2026): компонентный кэш ("A", 1ч) кэширует ГОТОВЫЙ HTML целиком, читая
-			// куку внутри template.php только на cache miss — без этого первый же visitor после
-			// переключения кнопки залил бы своё состояние в кэш на час для ВСЕХ остальных.
-			// Кука выставляется только тем, кто явно щёлкнул debug-кнопку (обычных покупателей не
-			// задевает) — для них отключаем кэш этого вызова целиком, это дешевле, чем городить
-			// отдельный ключ кэша ради временного инструмента.
-			$eportaDebugHqPreview = ($_COOKIE["eporta_debug_hq_photo"] ?? "") === "1";
 			$APPLICATION->IncludeComponent(
 				"bitrix:catalog.section",
 				".default",
@@ -709,7 +701,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 					"PRODUCT_PROPS_VARIABLE" => "prop",
 					"PARTIAL_PRODUCT_PROPERTIES" => "N",
 					"USE_PRODUCT_QUANTITY" => "N",
-					"CACHE_TYPE" => $eportaDebugHqPreview ? "N" : "A",
+					"CACHE_TYPE" => "A",
 					"CACHE_TIME" => "3600",
 					"CACHE_GROUPS" => "N",
 					"CACHE_FILTER" => "Y",
