@@ -14,6 +14,28 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
 
 const EPORTA_BANNERS_IBLOCK_ID = 27;
 
+// Санитизация ссылки, вводимой контент-менеджером в полях "Ссылка"/"Ссылка кнопки" (карусель
+// главной, кнопка баннера коллекции) — без неё сохранённое значение вида "javascript:..." в
+// href="<?=htmlspecialcharsbx($link)?>" исполнилось бы при клике (htmlspecialcharsbx экранирует
+// только HTML-разметку, схему URL — нет). Разрешены относительные пути и http(s); всё остальное
+// (javascript:, data:, vbscript: и т.п., включая обфусцированные пробелами/управляющими
+// символами вида "java\tscript:") отбрасывается в пустую строку — на выходе кнопка/ссылка
+// подставляет дефолт по месту использования. Общая точка для eporta_banners и eporta_collections
+// (та require_once уже подключает этот файл).
+function eportaSanitizeBannerLink(string $url): string {
+    $url = trim($url);
+    if ($url === '') {
+        return '';
+    }
+    $stripped = preg_replace('/[\x00-\x1F\x7F\s]+/', '', $url);
+    if (preg_match('~^([a-z][a-z0-9+.\-]*):~i', $stripped, $m)) {
+        if (!in_array(strtolower($m[1]), ['http', 'https'], true)) {
+            return '';
+        }
+    }
+    return $url;
+}
+
 // ВАЖНО (инцидент 29.08.2026): CIBlockElement::Update()/Add() с PROPERTY_VALUES в классическом
 // API Bitrix ПОЛНОСТЬЮ ЗАМЕНЯЕТ набор свойств элемента тем, что передано — а не мержит только
 // указанные ключи (кроме файловых свойств типа F, их Update() не трогает, если не включить явно).

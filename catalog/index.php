@@ -106,6 +106,8 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	// все секции инфоблока), матчим CODE только среди этих ID — иначе обычный раздел каталога с
 	// тем же кодом сегмента URL мог бы случайно попасть под резолвер коллекции.
 	require_once($_SERVER["DOCUMENT_ROOT"]."/local/lib/eporta_collections.php");
+	// eportaSanitizeBannerLink() — санитизация ссылки кнопки баннера коллекции ниже (Этап 5b).
+	require_once($_SERVER["DOCUMENT_ROOT"]."/local/admin_tools/eporta_banners/lib.php");
 	$eportaCollectionIds = array_column(eportaCollections(), "ID");
 	$eportaCollectionSection = null;
 	if ($isEportaTemplate && !$isEportaProductDetail) {
@@ -878,7 +880,10 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		// OVERLAY_ENABLED слотовых баннеров плиток (eporta_banners/lib.php).
 		$eportaCollBannerOverlay = ($eportaCollectionSection["UF_BANNER_OVERLAY"] ?? "") !== "N";
 		$eportaCollBannerCtaText = trim((string)($eportaCollectionSection["UF_BANNER_CTA_TEXT"] ?? ""));
-		$eportaCollBannerCtaLink = trim((string)($eportaCollectionSection["UF_BANNER_CTA_LINK"] ?? ""));
+		// Санитизация схемы (eportaSanitizeBannerLink, eporta_banners/lib.php) — UF-поле
+		// редактируется через штатную форму секции Bitrix, не только через нашу админку, где
+		// значение уже проверяется на входе.
+		$eportaCollBannerCtaLink = eportaSanitizeBannerLink(trim((string)($eportaCollectionSection["UF_BANNER_CTA_LINK"] ?? "")));
 	?>
 	<!-- Баннер коллекции: DETAIL_PICTURE/PICTURE + DESCRIPTION секции IBLOCK 19, затемнение и
 	     кнопка — UF_BANNER_OVERLAY/UF_BANNER_CTA_TEXT/UF_BANNER_CTA_LINK, редактируются в

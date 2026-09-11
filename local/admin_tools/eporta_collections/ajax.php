@@ -110,7 +110,7 @@ if ($action === 'update_banner_meta') {
     }
     $overlay = ($_POST['overlay'] ?? 'Y') !== 'N';
     $ctaText = trim((string)($_POST['cta_text'] ?? ''));
-    $ctaLink = trim((string)($_POST['cta_link'] ?? ''));
+    $ctaLink = eportaSanitizeBannerLink((string)($_POST['cta_link'] ?? ''));
     $error = null;
     $ok = eportaCollectionsUpdateBannerMeta($sectionId, $overlay, $ctaText, $ctaLink, $error);
     if (!$ok) {

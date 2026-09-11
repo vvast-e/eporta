@@ -44,7 +44,7 @@ if ($action === 'save_meta') {
         eportaBannersJsonFail('Заголовок не может быть пустым');
     }
     $subtitle = trim((string)($_POST['subtitle'] ?? ''));
-    $link = trim((string)($_POST['link'] ?? ''));
+    $link = eportaSanitizeBannerLink((string)($_POST['link'] ?? ''));
     $showCta = ($_POST['show_cta'] ?? 'N') === 'Y';
     $ctaText = $showCta ? trim((string)($_POST['cta_text'] ?? '')) : '';
     $overlayValue = ($_POST['overlay'] ?? 'Y') === 'N' ? 'N' : 'Y';

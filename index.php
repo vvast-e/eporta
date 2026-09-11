@@ -113,7 +113,10 @@ $APPLICATION->SetTitle("Eporta");?> <?
 				"IMAGE_WEBP" => $eportaBannerWebp,
 				"TITLE" => $arSlideFields["NAME"],
 				"SUBTITLE" => $arSlideFields["PROPERTY_SUBTITLE_VALUE"] ?? "",
-				"LINK" => $arSlideFields["PROPERTY_LINK_VALUE"] ?: "/catalog/",
+				// Санитизация схемы — LINK редактируется и через штатную админку Bitrix (не только
+				// через save_meta в eporta_banners/ajax.php, где значение уже проверяется на
+				// входе), так что javascript:-ссылка могла попасть сюда в обход того фильтра.
+				"LINK" => eportaSanitizeBannerLink((string)($arSlideFields["PROPERTY_LINK_VALUE"] ?? "")) ?: "/catalog/",
 				// Пусто = кнопки нет вообще (не дефолтный текст, как раньше) — управляется чекбоксом
 				// "Показывать кнопку" в местном admin_tools/eporta_banners/ (Этап 5, 11.09.2026).
 				"CTA_TEXT" => $arSlideFields["PROPERTY_CTA_TEXT_VALUE"] ?? "",
