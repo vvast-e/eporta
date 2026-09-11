@@ -103,6 +103,23 @@ if ($action === 'upload_banner') {
     exit;
 }
 
+if ($action === 'update_banner_meta') {
+    $sectionId = (int)($_POST['id'] ?? 0);
+    if ($sectionId <= 0) {
+        eportaCollectionsJsonFail('Некорректный ID коллекции');
+    }
+    $overlay = ($_POST['overlay'] ?? 'Y') !== 'N';
+    $ctaText = trim((string)($_POST['cta_text'] ?? ''));
+    $ctaLink = trim((string)($_POST['cta_link'] ?? ''));
+    $error = null;
+    $ok = eportaCollectionsUpdateBannerMeta($sectionId, $overlay, $ctaText, $ctaLink, $error);
+    if (!$ok) {
+        eportaCollectionsJsonFail($error ?: 'Ошибка сохранения настроек баннера', 500);
+    }
+    echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 // Модели/варианты коллекции (перенесено из local/admin_tools/eporta_showcase/, задача
 // 06.09.2026) — логика в eporta_showcase/lib.php (require_once в lib.php этой админки),
 // здесь только HTTP-обвязка и проверка принадлежности ID к IBLOCK 19.

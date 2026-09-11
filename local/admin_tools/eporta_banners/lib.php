@@ -117,6 +117,67 @@ function eportaBannersSlots(): array {
     return $slots;
 }
 
+// Точечное обновление СТРОКОВОГО (не списочного) свойства элемента — тот же принцип, что и
+// eportaBannersSetListProperty() выше (SetPropertyValuesEx с одним ключом не трогает остальные
+// свойства элемента), но без резолва enum ID: для свойств типа S значение пишется как есть.
+function eportaBannersSetStringProperty(int $elementId, string $propertyCode, string $value): void {
+    CIBlockElement::SetPropertyValuesEx($elementId, EPORTA_BANNERS_IBLOCK_ID, [$propertyCode => $value]);
+}
+
+// Слайды главной карусели (PLACEMENT main/side1/side2, тот же IBLOCK 27, что и слотовые баннеры
+// плиток выше) — для редактирования текстовых полей (заголовок/подзаголовок/ссылка/кнопка/
+// затемнение) через эту же админку вместо штатной формы Bitrix (см. index.php: тот же разбор
+// PLACEMENT для вывода карусели на главной — держать оба места в синхроне при правках). Этот
+// хелпер только ЧИТАЕТ и редактирует поля уже существующих слайдов; создание/удаление/порядок
+// слайдов по-прежнему через штатную админку Bitrix (раздел "Слайдер" / IBLOCK 27) — вне объёма
+// этой доработки.
+function eportaBannersCarouselSlides(): array {
+    $enumRes = CIBlockPropertyEnum::GetList([], ['IBLOCK_ID' => EPORTA_BANNERS_IBLOCK_ID, 'CODE' => 'PLACEMENT']);
+    $enumIdToXmlId = [];
+    while ($enumRow = $enumRes->Fetch()) {
+        $enumIdToXmlId[$enumRow['ID']] = $enumRow['XML_ID'];
+    }
+    $overlayEnumRes = CIBlockPropertyEnum::GetList([], ['IBLOCK_ID' => EPORTA_BANNERS_IBLOCK_ID, 'CODE' => 'OVERLAY']);
+    $overlayEnumIdToXmlId = [];
+    while ($enumRow = $overlayEnumRes->Fetch()) {
+        $overlayEnumIdToXmlId[$enumRow['ID']] = $enumRow['XML_ID'];
+    }
+
+    $slides = ['main' => [], 'side1' => [], 'side2' => []];
+    $res = CIBlockElement::GetList(
+        ['SORT' => 'ASC'],
+        ['IBLOCK_ID' => EPORTA_BANNERS_IBLOCK_ID, 'ACTIVE' => 'Y'],
+        false,
+        false,
+        ['ID', 'NAME', 'DETAIL_PICTURE', 'PROPERTY_PLACEMENT', 'PROPERTY_OVERLAY', 'PROPERTY_SUBTITLE', 'PROPERTY_LINK', 'PROPERTY_CTA_TEXT']
+    );
+    while ($el = $res->Fetch()) {
+        $enumId = $el['PROPERTY_PLACEMENT_ENUM_ID'] ?? null;
+        $xmlId = $enumId !== null ? ($enumIdToXmlId[$enumId] ?? '') : '';
+        if (!isset($slides[$xmlId])) {
+            // Слотовые баннеры плиток (cat_*/coll_*) — не наши, сюда не подмешиваем. Пустой/
+            // незнакомый PLACEMENT (старый слайд без PLACEMENT) на главной трактуется как "main" —
+            // здесь для редактирования тоже кладём его в "main".
+            if ($xmlId !== '' && (str_starts_with($xmlId, 'cat_') || str_starts_with($xmlId, 'coll_'))) {
+                continue;
+            }
+            $xmlId = 'main';
+        }
+        $overlayEnumId = $el['PROPERTY_OVERLAY_ENUM_ID'] ?? null;
+        $overlayXmlId = $overlayEnumId ? ($overlayEnumIdToXmlId[$overlayEnumId] ?? '') : '';
+        $slides[$xmlId][] = [
+            'ID' => (int)$el['ID'],
+            'NAME' => (string)$el['NAME'],
+            'SUBTITLE' => (string)($el['PROPERTY_SUBTITLE_VALUE'] ?? ''),
+            'LINK' => (string)($el['PROPERTY_LINK_VALUE'] ?? ''),
+            'CTA_TEXT' => (string)($el['PROPERTY_CTA_TEXT_VALUE'] ?? ''),
+            'OVERLAY_ENABLED' => ($overlayXmlId === 'Y'),
+            'preview' => $el['DETAIL_PICTURE'] ? CFile::GetPath($el['DETAIL_PICTURE']) : '',
+        ];
+    }
+    return $slides;
+}
+
 function eportaBannersUserHasAccess(): bool {
     global $USER;
     if (!$USER->IsAuthorized()) {

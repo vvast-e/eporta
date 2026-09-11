@@ -114,7 +114,9 @@ $APPLICATION->SetTitle("Eporta");?> <?
 				"TITLE" => $arSlideFields["NAME"],
 				"SUBTITLE" => $arSlideFields["PROPERTY_SUBTITLE_VALUE"] ?? "",
 				"LINK" => $arSlideFields["PROPERTY_LINK_VALUE"] ?: "/catalog/",
-				"CTA_TEXT" => $arSlideFields["PROPERTY_CTA_TEXT_VALUE"] ?: "Подробнее →",
+				// Пусто = кнопки нет вообще (не дефолтный текст, как раньше) — управляется чекбоксом
+				// "Показывать кнопку" в местном admin_tools/eporta_banners/ (Этап 5, 11.09.2026).
+				"CTA_TEXT" => $arSlideFields["PROPERTY_CTA_TEXT_VALUE"] ?? "",
 				// Пусто (в т.ч. "(нет)" в штатной форме элемента, значение без XML_ID) — затенение
 				// ВЫКЛЮЧЕНО. Раньше было наоборот (!== "N"), из-за чего "(нет)" и "Да" визуально
 				// не различались — см. eportaBannersGetSlotElements() в eporta_banners/lib.php.
@@ -164,7 +166,7 @@ $APPLICATION->SetTitle("Eporta");?> <?
 						<div class="hbc-slide-content<?= $arSlide["OVERLAY"] ? "" : " hbc-slide-content--plain" ?>">
 							<div class="hbc-title"><?= htmlspecialcharsbx($arSlide["TITLE"]) ?></div>
 							<?if ($arSlide["SUBTITLE"]):?><div class="hbc-subtitle"><?= htmlspecialcharsbx($arSlide["SUBTITLE"]) ?></div><?endif;?>
-							<span class="hbc-cta"><?= htmlspecialcharsbx($arSlide["CTA_TEXT"]) ?></span>
+							<?if ($arSlide["CTA_TEXT"]):?><span class="hbc-cta"><?= htmlspecialcharsbx($arSlide["CTA_TEXT"]) ?></span><?endif;?>
 						</div>
 					</a>
 					<?endforeach;?>

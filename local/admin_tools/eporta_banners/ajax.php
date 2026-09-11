@@ -24,8 +24,45 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !check_bitrix_sessid()) {
 
 $action = $_POST['action'] ?? '';
 
-if (!in_array($action, ['upload', 'set_overlay'], true)) {
+if (!in_array($action, ['upload', 'set_overlay', 'save_meta'], true)) {
     eportaBannersJsonFail('Неизвестное действие');
+}
+
+// save_meta адресуется по ID элемента карусели (их несколько на один PLACEMENT), а не по коду
+// слота, как upload/set_overlay для слотовых плиток (там элемент один на слот) — свой блок ниже.
+if ($action === 'save_meta') {
+    $elementId = (int)($_POST['element_id'] ?? 0);
+    $existsCheck = $elementId > 0
+        ? CIBlockElement::GetList([], ['IBLOCK_ID' => EPORTA_BANNERS_IBLOCK_ID, 'ID' => $elementId], false, false, ['ID'])->Fetch()
+        : null;
+    if (!$existsCheck) {
+        eportaBannersJsonFail('Слайд не найден');
+    }
+
+    $name = trim((string)($_POST['name'] ?? ''));
+    if ($name === '') {
+        eportaBannersJsonFail('Заголовок не может быть пустым');
+    }
+    $subtitle = trim((string)($_POST['subtitle'] ?? ''));
+    $link = trim((string)($_POST['link'] ?? ''));
+    $showCta = ($_POST['show_cta'] ?? 'N') === 'Y';
+    $ctaText = $showCta ? trim((string)($_POST['cta_text'] ?? '')) : '';
+    $overlayValue = ($_POST['overlay'] ?? 'Y') === 'N' ? 'N' : 'Y';
+
+    // NAME без ключа PROPERTY_VALUES в $arFields — Update() в этом случае свойства элемента
+    // вообще не трогает (см. предупреждение в lib.php про инцидент 29.08.2026); отдельные
+    // свойства пишем точечно через SetPropertyValuesEx ниже.
+    $elObj = new CIBlockElement;
+    if (!$elObj->Update($elementId, ['NAME' => $name])) {
+        eportaBannersJsonFail('Ошибка сохранения заголовка: ' . $elObj->LAST_ERROR, 500);
+    }
+    eportaBannersSetStringProperty($elementId, 'SUBTITLE', $subtitle);
+    eportaBannersSetStringProperty($elementId, 'LINK', $link);
+    eportaBannersSetStringProperty($elementId, 'CTA_TEXT', $ctaText);
+    eportaBannersSetListProperty($elementId, 'OVERLAY', $overlayValue);
+
+    echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
 $slots = eportaBannersSlots();
