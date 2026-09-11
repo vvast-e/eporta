@@ -1604,7 +1604,15 @@ img { display: block; }
     flex-direction: column !important;
     gap: 20px !important;
   }
-  .product-detail-gallery { height: 360px !important; }
+  /* Раньше вся галерея жёстко сжималась до 360px (высота полосы главного фото — минус
+     превьюшки и паддинги — получалась ~220px). Фото дверей почти всегда портретные
+     (реальный пример с прода — 561×1200), при object-fit:contain высота становится
+     лимитирующим измерением: ширина картинки сжималась до ~100px и терялась на фоне
+     широкого светлого блока — выглядело так, будто фото вообще пропало (найдено 11.09.2026).
+     Отдаём высоту самому фото через aspect-ratio (по ширине экрана), а не фиксируем её
+     сверху — портретное фото получает пропорциональный размер вместо обрезки по высоте. */
+  .product-detail-gallery { height: auto !important; }
+  .product-detail-main-photo { flex: none !important; min-height: 0 !important; width: 100%; aspect-ratio: 3 / 4; }
   .product-detail-panel { align-self: stretch !important; }
   /* Цена (#priceBig, шрифт 40px inline) вместе со старой ценой/бейджем скидки не
      помещалась в узкую панель и переносилась посреди числа ("9 818" / "₽" на разных

@@ -44,13 +44,19 @@ $APPLICATION->SetTitle("Коллекции фабрики EPORTA");
 	<div class="eporta-tile-grid eporta-tile-grid--coll" style="padding:18px var(--pad-x) 40px">
 		<?foreach ($eportaCollections as $eportaColl):
 			$eportaCollSlotCode = eportaCollectionSlotCode($eportaColl["CODE"]);
-			$eportaCollImgSrc = \CFile::GetPath($eportaColl["DETAIL_PICTURE"] ?: $eportaColl["PICTURE"]);
-			// Секции-коллекции в IBLOCK 19 своих PICTURE/DETAIL_PICTURE не имеют (никогда не заливались) — падаем на то же фото, что уже залито
-			// через админку баннеров (local/admin_tools/eporta_banners/) для плитки этой же коллекции на главной
-			// (слот coll_<CODE>, см. eportaBannersSlots() в lib.php) — одни и те же картинки повсюду, источник не дублируется. Если для конкретной
-			// коллекции слота нет — остаётся нейтральный фон как раньше.
+			// Плитка здесь должна показывать ТО ЖЕ фото, что и плитка этой коллекции на главной —
+			// то есть слот coll_<CODE> (local/admin_tools/eporta_banners/), в приоритете. Раньше
+			// порядок был обратный (сперва DETAIL_PICTURE/PICTURE раздела), это работало только
+			// пока у разделов-коллекций эти поля были всегда пустыми (никогда не заливались). С
+			// появлением своего DETAIL_PICTURE у раздела — узкого баннера страницы САМОЙ коллекции,
+			// заливается в eporta_collections/ (см. catalog/index.php, Этап 5b, 11.09.2026) — то поле
+			// перестало быть пустым, и эта плитка молча подменялась картинкой чужого назначения
+			// (нашёл 11.09.2026: плитка на /collection/ вслед за detail-баннером, а на главной —
+			// нет, там всегда был только слот). PICTURE раздела как второй фолбэк не трогаем — тем
+			// же путём давно шла страница детали коллекции.
+			$eportaCollImgSrc = eportaBannersResolveImage($eportaCollSlotCode, "");
 			if (!$eportaCollImgSrc) {
-				$eportaCollImgSrc = eportaBannersResolveImage($eportaCollSlotCode, "");
+				$eportaCollImgSrc = \CFile::GetPath($eportaColl["DETAIL_PICTURE"] ?: $eportaColl["PICTURE"]);
 			}
 			// SECTION_PAGE_URL у секций-коллекций пустое (шаблон URL не настроен в админке),
 			// поэтому строился href="" и клик просто перезагружал текущую страницу. Строим URL

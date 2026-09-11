@@ -210,7 +210,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 
 	<!-- Галерея -->
 	<div class="product-detail-gallery" style="flex:1.15;display:flex;flex-direction:column;gap:12px;height:560px;background:#fcfcfc;border-radius:20px;padding:16px;box-sizing:border-box">
-		<div style="position:relative;flex:1;min-height:0">
+		<div class="product-detail-main-photo" style="position:relative;flex:1;min-height:0">
 			<?php if ($eportaHasPhoto): ?>
 			<?php eportaPicture($galleryPhotos[0], $eportaDisplayName, [
 				"id" => "mainPhoto",
