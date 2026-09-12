@@ -874,6 +874,30 @@ img { display: block; }
   .product-card .img-wrap .img-noimg { height: auto; aspect-ratio: 200 / 296; }
 }
 
+/* Квадратные карточки коллекции (задача 12.09.2026, Invi — скрытые двери): фото товара
+   интерьерное (1200x1200/520x520), не обычное портретное — чтобы сцена читалась, карточка крупнее
+   и в ряду их меньше (3 на десктопе вместо 6). Флаг UF_SQUARE_CARDS секции-коллекции
+   (local/admin_tools/eporta_collections/) добавляет этот модификатор класса на сетку — см.
+   $eportaIsSquareCards в catalog.section/.default/template.php. Тот же модификатор пригоден для
+   входных дверей/перегородок (тот же формат фото), когда для них заведут коллекции. */
+.eporta-product-grid--square { grid-template-columns: repeat(var(--eporta-cols, 3), 320px); }
+@media (max-width: 1300px) { .eporta-product-grid--square { grid-template-columns: repeat(3, 300px); } }
+@media (max-width: 1040px) { .eporta-product-grid--square { grid-template-columns: repeat(2, 320px); } }
+@media (max-width: 860px)  { .eporta-product-grid--square { grid-template-columns: repeat(2, 300px); } }
+@media (max-width: 640px)  { .eporta-product-grid--square { grid-template-columns: repeat(1, minmax(0, 1fr)); } }
+/* Квадратное фото — object-fit:cover (не contain, как у обычной карточки), интерьерная сцена
+   должна заполнять кадр целиком, а не оставлять поля вокруг двери. */
+.eporta-product-grid--square .product-card .img-wrap img,
+.eporta-product-grid--square .product-card .img-wrap .img-noimg { height: auto; aspect-ratio: 1 / 1; object-fit: cover; }
+/* Тот же квадратный вид для блока "Модели коллекции" (свой флекс-грид, см. .eporta-model-grid
+   выше) — карточка крупнее, фото квадратом. */
+.eporta-model-grid--square > .product-card { flex: 0 0 320px; width: 320px; }
+.eporta-model-grid--square .product-card .img-wrap img,
+.eporta-model-grid--square .product-card .img-wrap .img-noimg { height: auto; aspect-ratio: 1 / 1; object-fit: cover; }
+@media (max-width: 640px) {
+  .eporta-model-grid--square > .product-card { flex: initial; width: auto; }
+}
+
 /* Каталог на очень широких мониторах (2560px+/32", ultrawide): --pad-x (см. токены выше)
    растит только боковой отступ. Сама сетка карточек теперь и так не растягивается (фиксированная
    ширина колонки, см. .eporta-product-grid выше) — этот max-width ограничивает более широкие

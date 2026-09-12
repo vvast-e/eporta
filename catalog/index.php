@@ -133,6 +133,19 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		}
 	}
 
+	// Квадратные карточки товара (задача 12.09.2026) — коллекции с интерьерным фото товара
+	// (1200x1200/520x520 вместо обычного портретного), первая — Invi (скрытые двери). Крупнее
+	// карточка, 3 в ряд вместо стандартных 6 — иначе интерьерная сцена, которая и показывает, что
+	// дверь скрытая, мельчает до нечитаемости. Флаг — UF-поле секции коллекции, редактируется в
+	// local/admin_tools/eporta_collections/, переиспользуется для входных дверей/перегородок
+	// (тот же формат фото) без правки кода. Общий каталог (не страница коллекции) не трогаем —
+	// там квадратное фото уже нормально ложится в общую карточку через object-fit:contain.
+	$eportaIsSquareCollection = $eportaCollectionSection && eportaCollectionHasSquareCards($eportaCollectionSection);
+	if ($eportaIsSquareCollection) {
+		$eportaCols = 3;
+		$eportaPageElementCount = $eportaCols * 6;
+	}
+
 	// Модели коллекции (верхний блок страницы коллекции): по одной лёгкой карточке-представителю
 	// на каждую уникальную модель — тот вариант, у которого максимальный RATING ("популярный
 	// цвет", тот же критерий, что и бейдж ХИТ rating>=4.8 в catalog.section/.default/template.php).
@@ -654,7 +667,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		// FILTER_NAME=>"arrFilter" ниже читает ГЛОБАЛЬНУЮ переменную "arrFilter" — обязательно
 		// global, иначе компонент её не увидит (в отличие от вызова на верхнем уровне скрипта,
 		// внутри функции локальная переменная не совпадает с глобальной).
-		function eportaRenderCatalogGrid($eportaIds, $eportaSectionId, $eportaSortField, $eportaSortOrder, $eportaColsArg, $eportaPageElementCountArg) {
+		function eportaRenderCatalogGrid($eportaIds, $eportaSectionId, $eportaSortField, $eportaSortOrder, $eportaColsArg, $eportaPageElementCountArg, $eportaSquareCardsArg = false) {
 			global $arrFilter, $APPLICATION;
 			// $eportaIds уже полностью отфильтрован (категория/распродажа/новинки/чекбоксы/цена/
 			// коллекция — см. $eportaGroupFilter выше), доп. условия компоненту не нужны.
@@ -680,6 +693,10 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 					"HIDE_NOT_AVAILABLE_OFFERS" => "N",
 					"PAGE_ELEMENT_COUNT" => (string)$eportaPageElementCountArg,
 					"LINE_ELEMENT_COUNT" => (string)$eportaColsArg,
+					// Не штатный параметр компонента — читается напрямую из $arParams в
+					// catalog.section/.default/template.php (по образцу уже существующего
+					// SHOW_WISHLIST_REMOVE), компонент неизвестные ключи игнорирует.
+					"EPORTA_SQUARE_CARDS" => $eportaSquareCardsArg ? "Y" : "N",
 					"PROPERTY_CODE" => ["STYLE", "COATING_COLOR", "GLAZING", "MAIN_COLOR", "PRODUCT_DAY", "RATING", "VOTE_COUNT", "CML2_ARTICLE"],
 					"OFFERS_FIELD_CODE" => [],
 					"OFFERS_PROPERTY_CODE" => [],
@@ -859,7 +876,8 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			$eportaSortOptions[$eportaSort]["FIELD"],
 			$eportaSortOptions[$eportaSort]["ORDER"],
 			$eportaCols,
-			$eportaPageElementCount
+			$eportaPageElementCount,
+			$eportaIsSquareCollection
 		);
 		eportaRenderCatalogPager($eportaCurPage, $eportaTotalPages, $eportaCatalogPageUrl);
 		eportaRenderCatalogLoadMoreBtn($eportaCurPage, $eportaTotalPages);
@@ -919,7 +937,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		<!-- .eporta-model-grid — свой flex-wrap грид (не .eporta-product-grid), центрирует неполный
 		     последний ряд по отдельности; карточка внутри — .product-card, тот же размер/шрифты, что
 		     у товарной карточки ниже (см. template_styles.css). -->
-		<div class="eporta-model-grid">
+		<div class="eporta-model-grid<?=$eportaIsSquareCollection ? " eporta-model-grid--square" : ""?>">
 			<?foreach ($eportaCollectionModelCards as $eportaModelCard):
 				// "От ..." — минимальная цена среди всех цветов модели (не цена конкретного
 				// "популярного" представителя на фото), т.к. это цена целой линейки, не одного цвета,
@@ -1138,7 +1156,8 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 				$eportaSortOptions[$eportaSort]["FIELD"],
 				$eportaSortOptions[$eportaSort]["ORDER"],
 				$eportaCols,
-				$eportaPageElementCount
+				$eportaPageElementCount,
+				$eportaIsSquareCollection
 			); ?>
 			<?php eportaRenderCatalogPager($eportaCurPage, $eportaTotalPages, $eportaCatalogPageUrl); ?>
 			<!-- Кнопка "Показать ещё" (eportaRenderCatalogLoadMoreBtn — общая с AJAX-подгрузкой

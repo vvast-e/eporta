@@ -8,6 +8,13 @@ $eportaCols = (int)($arParams["LINE_ELEMENT_COUNT"] ?? 3) ?: 3;
 // Вид плитка/список — общий для всех вызовов этого шаблона (каталог/коллекции/wishlist/
 // simple.offers), кука eporta_view переключается кнопками в catalog/index.php.
 $eportaGridView = ($_COOKIE["eporta_view"] ?? "") === "list" ? " eporta-product-grid--list" : "";
+// Квадратные карточки (задача 12.09.2026, коллекция Invi — интерьерное фото 1200x1200/520x520
+// вместо обычного портретного) — не штатный параметр компонента, прокидывается через $arParams
+// из eportaRenderCatalogGrid() в catalog/index.php (по образцу уже существующего
+// SHOW_WISHLIST_REMOVE). Список/своя сортировка/сравнение остаются как есть, меняется только
+// раскладка сетки и пропорции фото.
+$eportaIsSquareCards = ($arParams["EPORTA_SQUARE_CARDS"] ?? "N") === "Y";
+if ($eportaIsSquareCards) $eportaGridView .= " eporta-product-grid--square";
 
 // Явный порядок вывода (закреплённые товары в заданном порядке, потом автоотбор) — компонентными
 // параметрами не выражается, задаётся глобальной переменной перед IncludeComponent (см. табы

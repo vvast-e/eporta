@@ -45,8 +45,9 @@ if ($action === 'update') {
     $description = trim((string)($_POST['description'] ?? ''));
     $sort = (int)($_POST['sort'] ?? 500);
     $active = ($_POST['active'] ?? 'Y') !== 'N';
+    $squareCards = ($_POST['square_cards'] ?? 'N') === 'Y';
     $error = null;
-    $ok = eportaCollectionsUpdate($sectionId, $name, $description, $sort, $active, $error);
+    $ok = eportaCollectionsUpdate($sectionId, $name, $description, $sort, $active, $squareCards, $error);
     if (!$ok) {
         eportaCollectionsJsonFail($error ?: 'Ошибка сохранения коллекции', 500);
     }
