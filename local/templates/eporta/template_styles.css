@@ -889,6 +889,14 @@ img { display: block; }
    должна заполнять кадр целиком, а не оставлять поля вокруг двери. */
 .eporta-product-grid--square .product-card .img-wrap img,
 .eporta-product-grid--square .product-card .img-wrap .img-noimg { height: auto; aspect-ratio: 1 / 1; object-fit: cover; }
+/* Карточка "квадратной" коллекции внутри ОБЫЧНОГО смешанного списка (общий каталог/похожие/
+   вишлист — не страница самой коллекции, там уже весь грид --square выше). Раскладку сетки не
+   трогаем (карточка того же размера, что и соседние), только кадрирование фото: было
+   object-fit:contain (пустые поля сверху/снизу у квадратного кадра в портретной рамке 200:296),
+   по правке заказчика 12.09.2026 — cover, кадр всегда заполнен, лишнее обрезается по бокам. */
+.product-card--square-photo .img-wrap img,
+.product-card--square-photo .img-wrap .img-noimg { object-fit: cover; }
+
 /* Тот же квадратный вид для блока "Модели коллекции" (свой флекс-грид, см. .eporta-model-grid
    выше) — карточка крупнее, фото квадратом. */
 .eporta-model-grid--square > .product-card { flex: 0 0 320px; width: 320px; }
