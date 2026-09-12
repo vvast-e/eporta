@@ -128,7 +128,7 @@ function eportaCollectionsCreate(string $name, string $description, ?string &$er
 // Обновляет название/описание/порядок/активность существующей коллекции. CODE и родительский
 // раздел не меняются — смена CODE сломала бы уже залитый баннер (слот привязан к CODE) и
 // действующие ссылки /catalog/collections/<code>/.
-function eportaCollectionsUpdate(int $sectionId, string $name, string $description, int $sort, bool $active, ?string &$error = null): bool {
+function eportaCollectionsUpdate(int $sectionId, string $name, string $description, int $sort, bool $active, bool $squareCards = false, ?string &$error = null): bool {
     $name = trim($name);
     if ($name === '') {
         $error = 'Название не может быть пустым';
@@ -140,6 +140,7 @@ function eportaCollectionsUpdate(int $sectionId, string $name, string $descripti
         'DESCRIPTION' => $description,
         'SORT' => $sort,
         'ACTIVE' => $active ? 'Y' : 'N',
+        'UF_SQUARE_CARDS' => $squareCards ? 'Y' : 'N',
     ]);
     if (!$ok) {
         $error = $sectionObj->LAST_ERROR ?: 'Не удалось сохранить коллекцию';

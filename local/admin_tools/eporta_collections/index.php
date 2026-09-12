@@ -45,6 +45,10 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
         'banner_overlay' => ($coll['UF_BANNER_OVERLAY'] ?? '') !== 'N',
         'banner_cta_text' => (string)($coll['UF_BANNER_CTA_TEXT'] ?? ''),
         'banner_cta_link' => (string)($coll['UF_BANNER_CTA_LINK'] ?? ''),
+        // Квадратные карточки товара (12.09.2026) — интерьерные фото 1200x1200/520x520 вместо
+        // обычных портретных (Invi и позже входные двери/перегородки), см.
+        // local/lib/eporta_collections.php::eportaCollectionHasSquareCards().
+        'square_cards' => ($coll['UF_SQUARE_CARDS'] ?? '') === 'Y',
     ];
 }, $collections);
 ?>
@@ -125,7 +129,10 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
     «Все товары коллекции»/каталоге.<br>
     Ссылка «Настроить кнопку/затемнение →» в столбце «Кнопка/затемнение баннера» открывает
     отдельную страницу с необязательной кнопкой на баннере страницы коллекции (пустой текст =
-    кнопки нет) и включением/выключением тёмного градиента поверх фото.
+    кнопки нет) и включением/выключением тёмного градиента поверх фото.<br>
+    Галочка «Квадратные фото» — для коллекций, где фото товара интерьерное (квадратное
+    1200×1200/520×520), а не обычное портретное. Меняет карточки на странице коллекции на более
+    крупные, 3 в ряд.
 </p>
 
 <table id="collections-table">
@@ -136,6 +143,7 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
             <th>Описание (подзаголовок)</th>
             <th style="width:80px">Порядок</th>
             <th style="width:60px">Активна</th>
+            <th style="width:90px">Квадратные фото</th>
             <th style="width:90px">Моделей</th>
             <th style="width:130px">Баннер страницы</th>
             <th style="width:200px">Кнопка/затемнение баннера</th>
@@ -176,6 +184,7 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
             '<td><textarea class="f-description" rows="2">' + coll.description.replace(/</g, '&lt;') + '</textarea></td>' +
             '<td><input type="number" class="f-sort" value="' + coll.sort + '" step="100"></td>' +
             '<td style="text-align:center"><input type="checkbox" class="f-active"' + (coll.active ? ' checked' : '') + '></td>' +
+            '<td style="text-align:center"><input type="checkbox" class="f-square-cards"' + (coll.square_cards ? ' checked' : '') + '></td>' +
             '<td class="cnt-cell">' + coll.cnt + '</td>' +
             '<td><div class="banner-cell">' + bannerThumbHtml(coll.banner) +
                 '<label class="banner-upload-btn">Изменить<input type="file" class="f-banner" accept="image/jpeg,image/png" hidden></label>' +
@@ -236,6 +245,7 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
             fd.append('description', tr.querySelector('.f-description').value);
             fd.append('sort', tr.querySelector('.f-sort').value);
             fd.append('active', tr.querySelector('.f-active').checked ? 'Y' : 'N');
+            fd.append('square_cards', tr.querySelector('.f-square-cards').checked ? 'Y' : 'N');
             try {
                 const r = await fetch('ajax.php', { method: 'POST', body: fd });
                 const resp = await r.json();
@@ -260,7 +270,7 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
         modelsRow.className = 'models-row';
         modelsRow.style.display = 'none';
         const modelsCell = document.createElement('td');
-        modelsCell.colSpan = 9;
+        modelsCell.colSpan = 10;
         const modelsPanel = document.createElement('div');
         modelsPanel.className = 'models-panel';
         modelsCell.appendChild(modelsPanel);

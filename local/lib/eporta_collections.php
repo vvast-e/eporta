@@ -40,7 +40,7 @@ function eportaCollections(bool $includeInactive = false): array {
         ['SORT' => 'ASC'],
         $filter,
         false,
-        ['ID', 'NAME', 'CODE', 'DESCRIPTION', 'SORT', 'ACTIVE', 'PICTURE', 'DETAIL_PICTURE', 'IBLOCK_SECTION_ID', 'UF_BANNER_OVERLAY', 'UF_BANNER_CTA_TEXT', 'UF_BANNER_CTA_LINK']
+        ['ID', 'NAME', 'CODE', 'DESCRIPTION', 'SORT', 'ACTIVE', 'PICTURE', 'DETAIL_PICTURE', 'IBLOCK_SECTION_ID', 'UF_BANNER_OVERLAY', 'UF_BANNER_CTA_TEXT', 'UF_BANNER_CTA_LINK', 'UF_SQUARE_CARDS']
     );
     while ($row = $res->GetNext()) {
         if ((int)$row['IBLOCK_SECTION_ID'] !== EPORTA_COLLECTIONS_PARENT_SECTION_ID) {
@@ -98,6 +98,15 @@ function eportaCollectionsElementCounts(bool $includeInactive = false): array {
     }
     $cache[$cacheKey] = $counts;
     return $counts;
+}
+
+// Квадратные карточки товара (задача 12.09.2026, коллекция Invi — скрытые двери, интерьерные
+// фото 1200x1200/520x520 вместо обычных портретных) — UF-поле секции, см.
+// scripts/add_section_square_cards_ufield.php. Тем же полем позже помечаются входные двери и
+// перегородки (тот же формат фото), поэтому проверка вынесена в отдельную функцию, а не
+// захардкожена по CODE коллекции.
+function eportaCollectionHasSquareCards(array $collection): bool {
+    return ($collection['UF_SQUARE_CARDS'] ?? '') === 'Y';
 }
 
 // Код слота баннера (IBLOCK 27, свойство PLACEMENT) для коллекции с данным CODE секции —
