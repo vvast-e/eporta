@@ -16,6 +16,22 @@ $eportaGridView = ($_COOKIE["eporta_view"] ?? "") === "list" ? " eporta-product-
 $eportaIsSquareCards = ($arParams["EPORTA_SQUARE_CARDS"] ?? "N") === "Y";
 if ($eportaIsSquareCards) $eportaGridView .= " eporta-product-grid--square";
 
+// Тот же флаг, но по-элементно (задача 12.09.2026, правка того же дня): в ОБЩЕМ каталоге/выдачах
+// (не на странице самой коллекции — там уже весь грид --square) карточка Invi может стоять рядом
+// с обычными портретными дверями в стандартной 6-в-ряд сетке. Раньше фото просто вписывалось
+// внутрь той же рамки (object-fit:contain) — с квадратным фото это давало пустые поля сверху/
+// снизу. По правке заказчика — не оставлять поля, а кадрировать (cover), т.е. кадр всегда
+// заполнен, лишнее по бокам/сверху обрезается. Определяем принадлежность карточки такой
+// коллекции по SECTION_ID элемента (не по параметру компонента — этот шаблон рендерит смешанные
+// списки, где не у всех элементов одна и та же секция).
+require_once($_SERVER["DOCUMENT_ROOT"]."/local/lib/eporta_collections.php");
+$eportaSquareSectionIds = [];
+foreach (eportaCollections(true) as $eportaSquareColl) {
+	if (eportaCollectionHasSquareCards($eportaSquareColl)) {
+		$eportaSquareSectionIds[] = (int)$eportaSquareColl["ID"];
+	}
+}
+
 // Явный порядок вывода (закреплённые товары в заданном порядке, потом автоотбор) — компонентными
 // параметрами не выражается, задаётся глобальной переменной перед IncludeComponent (см. табы
 // главной, eportaHomeTabsRenderCatalogSection в eporta_home_tabs_common.php). Необязательно —
@@ -44,7 +60,7 @@ if ($eportaItemIds) {
 		["IBLOCK_ID" => $arParams["IBLOCK_ID"], "ID" => $eportaItemIds],
 		false,
 		false,
-		["ID", "IBLOCK_ID", "PROPERTY_RATING", "PROPERTY_VOTE_COUNT", "PROPERTY_PRODUCT_DAY", "PROPERTY_DISCOUNT"]
+		["ID", "IBLOCK_ID", "IBLOCK_SECTION_ID", "PROPERTY_RATING", "PROPERTY_VOTE_COUNT", "PROPERTY_PRODUCT_DAY", "PROPERTY_DISCOUNT"]
 	);
 	while ($eportaPropsEl = $eportaPropsRes->GetNextElement()) {
 		$eportaFields = $eportaPropsEl->GetFields();
@@ -53,13 +69,17 @@ if ($eportaItemIds) {
 			"VOTE_COUNT" => $eportaFields["PROPERTY_VOTE_COUNT_VALUE"] ?? 0,
 			"PRODUCT_DAY" => $eportaFields["PROPERTY_PRODUCT_DAY_VALUE"] ?? "",
 			"DISCOUNT" => $eportaFields["PROPERTY_DISCOUNT_VALUE"] ?? 0,
+			"SECTION_ID" => (int)($eportaFields["IBLOCK_SECTION_ID"] ?? 0),
 		];
 	}
 }
 ?>
 <div class="eporta-product-grid<?=$eportaGridView?>" style="--eporta-cols:<?=$eportaCols?>">
 <?php $eportaImgIndex = 0; foreach ($arResult["ITEMS"] as $arItem):
-	$eportaExtra = $eportaExtraProps[$arItem["ID"]] ?? ["RATING" => 0, "VOTE_COUNT" => 0, "PRODUCT_DAY" => "", "DISCOUNT" => 0];
+	$eportaExtra = $eportaExtraProps[$arItem["ID"]] ?? ["RATING" => 0, "VOTE_COUNT" => 0, "PRODUCT_DAY" => "", "DISCOUNT" => 0, "SECTION_ID" => 0];
+	// Карточка отдельного товара из "квадратной" коллекции внутри смешанного списка — см.
+	// пояснение у $eportaSquareSectionIds выше.
+	$eportaItemIsSquare = in_array((int)$eportaExtra["SECTION_ID"], $eportaSquareSectionIds, true);
 	// (float), не (int) — иначе 4.99 обрезается до 4 и попадает мимо порога ХИТ ниже.
 	$rating = (float)$eportaExtra["RATING"];
 	$voteCount = (int)$eportaExtra["VOTE_COUNT"];
@@ -137,7 +157,7 @@ if ($eportaItemIds) {
 	}
 	$eportaDefaultPriceHtml = ob_get_clean();
 ?>
-	<div class="product-card" data-id="<?= (int)$arItem["ID"] ?>" data-default-picture="<?= htmlspecialcharsbx($eportaDefaultPictureHtml) ?>" data-default-price="<?= htmlspecialcharsbx($eportaDefaultPriceHtml) ?>">
+	<div class="product-card<?= $eportaItemIsSquare ? " product-card--square-photo" : "" ?>" data-id="<?= (int)$arItem["ID"] ?>" data-default-picture="<?= htmlspecialcharsbx($eportaDefaultPictureHtml) ?>" data-default-price="<?= htmlspecialcharsbx($eportaDefaultPriceHtml) ?>">
 	<!-- .card-clip — раньше overflow:hidden+border-radius висели прямо на .product-card, но тогда
 	     они же обрезали .card-hover-actions (задача 10.09.2026: кнопка "В корзину" должна выезжать
 	     НИЖЕ карточки, поверх ряда снизу, не раздвигая сетку) — вынесены в отдельную обёртку вокруг
