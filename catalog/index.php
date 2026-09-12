@@ -119,7 +119,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 				[],
 				["IBLOCK_ID" => 19, "CODE" => $eportaCollMatch[1], "ID" => $eportaCollectionIds, "ACTIVE" => "Y"],
 				false,
-				["ID", "NAME", "DESCRIPTION", "PICTURE", "DETAIL_PICTURE", "UF_TOP_DESCRIPTION", "UF_DESC", "UF_BANNER_OVERLAY", "UF_BANNER_CTA_TEXT", "UF_BANNER_CTA_LINK"]
+				["ID", "NAME", "DESCRIPTION", "PICTURE", "DETAIL_PICTURE", "UF_TOP_DESCRIPTION", "UF_DESC", "UF_BANNER_OVERLAY", "UF_BANNER_CTA_TEXT", "UF_BANNER_CTA_LINK", "UF_SQUARE_CARDS"]
 			)->Fetch();
 			if ($eportaCollectionSection) {
 				$APPLICATION->SetPageProperty("title", "Коллекция ".$eportaCollectionSection["NAME"]);
