@@ -32,6 +32,7 @@ FIELD_MAP = {
     'Оттенок': 'main_color',
     'Остекление': 'glazing',
     'Кромка': 'edge',
+    'Врезка': 'insert',
     'Стиль': 'style',
     'Открывание': 'open_type',
     'Вид двери': 'door_type',

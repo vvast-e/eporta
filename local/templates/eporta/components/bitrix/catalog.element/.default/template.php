@@ -99,9 +99,14 @@ $eportaModel = eportaPropText($eportaDirectProps, "MODEL");
 $eportaCurrentColor = eportaPropText($eportaDirectProps, "COATING_COLOR");
 $eportaCurrentGlazing = eportaPropText($eportaDirectProps, "GLAZING");
 $eportaCurrentEdge = eportaPropText($eportaDirectProps, "EDGE");
+// Врезка под петли — только у коллекции Invi (скрытые двери), см. project INSERT-свойство.
+// Технически такая же ось варианта, как цвет/остекление/кромка, но в UI — выпадающий список,
+// а не свотчи (значений может быть много и они не визуальные — марка+кол-во петель).
+$eportaCurrentInsert = eportaPropText($eportaDirectProps, "INSERT");
 $eportaColorOptions = [];
 $eportaGlazingOptions = [];
 $eportaEdgeOptions = [];
+$eportaInsertOptions = [];
 
 if ($eportaModel !== "") {
 	$eportaVariantsRes = CIBlockElement::GetList(
@@ -109,7 +114,7 @@ if ($eportaModel !== "") {
 		["IBLOCK_ID" => 19, "PROPERTY_MODEL" => $eportaModel, "ACTIVE" => "Y"],
 		false,
 		false,
-		["ID", "CODE", "PROPERTY_COATING_COLOR", "PROPERTY_GLAZING", "PROPERTY_EDGE", "DETAIL_PAGE_URL", "PREVIEW_PICTURE"]
+		["ID", "CODE", "PROPERTY_COATING_COLOR", "PROPERTY_GLAZING", "PROPERTY_EDGE", "PROPERTY_INSERT", "DETAIL_PAGE_URL", "PREVIEW_PICTURE"]
 	);
 	$eportaVariants = [];
 	while ($v = $eportaVariantsRes->GetNext()) {
@@ -121,6 +126,7 @@ if ($eportaModel !== "") {
 				"color" => (string)($v["PROPERTY_COATING_COLOR_VALUE"] ?? ""),
 			"glazing" => (string)($v["PROPERTY_GLAZING_VALUE"] ?? ""),
 			"edge" => (string)($v["PROPERTY_EDGE_VALUE"] ?? ""),
+			"insert" => (string)($v["PROPERTY_INSERT_VALUE"] ?? ""),
 			"url" => $v["DETAIL_PAGE_URL"] ?: ($v["CODE"] ? "/catalog/" . $v["CODE"] . ".html" : ""),
 			"photo" => $v["PREVIEW_PICTURE"] ? CFile::GetPath($v["PREVIEW_PICTURE"]) : "",
 		];
@@ -129,11 +135,12 @@ if ($eportaModel !== "") {
 	// Для каждого значения оси — сам текущий товар (если это и есть этот вариант), иначе вариант,
 	// совпадающий с текущим товаром по большему числу остальных осей, иначе первый попавшийся
 	// с этим значением. $eportaOtherAxesMatch считает совпадения по осям, отличным от $axisKey.
-	$eportaOtherAxesMatch = function ($v, $axisKey) use ($eportaCurrentColor, $eportaCurrentGlazing, $eportaCurrentEdge) {
+	$eportaOtherAxesMatch = function ($v, $axisKey) use ($eportaCurrentColor, $eportaCurrentGlazing, $eportaCurrentEdge, $eportaCurrentInsert) {
 		$score = 0;
 		if ($axisKey !== "color" && $v["color"] === $eportaCurrentColor) $score++;
 		if ($axisKey !== "glazing" && $v["glazing"] === $eportaCurrentGlazing) $score++;
 		if ($axisKey !== "edge" && $v["edge"] === $eportaCurrentEdge) $score++;
+		if ($axisKey !== "insert" && $v["insert"] === $eportaCurrentInsert) $score++;
 		return $score;
 	};
 	$eportaBuildAxisOptions = function ($axisKey) use ($eportaVariants, $eportaCurrentId, $eportaOtherAxesMatch) {
@@ -165,8 +172,9 @@ if ($eportaModel !== "") {
 	$eportaColorOptions = $eportaBuildAxisOptions("color");
 	$eportaGlazingOptions = $eportaBuildAxisOptions("glazing");
 	$eportaEdgeOptions = $eportaBuildAxisOptions("edge");
+	$eportaInsertOptions = $eportaBuildAxisOptions("insert");
 }
-$eportaShowVariantSelectors = count($eportaColorOptions) > 1 || count($eportaGlazingOptions) > 1 || count($eportaEdgeOptions) > 1;
+$eportaShowVariantSelectors = count($eportaColorOptions) > 1 || count($eportaGlazingOptions) > 1 || count($eportaEdgeOptions) > 1 || count($eportaInsertOptions) > 1;
 
 // Галерея: основное фото + MORE_PHOTO (на большинстве товаров — одно доп. фото или ни одного).
 // Раньше при отсутствии DETAIL_PICTURE/PREVIEW_PICTURE (пробел в исходниках импорта — см.
@@ -327,6 +335,18 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 				</div>
 			</div>
 			<?php endif; ?>
+			<?php if (count($eportaInsertOptions) > 1): ?>
+			<!-- Врезка под петли — только у Invi. В отличие от остальных осей значения не визуальные
+			     (марка+кол-во петель), поэтому выпадающий список вместо ряда свотчей. -->
+			<div>
+				<div class="swatch-label"><span class="sl-name">Врезка под петли:</span></div>
+				<select class="eporta-insert-select" onchange="if(this.value) location.href=this.value">
+					<?php foreach ($eportaInsertOptions as $insertName => $variant): ?>
+						<option value="<?= htmlspecialcharsbx($variant["url"]) ?>"<?= $insertName === $eportaCurrentInsert ? " selected" : "" ?>><?= htmlspecialcharsbx($insertName) ?></option>
+					<?php endforeach; ?>
+				</select>
+			</div>
+			<?php endif; ?>
 		</div>
 		<?php endif; ?>
 
@@ -404,6 +424,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 					"Цвет покрытия" => count($eportaColorOptions) > 1 ? "" : eportaPropText($eportaDirectProps, "COATING_COLOR"),
 					"Остекление" => count($eportaGlazingOptions) > 1 ? "" : eportaPropText($eportaDirectProps, "GLAZING"),
 					"Кромка" => count($eportaEdgeOptions) > 1 ? "" : eportaPropText($eportaDirectProps, "EDGE"),
+					"Врезка под петли" => count($eportaInsertOptions) > 1 ? "" : eportaPropText($eportaDirectProps, "INSERT"),
 					"Основной цвет" => eportaPropText($eportaDirectProps, "MAIN_COLOR"),
 					"Шумоизоляция" => eportaPropText($eportaDirectProps, "NOISE_ISOLATION"),
 					"Огнестойкость" => eportaPropText($eportaDirectProps, "FIRE_RESISTANCE"),

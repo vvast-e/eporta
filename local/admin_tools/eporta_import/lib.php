@@ -30,6 +30,9 @@ const EPORTA_IMPORT_FIELD_MAP = [
     'Оттенок' => 'main_color',
     'Остекление' => 'glazing',
     'Кромка' => 'edge',
+    // Только для коллекции Invi (скрытые двери): марка+количество петель под врезку,
+    // напр. "ARM7000/2 (2 петли)". Для остальных дверей колонка остаётся пустой.
+    'Врезка' => 'insert',
     'Стиль' => 'style',
     'Открывание' => 'open_type',
     'Вид двери' => 'door_type',
@@ -529,6 +532,7 @@ function eportaImportOneProduct(array $p): array {
         'COLLECTION'      => $collection,
         'DISCOUNT'        => $p['discount'] ?? 0,
         'EDGE'            => $p['edge'] ?? '',
+        'INSERT'          => $p['insert'] ?? '',
         'OPEN_TYPE'       => $p['open_type'] ?? [],
         'DOOR_TYPE'       => $p['door_type'] ?? '',
         'CONSTRUCTION'    => $p['construction'] ?? '',

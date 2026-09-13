@@ -1624,6 +1624,20 @@ img { display: block; }
   font-weight: 700;
 }
 
+/* Врезка под петли (Invi): значения не визуальные (марка+кол-во петель), поэтому
+   выпадающий список вместо свотчей, как у цвета/остекления/кромки. */
+.eporta-insert-select {
+  width: 100%;
+  padding: 10px 13px;
+  border-radius: 10px;
+  border: 1.6px solid var(--border-soft);
+  font: 600 13px var(--font);
+  color: #3a3631;
+  background: #fff;
+  cursor: pointer;
+}
+.eporta-insert-select:hover { border-color: var(--accent); }
+
 /* ---- Карточка товара на мобильном ----
    .product-detail-layout (галерея+панель покупки) и .product-detail-description
    (описание+характеристики) — на десктопе flex-строка без единого media-запроса,
