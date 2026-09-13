@@ -150,6 +150,7 @@ foreach ($products as $p) {
         'COLLECTION'      => $p['collection'] ?? '',
         'DISCOUNT'        => $p['discount'] ?? 0,
         'EDGE'            => $p['edge'] ?? '',
+        'INSERT'          => $p['insert'] ?? '',
         'OPEN_TYPE'       => $p['open_type'] ?? [],
         'DOOR_TYPE'       => $p['door_type'] ?? '',
         'CONSTRUCTION'    => $p['construction'] ?? '',
