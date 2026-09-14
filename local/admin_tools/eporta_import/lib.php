@@ -368,6 +368,12 @@ function eportaImportGetOrCreateEnumId(int $iblockId, string $propertyCode, stri
 // "Название" (витринное название модели, ключ name) имеет приоритет над "Модель": если
 // оно заполнено в выгрузке — используется вместо кода модели при сборке $head, а не только
 // как fallback на пустое имя (заявка заказчика, коллекция Invi, 2026-09-14).
+//
+// "Кромка" (ключ edge, например "AL-кромка черная с 4-х сторон") — если заполнена в выгрузке,
+// добавляется отдельным сегментом после "Покрытие Цвет" (заявка заказчика, 2026-09-14, см.
+// карточки Invi 1.0 Стандарт). Карточка/список split'ят NAME по ПЕРВОЙ запятой на модель и
+// остальное (см. catalog.section/.default/template.php) — кромка просто оказывается частью
+// "остального" вместе с покрытием и цветом, доп. правки шаблона не нужны.
 function eportaImportComposeName(array $p, string $article): string {
     $collection = trim($p['collection'] ?? '');
     $model = trim($p['model'] ?? '');
@@ -375,6 +381,7 @@ function eportaImportComposeName(array $p, string $article): string {
     $modelPart = $displayName !== '' ? $displayName : $model;
     $coating = trim($p['coating'] ?? '');
     $color = trim($p['coating_color'] ?? '');
+    $edge = trim($p['edge'] ?? '');
 
     // В выгрузке колонка "Модель" (или "Название", если она задана) уже нередко начинается
     // с названия коллекции (например "Vilis 00" при коллекции "Vilis") — не дублируем
@@ -384,7 +391,8 @@ function eportaImportComposeName(array $p, string $article): string {
     } else {
         $head = trim($collection . ' ' . $modelPart);
     }
-    $tail = trim(implode(' ', array_filter([$coating, $color])));
+    $coatingColor = trim(implode(' ', array_filter([$coating, $color])));
+    $tail = trim(implode(', ', array_filter([$coatingColor, $edge])));
 
     $name = $tail !== '' ? ($head !== '' ? $head . ', ' . $tail : $tail) : $head;
     if ($name === '') {

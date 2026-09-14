@@ -638,6 +638,15 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		}
 		$eportaFoundCount = count($eportaOrderedIds);
 
+		// Заглушка "раздел пока не заполнен" — для категорий, в которых по решению заказчика
+		// пока нет товаров (Раздвижные/Входные/Арки и порталы/Фурнитура, задача 14.09.2026).
+		// Условие по факту (0 товаров), а не по хардкоду списка ключей — как только 1С начнёт
+		// присылать товары этих категорий (PROPERTY_CATEGORY), каталог сам покажет обычную сетку,
+		// без правки этого файла. Не путать с общей 503-заглушкой "Сайт готовится к запуску" в
+		// header.php (общесайтовая, снимется целиком при запуске) — эта относится только к разделу
+		// каталога и останется висеть и после запуска, пока в категории реально нет товаров.
+		$eportaEmptyCategoryStub = $eportaSelectedCategory && !$eportaCollectionSection && $eportaFoundCount === 0;
+
 		// Пагинация — своя (не компонентная): bitrix:catalog.section всегда пересортировывает
 		// выборку по ELEMENT_SORT_FIELD, наш круговой порядок в $eportaOrderedIds потерялся бы.
 		// Тот же приём, что в search/index.php — нарезаем ID текущей страницы сами, компоненту
@@ -1150,6 +1159,17 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		     их eportaRenderCatalogGrid/eportaRenderCatalogPager — те же функции, что использует
 		     AJAX-подгрузка (короткое замыкание в начале eporta-ветки), без дублирования кода. -->
 		<div style="flex:1" id="eportaCatalogGrid">
+			<?php if ($eportaEmptyCategoryStub): ?>
+			<!-- Раздел пока не заполнен — см. $eportaEmptyCategoryStub выше. Текст — переработанная
+			     под конкретную категорию версия общесайтовой заглушки "Сайт готовится к запуску"
+			     (header.php), задача 14.09.2026. -->
+			<div style="display:flex;align-items:center;justify-content:center;text-align:center;min-height:360px;padding:24px">
+				<div style="max-width:420px">
+					<h2 style="margin:0 0 12px;font:800 22px 'Manrope';letter-spacing:-0.01em">Раздел пока не заполнен</h2>
+					<p style="margin:0;font:500 14.5px/1.5 'Manrope';color:#8a857b">Мы наполняем каталог категории «<?=htmlspecialcharsbx($eportaCategoryMap[$eportaSelectedCategory]["HEADING"])?>». Загляните чуть позже — скоро здесь появятся товары.</p>
+				</div>
+			</div>
+			<?php else: ?>
 			<?php eportaRenderCatalogGrid(
 				$eportaPageIds ?: [0],
 				$eportaCollectionSection ? $eportaCollectionSection["ID"] : false,
@@ -1169,6 +1189,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			     страницу пагинации). Обычные ссылки пейджера (.bx-pagination) остаются рабочими
 			     без JS. -->
 			<?php eportaRenderCatalogLoadMoreBtn($eportaCurPage, $eportaTotalPages); ?>
+			<?php endif; ?>
 		</div>
 	</div>
 

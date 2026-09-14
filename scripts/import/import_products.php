@@ -110,12 +110,13 @@ function downloadImage($url) {
 
 // Составляет название двери из нескольких полей (см. lib.php eportaImportComposeName —
 // тот же формат для веб-загрузки, продублировано здесь т.к. этот CLI-скрипт не подключает
-// local/admin_tools/eporta_import/lib.php). "Коллекция Модель, Покрытие Цвет".
+// local/admin_tools/eporta_import/lib.php). "Коллекция Модель, Покрытие Цвет, Кромка".
 function composeName(array $p, string $article): string {
     $collection = trim($p['collection'] ?? '');
     $model = trim($p['model'] ?? '');
     $coating = trim($p['coating'] ?? '');
     $color = trim($p['coating_color'] ?? '');
+    $edge = trim($p['edge'] ?? '');
 
     // См. eportaImportComposeName в lib.php — "Модель" часто уже содержит название коллекции.
     if ($collection !== '' && $model !== '' && stripos($model, $collection) === 0) {
@@ -123,7 +124,8 @@ function composeName(array $p, string $article): string {
     } else {
         $head = trim($collection.' '.$model);
     }
-    $tail = trim(implode(' ', array_filter([$coating, $color])));
+    $coatingColor = trim(implode(' ', array_filter([$coating, $color])));
+    $tail = trim(implode(', ', array_filter([$coatingColor, $edge])));
 
     $name = $tail !== '' ? ($head !== '' ? $head.', '.$tail : $tail) : $head;
     if ($name === '') {
