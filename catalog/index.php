@@ -645,7 +645,57 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		// без правки этого файла. Не путать с общей 503-заглушкой "Сайт готовится к запуску" в
 		// header.php (общесайтовая, снимется целиком при запуске) — эта относится только к разделу
 		// каталога и останется висеть и после запуска, пока в категории реально нет товаров.
-		$eportaEmptyCategoryStub = $eportaSelectedCategory && !$eportaCollectionSection && $eportaFoundCount === 0;
+		//
+		// Полноэкранная, той же стилистики, что и общесайтовая заглушка в header.php (тёмный фон,
+		// текст по центру) — заказчик попросил именно такой вид, а не блок внутри сетки каталога
+		// (правка 15.09.2026). RestartBuffer сбрасывает уже выведенные header.php/шапку/сайдбар —
+		// тот же приём, что и в короткое замыкание AJAX-подгрузки ниже ($eportaIsAjaxGrid) и в
+		// самом dev-гейте header.php. Кнопка "Назад" ведёт в общий каталог без фильтра категории.
+		if ($eportaSelectedCategory && !$eportaCollectionSection && $eportaFoundCount === 0) {
+			$APPLICATION->RestartBuffer();
+			header("Content-Type: text/html; charset=UTF-8");
+			$eportaStubHeading = $eportaCategoryMap[$eportaSelectedCategory]["HEADING"];
+			?><!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, follow">
+<title><?=htmlspecialcharsbx($eportaStubHeading)?> — Eporta</title>
+<style>
+	html,body{height:100%;margin:0;}
+	body{
+		display:flex;align-items:center;justify-content:center;
+		min-height:100vh;padding:24px;box-sizing:border-box;
+		background:#0f0f10;color:#f2f0ec;
+		font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+		text-align:center;
+	}
+	.wrap{max-width:520px;}
+	h1{font-size:26px;font-weight:600;margin:0 0 12px;}
+	p{font-size:15px;line-height:1.5;color:#b7b3ac;margin:0;}
+	.back-btn{
+		position:fixed;top:24px;left:24px;
+		display:inline-flex;align-items:center;gap:8px;
+		background:#e8820a;color:#fff;text-decoration:none;
+		font:700 14px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+		padding:12px 18px;border-radius:12px;
+		box-shadow:0 8px 20px rgba(232,130,10,.28);
+	}
+	.back-btn:hover{background:#d3760a;}
+</style>
+</head>
+<body>
+	<a class="back-btn" href="/catalog/">‹ Назад</a>
+	<div class="wrap">
+		<h1>Раздел «<?=htmlspecialcharsbx($eportaStubHeading)?>» пока не заполнен</h1>
+		<p>Мы наполняем каталог этой категории. Загляните чуть позже — скоро здесь появятся товары.</p>
+	</div>
+</body>
+</html>
+<?php
+			die();
+		}
 
 		// Пагинация — своя (не компонентная): bitrix:catalog.section всегда пересортировывает
 		// выборку по ELEMENT_SORT_FIELD, наш круговой порядок в $eportaOrderedIds потерялся бы.
@@ -1159,17 +1209,6 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		     их eportaRenderCatalogGrid/eportaRenderCatalogPager — те же функции, что использует
 		     AJAX-подгрузка (короткое замыкание в начале eporta-ветки), без дублирования кода. -->
 		<div style="flex:1" id="eportaCatalogGrid">
-			<?php if ($eportaEmptyCategoryStub): ?>
-			<!-- Раздел пока не заполнен — см. $eportaEmptyCategoryStub выше. Текст — переработанная
-			     под конкретную категорию версия общесайтовой заглушки "Сайт готовится к запуску"
-			     (header.php), задача 14.09.2026. -->
-			<div style="display:flex;align-items:center;justify-content:center;text-align:center;min-height:360px;padding:24px">
-				<div style="max-width:420px">
-					<h2 style="margin:0 0 12px;font:800 22px 'Manrope';letter-spacing:-0.01em">Раздел пока не заполнен</h2>
-					<p style="margin:0;font:500 14.5px/1.5 'Manrope';color:#8a857b">Мы наполняем каталог категории «<?=htmlspecialcharsbx($eportaCategoryMap[$eportaSelectedCategory]["HEADING"])?>». Загляните чуть позже — скоро здесь появятся товары.</p>
-				</div>
-			</div>
-			<?php else: ?>
 			<?php eportaRenderCatalogGrid(
 				$eportaPageIds ?: [0],
 				$eportaCollectionSection ? $eportaCollectionSection["ID"] : false,
@@ -1189,7 +1228,6 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			     страницу пагинации). Обычные ссылки пейджера (.bx-pagination) остаются рабочими
 			     без JS. -->
 			<?php eportaRenderCatalogLoadMoreBtn($eportaCurPage, $eportaTotalPages); ?>
-			<?php endif; ?>
 		</div>
 	</div>
 
