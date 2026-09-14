@@ -530,9 +530,16 @@ function eportaImportOneProduct(array $p): array {
     // свойств элемента (см. комментарий у вызова Update() ниже), текущее значение SHOWCASE
     // читается из базы и явно повторяется в PROPERTY_VALUES перед Update(), иначе оно бы
     // обнулялось при каждом переимпорте.
+    // "Название" (витринное) имеет приоритет над "Модель" — та же логика, что и в
+    // eportaImportComposeName() ниже. Раньше override применялся только к отображаемому NAME
+    // карточки товара, но свойство MODEL (по нему строятся карточки-модели на странице
+    // коллекции, catalog/index.php) сохранялось из сырой "Модели" — из-за этого там не менялось.
+    // Приводим MODEL к тому же значению, чтобы оба места были согласованы (заявка заказчика,
+    // коллекция Invi, 2026-09-14).
+    $displayModel = trim($p['name'] ?? '') !== '' ? trim($p['name']) : ($p['model'] ?? '');
     $propertyValues = [
         'CML2_ARTICLE'    => $article,
-        'MODEL'           => $p['model'] ?? '',
+        'MODEL'           => $displayModel,
         'MANUFACTURER'    => $p['manufacturer'] ?? '',
         'BRAND'           => $p['brand'] ?? '',
         'CATEGORY'        => $p['category'] ?? '',
