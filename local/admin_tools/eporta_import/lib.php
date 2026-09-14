@@ -364,24 +364,31 @@ function eportaImportGetOrCreateEnumId(int $iblockId, string $propertyCode, stri
 // (например "Vilis 2, экошпон дуб серый"). "Цвет" здесь — колонка "Цвет" / ключ coating_color
 // (не "Оттенок"/main_color — это разные свойства, см. память по неймингу свойств IBLOCK 19).
 // Пустые части аккуратно выпадают, если совсем ничего нет — fallback на артикул.
+//
+// "Название" (витринное название модели, ключ name) имеет приоритет над "Модель": если
+// оно заполнено в выгрузке — используется вместо кода модели при сборке $head, а не только
+// как fallback на пустое имя (заявка заказчика, коллекция Invi, 2026-09-14).
 function eportaImportComposeName(array $p, string $article): string {
     $collection = trim($p['collection'] ?? '');
     $model = trim($p['model'] ?? '');
+    $displayName = trim($p['name'] ?? '');
+    $modelPart = $displayName !== '' ? $displayName : $model;
     $coating = trim($p['coating'] ?? '');
     $color = trim($p['coating_color'] ?? '');
 
-    // В выгрузке колонка "Модель" уже нередко начинается с названия коллекции (например
-    // модель "Vilis 00" при коллекции "Vilis") — не дублируем коллекцию в этом случае.
-    if ($collection !== '' && $model !== '' && stripos($model, $collection) === 0) {
-        $head = $model;
+    // В выгрузке колонка "Модель" (или "Название", если она задана) уже нередко начинается
+    // с названия коллекции (например "Vilis 00" при коллекции "Vilis") — не дублируем
+    // коллекцию в этом случае.
+    if ($collection !== '' && $modelPart !== '' && stripos($modelPart, $collection) === 0) {
+        $head = $modelPart;
     } else {
-        $head = trim($collection . ' ' . $model);
+        $head = trim($collection . ' ' . $modelPart);
     }
     $tail = trim(implode(' ', array_filter([$coating, $color])));
 
     $name = $tail !== '' ? ($head !== '' ? $head . ', ' . $tail : $tail) : $head;
     if ($name === '') {
-        $name = trim($p['name'] ?? '') ?: $article;
+        $name = $article;
     }
     return $name;
 }
