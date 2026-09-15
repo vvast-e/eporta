@@ -348,6 +348,55 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			$eportaSelected[$eportaKey] = array_values(array_intersect($eportaRawSel, array_keys($eportaValues)));
 		}
 
+		// Размер (свойство SIZES) — НЕ enum, а CSV нескольких "ШxВ" в одной строке на элемент
+		// (общий размерный ряд модели, формат допускает "ШxВ:надбавка" — см. catalog.element/
+		// .default/template.php). CIBlockElement::GetList не умеет матчить токен внутри
+		// произвольной строки через обычный точный/OR-фильтр (это работает только для enum-
+		// свойств), поэтому карту ID => список размеров по всей текущей области (категория/
+		// коллекция/распродажа/новинки, без style/coating/color/price) строим и матчим в PHP —
+		// тот же приём, что и у раскладки "круговая по моделям" ниже. Задача 15.09.2026 (заказчик
+		// отметил отсутствие фильтра по размеру как важный пробел).
+		$eportaSizeElementTokens = [];
+		$eportaSizeUniverseRes = \CIBlockElement::GetList([], $eportaScopeFilter, false, false, ["ID", "PROPERTY_SIZES"]);
+		while ($eportaSizeRow = $eportaSizeUniverseRes->Fetch()) {
+			$eportaSizeRaw = trim((string)($eportaSizeRow["PROPERTY_SIZES_VALUE"] ?? ""));
+			if ($eportaSizeRaw === "") continue;
+			$eportaTokens = [];
+			foreach (explode(",", $eportaSizeRaw) as $eportaSizeToken) {
+				// "х"/"Х" кириллические и латинская "X" — все к единому виду "x", как и при
+				// импорте (eportaImportNormalizeSizes), плюс отрезаем ":надбавку", если есть.
+				$eportaSizeToken = str_replace(["х", "Х", "X"], "x", trim($eportaSizeToken));
+				$eportaSizeToken = trim(explode(":", $eportaSizeToken, 2)[0]);
+				if ($eportaSizeToken !== "") $eportaTokens[] = $eportaSizeToken;
+			}
+			if ($eportaTokens) {
+				$eportaSizeElementTokens[(int)$eportaSizeRow["ID"]] = $eportaTokens;
+			}
+		}
+		$eportaSizeAllTokens = [];
+		foreach ($eportaSizeElementTokens as $eportaElTokens) {
+			foreach ($eportaElTokens as $eportaTok) $eportaSizeAllTokens[$eportaTok] = true;
+		}
+		$eportaSizeAllTokens = array_keys($eportaSizeAllTokens);
+		// Сортировка по ширине, затем высоте (числовая, не строковая — "1000x2000" не должен
+		// встать перед "900x2000").
+		usort($eportaSizeAllTokens, function ($a, $b) {
+			return array_map("intval", explode("x", $a, 2)) <=> array_map("intval", explode("x", $b, 2));
+		});
+		$eportaSelectedSizes = array_values(array_intersect(array_map("strval", (array)($_GET["size"] ?? [])), $eportaSizeAllTokens));
+		// ID элементов, у которых размерный ряд пересекается с выбором — используется и в
+		// $eportaBuildFilter ниже (чтобы счётчики style/coating/color тоже сужались по размеру),
+		// и в финальном $eportaGroupFilter (как обычный "ID" => [...] фильтр).
+		$eportaSizeMatchedIds = null;
+		if ($eportaSelectedSizes) {
+			$eportaSizeMatchedIds = [];
+			foreach ($eportaSizeElementTokens as $eportaElId => $eportaElTokens) {
+				if (array_intersect($eportaElTokens, $eportaSelectedSizes)) {
+					$eportaSizeMatchedIds[] = $eportaElId;
+				}
+			}
+		}
+
 		// Реальный диапазон цен в текущей области (раздел коллекции или весь каталог).
 		$eportaPriceBoundFilter = $eportaScopeFilter + [">CATALOG_PRICE_1" => 0];
 		$eportaPriceMinRow = \CIBlockElement::GetList(["CATALOG_PRICE_1" => "ASC"], $eportaPriceBoundFilter, false, ["nTopCount" => 1], ["ID", "CATALOG_PRICE_1"])->Fetch();
@@ -366,7 +415,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		// Сборка фильтра CIBlockElement/CIBlockElement::GetList, исключая одну группу свойств —
 		// нужно для "умных" счётчиков: сколько товаров останется, если добавить конкретное значение
 		// к уже выбранным фильтрам ДРУГИХ групп.
-		$eportaBuildFilter = function ($excludeKey) use ($eportaScopeFilter, $eportaPropDefs, $eportaSelected, $eportaPriceActive, $eportaPriceSelMin, $eportaPriceSelMax) {
+		$eportaBuildFilter = function ($excludeKey) use ($eportaScopeFilter, $eportaPropDefs, $eportaSelected, $eportaPriceActive, $eportaPriceSelMin, $eportaPriceSelMax, $eportaSelectedSizes, $eportaSizeMatchedIds) {
 			$filter = $eportaScopeFilter;
 			foreach ($eportaPropDefs as $key => $def) {
 				if ($key === $excludeKey || empty($eportaSelected[$key])) continue;
@@ -375,6 +424,9 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			if ($eportaPriceActive) {
 				$filter[">=CATALOG_PRICE_1"] = $eportaPriceSelMin;
 				$filter["<=CATALOG_PRICE_1"] = $eportaPriceSelMax;
+			}
+			if ($excludeKey !== "size" && $eportaSelectedSizes) {
+				$filter["ID"] = $eportaSizeMatchedIds ?: [0];
 			}
 			return $filter;
 		};
@@ -402,6 +454,36 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 						$eportaActiveChips[] = ["LABEL" => $eportaEnumValue, "REMOVE_KEY" => $eportaKey, "REMOVE_VALUE" => $eportaEnumId];
 					}
 				}
+			}
+		}
+
+		// Счётчики размеров — с учётом уже выбранных style/coating/color/price (аналог счётчиков
+		// выше), но без учёта самого выбора размера (иначе выбранные чекбоксы обнулили бы
+		// счётчики остальных вариантов размера).
+		$eportaSizeCountRes = \CIBlockElement::GetList([], $eportaBuildFilter("size"), false, false, ["ID"]);
+		$eportaSizeCounts = [];
+		while ($eportaSizeCountRow = $eportaSizeCountRes->Fetch()) {
+			foreach ($eportaSizeElementTokens[(int)$eportaSizeCountRow["ID"]] ?? [] as $eportaTok) {
+				$eportaSizeCounts[$eportaTok] = ($eportaSizeCounts[$eportaTok] ?? 0) + 1;
+			}
+		}
+		$eportaSizeItems = [];
+		foreach ($eportaSizeAllTokens as $eportaTok) {
+			$eportaCnt = $eportaSizeCounts[$eportaTok] ?? 0;
+			if ($eportaCnt < 1) continue;
+			$eportaSizeItems[] = [
+				"ID" => $eportaTok,
+				"VALUE" => $eportaTok,
+				"COUNT" => $eportaCnt,
+				"CHECKED" => in_array($eportaTok, $eportaSelectedSizes, true),
+			];
+		}
+		$eportaFilterGroups["size"] = ["LABEL" => "Размер", "ITEMS" => $eportaSizeItems];
+
+		if ($eportaSelectedSizes) {
+			$eportaArrFilter["ID"] = $eportaSizeMatchedIds ?: [0];
+			foreach ($eportaSelectedSizes as $eportaSizeVal) {
+				$eportaActiveChips[] = ["LABEL" => $eportaSizeVal, "REMOVE_KEY" => "size", "REMOVE_VALUE" => $eportaSizeVal];
 			}
 		}
 
@@ -1199,7 +1281,9 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 				<div style="font:800 14px 'Manrope';margin-bottom:12px"><?=htmlspecialcharsbx($eportaGroup["LABEL"])?></div>
 				<?foreach ($eportaGroup["ITEMS"] as $eportaItem):?>
 				<label style="display:flex;align-items:center;gap:10px;padding:5px 0;font:600 13px 'Manrope';cursor:pointer">
-					<input type="checkbox" name="<?=htmlspecialcharsbx($eportaGroupKey)?>[]" value="<?=(int)$eportaItem["ID"]?>" <?=$eportaItem["CHECKED"] ? "checked" : ""?> style="width:18px;height:18px;accent-color:#e8820a;flex:none">
+					<?/* value — строкой: у style/coating/color это числовой ID варианта свойства, у
+				     size (не enum, см. $eportaSizeAllTokens выше) — сама строка размера "ШxВ" */?>
+				<input type="checkbox" name="<?=htmlspecialcharsbx($eportaGroupKey)?>[]" value="<?=htmlspecialcharsbx((string)$eportaItem["ID"])?>" <?=$eportaItem["CHECKED"] ? "checked" : ""?> style="width:18px;height:18px;accent-color:#e8820a;flex:none">
 					<?=htmlspecialcharsbx($eportaItem["VALUE"])?> <span style="color:#c2bdb2;margin-left:auto;font-weight:600"><?=$eportaItem["COUNT"]?></span>
 				</label>
 				<?endforeach;?>
