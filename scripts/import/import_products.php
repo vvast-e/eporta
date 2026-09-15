@@ -236,6 +236,21 @@ foreach ($products as $p) {
     }
 
     if ($existingId) {
+        // Update()+PROPERTY_VALUES заменяет ВЕСЬ набор свойств элемента тем, что передано —
+        // SHOWCASE/SHOW_IN_LIST (ручной выбор витрины/видимости в списке, local/admin_tools/
+        // eporta_showcase/) намеренно не входят в $propertyValues выше, но раз не переданы явно,
+        // будут обнулены при переимпорте. Читаем текущие ENUM_ID (Bitrix отдаёт их в
+        // PROPERTY_<CODE>_ENUM_ID при выборке PROPERTY_<CODE>) и повторяем в PROPERTY_VALUES —
+        // тот же приём, что и в local/admin_tools/eporta_import/lib.php eportaImportOneProduct().
+        $currentPropsRes = CIBlockElement::GetList([], ['IBLOCK_ID' => $IBLOCK_ID, 'ID' => $existingId], false, false, ['ID', 'PROPERTY_SHOWCASE', 'PROPERTY_SHOW_IN_LIST']);
+        $currentPropsEl = $currentPropsRes->Fetch();
+        if (!empty($currentPropsEl['PROPERTY_SHOWCASE_ENUM_ID'])) {
+            $elFields['PROPERTY_VALUES']['SHOWCASE'] = (int)$currentPropsEl['PROPERTY_SHOWCASE_ENUM_ID'];
+        }
+        if (!empty($currentPropsEl['PROPERTY_SHOW_IN_LIST_ENUM_ID'])) {
+            $elFields['PROPERTY_VALUES']['SHOW_IN_LIST'] = (int)$currentPropsEl['PROPERTY_SHOW_IN_LIST_ENUM_ID'];
+        }
+
         $ok = $elObj->Update($existingId, $elFields);
         $elementId = $existingId;
     } else {

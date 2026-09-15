@@ -633,14 +633,30 @@ function eportaImportOneProduct(array $p): array {
     }
 
     if ($existingId) {
-        // ВАЖНО (инцидент 29.08.2026): Update()+PROPERTY_VALUES заменяет ВЕСЬ набор свойств
-        // элемента тем, что передано — SHOWCASE (local/admin_tools/eporta_showcase/) намеренно
-        // не входит в $propertyValues выше, но раз он не передан явно, он будет ОБНУЛЁН при
-        // переимпорте, а не "оставлен как был". Читаем текущее значение и повторяем его в
-        // PROPERTY_VALUES, чтобы ручной выбор витринного варианта пережил переимпорт по фиду.
-        $currentShowcaseRes = CIBlockElement::GetList([], ['IBLOCK_ID' => EPORTA_IMPORT_IBLOCK_ID, 'ID' => $existingId], false, false, ['ID', 'PROPERTY_SHOWCASE']);
-        $currentShowcaseEl = $currentShowcaseRes->Fetch();
-        $elFields['PROPERTY_VALUES']['SHOWCASE'] = ($currentShowcaseEl['PROPERTY_SHOWCASE_VALUE'] ?? '') === 'Y' ? 'Y' : 'N';
+        // ВАЖНО (инцидент 29.08.2026, доисправлено 15.09.2026): Update()+PROPERTY_VALUES заменяет
+        // ВЕСЬ набор свойств элемента тем, что передано — SHOWCASE и SHOW_IN_LIST
+        // (local/admin_tools/eporta_showcase/, ручной выбор витрины/видимости в списке) намеренно
+        // не входят в $propertyValues выше, но раз они не переданы явно, они будут ОБНУЛЕНЫ при
+        // переимпорте, а не "оставлены как были". Читаем текущие значения и повторяем их в
+        // PROPERTY_VALUES, чтобы ручной выбор пережил переимпорт по фиду.
+        //
+        // Прежняя версия этого фикса (29.08.2026) сравнивала PROPERTY_SHOWCASE_VALUE с 'Y' и
+        // писала обратно строку 'Y'/'N' — оба шага были неверны: SHOWCASE это список (PROPERTY_TYPE=L)
+        // с вариантами VALUE="Да"/"Нет" (XML_ID="Y"/"N"), значения "Y" там никогда не было, поэтому
+        // сравнение всегда давало false, а записанная строка "Y"/"N" не матчилась ни с одним
+        // вариантом списка. В итоге SHOWCASE молча обнулялся при каждом переимпорте, как и
+        // SHOW_IN_LIST, который эта версия вообще не трогала. Читаем сразу ENUM_ID обоих свойств
+        // (Bitrix отдаёт его в PROPERTY_<CODE>_ENUM_ID при выборке PROPERTY_<CODE>) и пишем в
+        // PROPERTY_VALUES тем же числовым ID — тем же способом, каким уже резолвятся
+        // покрытие/цвет/остекление выше (eportaImportGetOrCreateEnumId).
+        $currentPropsRes = CIBlockElement::GetList([], ['IBLOCK_ID' => EPORTA_IMPORT_IBLOCK_ID, 'ID' => $existingId], false, false, ['ID', 'PROPERTY_SHOWCASE', 'PROPERTY_SHOW_IN_LIST']);
+        $currentPropsEl = $currentPropsRes->Fetch();
+        if (!empty($currentPropsEl['PROPERTY_SHOWCASE_ENUM_ID'])) {
+            $elFields['PROPERTY_VALUES']['SHOWCASE'] = (int)$currentPropsEl['PROPERTY_SHOWCASE_ENUM_ID'];
+        }
+        if (!empty($currentPropsEl['PROPERTY_SHOW_IN_LIST_ENUM_ID'])) {
+            $elFields['PROPERTY_VALUES']['SHOW_IN_LIST'] = (int)$currentPropsEl['PROPERTY_SHOW_IN_LIST_ENUM_ID'];
+        }
 
         $ok = $elObj->Update($existingId, $elFields);
         $elementId = $existingId;
