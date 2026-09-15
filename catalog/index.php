@@ -646,12 +646,17 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		// header.php (общесайтовая, снимется целиком при запуске) — эта относится только к разделу
 		// каталога и останется висеть и после запуска, пока в категории реально нет товаров.
 		//
+		// "Скрытые" (hidden) — ИСКЛЮЧЕНИЕ, заглушку не показываем (правка 15.09.2026), несмотря на
+		// 0 товаров с PROPERTY_CATEGORY "Скрытые двери"/"СД": Invi (коллекция скрытых дверей) сейчас
+		// импортирован с CATEGORY="МКД", вопрос ещё уточняется у заказчика — до решения раздел
+		// должен вести себя как обычный пустой каталог (пустая сетка), а не показывать заглушку.
+		//
 		// Полноэкранная, той же стилистики, что и общесайтовая заглушка в header.php (тёмный фон,
 		// текст по центру) — заказчик попросил именно такой вид, а не блок внутри сетки каталога
 		// (правка 15.09.2026). RestartBuffer сбрасывает уже выведенные header.php/шапку/сайдбар —
 		// тот же приём, что и в короткое замыкание AJAX-подгрузки ниже ($eportaIsAjaxGrid) и в
 		// самом dev-гейте header.php. Кнопка "Назад" ведёт в общий каталог без фильтра категории.
-		if ($eportaSelectedCategory && !$eportaCollectionSection && $eportaFoundCount === 0) {
+		if ($eportaSelectedCategory && $eportaSelectedCategory !== "hidden" && !$eportaCollectionSection && $eportaFoundCount === 0) {
 			$APPLICATION->RestartBuffer();
 			header("Content-Type: text/html; charset=UTF-8");
 			$eportaStubHeading = $eportaCategoryMap[$eportaSelectedCategory]["HEADING"];
