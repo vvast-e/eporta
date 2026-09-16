@@ -139,7 +139,54 @@ function eportaBannersSlots(): array {
             'size' => 'квадратная плитка — рекомендуется ~900×900 px',
         ];
     }
+    // Две промо-плитки в выпадающем мегаменю "Каталог" шапки (header.php + assets/app.js) —
+    // раньше заголовок/подзаголовок/ссылка/фон были захардкожены в JS ("Распродажа" → /discount/,
+    // "Новинки" → /catalog/), картинки не было вообще (только CSS-градиент на цветной подложке).
+    // 'has_text' — признак для админки/ajax.php: у этих слотов, в отличие от cat_*/coll_* выше,
+    // редактируются ещё и текстовые поля (как у слайдов карусели), но, в отличие от карусели,
+    // элемент один на слот (как у плиток) — поэтому текстовые поля адресуются по коду слота
+    // (см. eportaBannersMegamenuBanners() ниже и action=save_slot_meta в ajax.php), а не по ID
+    // элемента. 'fallback' пуст — нет исторической картинки-заглушки, пока не залита через
+    // админку, плитка остаётся на текущей цветной подложке (см. app.js).
+    $slots['megamenu_sale'] = [
+        'label' => 'Мегаменю «Каталог»: промо-плитка 1',
+        'fallback' => '',
+        'size' => 'широкая плитка — рекомендуется ~600×320 px',
+        'has_text' => true,
+        'text_defaults' => ['NAME' => 'Распродажа', 'SUBTITLE' => 'скидки до −25%', 'LINK' => '/discount/'],
+    ];
+    $slots['megamenu_new'] = [
+        'label' => 'Мегаменю «Каталог»: промо-плитка 2',
+        'fallback' => '',
+        'size' => 'широкая плитка — рекомендуется ~600×320 px',
+        'has_text' => true,
+        'text_defaults' => ['NAME' => 'Новинки', 'SUBTITLE' => 'новые коллекции 2026', 'LINK' => '/catalog/'],
+    ];
     return $slots;
+}
+
+// Текущее состояние двух промо-плиток мегаменю "Каталог" (слоты megamenu_sale/megamenu_new) —
+// заголовок/подзаголовок/ссылка (свойства NAME/SUBTITLE/LINK элемента, если он уже заведён,
+// иначе дефолты из 'text_defaults' в eportaBannersSlots()) + картинка/затенение через тот же
+// механизм, что и у плиток каталога/коллекций (eportaBannersResolveImage/eportaBannersSlotOverlayEnabled).
+// Используется и в header.php (проброс в window.EPORTA_MEGAMENU), и в админке (index.php).
+function eportaBannersMegamenuBanners(): array {
+    $slots = eportaBannersSlots();
+    $slotElements = eportaBannersGetSlotElements();
+    $result = [];
+    foreach (['megamenu_sale', 'megamenu_new'] as $code) {
+        $slot = $slots[$code];
+        $el = $slotElements[$code] ?? null;
+        $defaults = $slot['text_defaults'];
+        $result[$code] = [
+            'NAME' => $el ? (string)$el['NAME'] : $defaults['NAME'],
+            'SUBTITLE' => $el ? (string)($el['PROPERTY_SUBTITLE_VALUE'] ?? '') : $defaults['SUBTITLE'],
+            'LINK' => $el ? (string)($el['PROPERTY_LINK_VALUE'] ?? '') : $defaults['LINK'],
+            'OVERLAY_ENABLED' => $el ? (bool)($el['OVERLAY_ENABLED'] ?? true) : true,
+            'IMAGE' => ($el && !empty($el['DETAIL_PICTURE'])) ? (CFile::GetPath($el['DETAIL_PICTURE']) ?: '') : '',
+        ];
+    }
+    return $result;
 }
 
 // Точечное обновление СТРОКОВОГО (не списочного) свойства элемента — тот же принцип, что и
@@ -250,7 +297,10 @@ function eportaBannersGetSlotElements(): array {
         ['IBLOCK_ID' => EPORTA_BANNERS_IBLOCK_ID, 'ACTIVE' => 'Y'],
         false,
         false,
-        ['ID', 'NAME', 'DETAIL_PICTURE', 'PROPERTY_PLACEMENT', 'PROPERTY_OVERLAY']
+        // SUBTITLE/LINK добавлены для megamenu_sale/megamenu_new (eportaBannersMegamenuBanners()
+        // ниже) — те же строковые свойства, что уже читает eportaBannersCarouselSlides() для
+        // слайдов карусели, здесь просто заодно подтягиваются и для слотовых плиток.
+        ['ID', 'NAME', 'DETAIL_PICTURE', 'PROPERTY_PLACEMENT', 'PROPERTY_OVERLAY', 'PROPERTY_SUBTITLE', 'PROPERTY_LINK']
     );
     while ($el = $res->Fetch()) {
         // ...ENUM_ID, не ...VALUE — тот же паттерн, что и на главной (index.php, разбор

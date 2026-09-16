@@ -47,6 +47,34 @@ document.addEventListener('DOMContentLoaded', function(){
 		return id ? '/catalog/?coating[]=' + encodeURIComponent(id) : '/catalog/';
 	}
 
+	// Промо-плитки мегаменю (слоты megamenu_sale/megamenu_new, mm.banners — задаётся в
+	// header.php из eportaBannersMegamenuBanners(), редактируется в админке local/admin_tools/
+	// eporta_banners/). Раньше эти две плитки были захардкожены прямо в HTML ниже (заголовок/
+	// подзаголовок/ссылка/цвет фона) — теперь строятся из конфига, картинка (если залита через
+	// админку) накладывается как background-image, иначе остаётся фолбэк-цвет fallbackBg (тот же
+	// вид, что был раньше, до заливки картинки через админку).
+	function mmBannerHtml(key, fallbackBg) {
+		var b = (mm.banners || {})[key] || {};
+		var bg = b.IMAGE
+			? 'background:' + fallbackBg + ' url(\'' + String(b.IMAGE).replace(/'/g, "%27") + '\') center/cover no-repeat'
+			: 'background:' + fallbackBg;
+		var overlayGradient = (b.OVERLAY_ENABLED !== false)
+			? 'rgba(0,0,0,.15),rgba(0,0,0,.55)'
+			: 'rgba(0,0,0,0),rgba(0,0,0,0)';
+		var href = b.LINK || '/catalog/';
+		var title = b.NAME || '';
+		var subtitle = b.SUBTITLE || '';
+		return '<a href="' + htmlAttr(href) + '" style="flex:1;position:relative;border-radius:14px;overflow:hidden;cursor:pointer;min-height:160px;' + bg + ';display:block;text-decoration:none">' +
+			'<div style="position:absolute;inset:0;background:linear-gradient(180deg,' + overlayGradient + ')"></div>' +
+			'<div style="position:absolute;left:16px;bottom:14px">' +
+				(title ? '<div style="font:800 17px \'Manrope\';color:#fff">' + htmlText(title) + '</div>' : '') +
+				(subtitle ? '<div style="font:700 12px \'Manrope\';color:#ffd7b0;margin-top:3px">' + htmlText(subtitle) + '</div>' : '') +
+			'</div>' +
+		'</a>';
+	}
+	function htmlText(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+	function htmlAttr(s) { return htmlText(s).replace(/"/g, '&quot;'); }
+
 	var menu = document.createElement('div');
 	menu.id = 'megaMenu';
 	menu.innerHTML =
@@ -85,20 +113,8 @@ document.addEventListener('DOMContentLoaded', function(){
 		'</div>' +
 
 		'<div style="flex:1;display:flex;gap:14px;min-width:0">' +
-			'<a href="/discount/" style="flex:1;position:relative;border-radius:14px;overflow:hidden;cursor:pointer;min-height:160px;background:#2b1512;display:block;text-decoration:none">' +
-				'<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.55))"></div>' +
-				'<div style="position:absolute;left:16px;bottom:14px">' +
-					'<div style="font:800 17px \'Manrope\';color:#fff">Распродажа</div>' +
-					'<div style="font:700 12px \'Manrope\';color:#ffd7b0;margin-top:3px">скидки до −25%</div>' +
-				'</div>' +
-			'</a>' +
-			'<a href="/catalog/" style="flex:1;position:relative;border-radius:14px;overflow:hidden;cursor:pointer;min-height:160px;background:#12251a;display:block;text-decoration:none">' +
-				'<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.55))"></div>' +
-				'<div style="position:absolute;left:16px;bottom:14px">' +
-					'<div style="font:800 17px \'Manrope\';color:#fff">Новинки</div>' +
-					'<div style="font:700 12px \'Manrope\';color:#b7e6c6;margin-top:3px">новые коллекции 2026</div>' +
-				'</div>' +
-			'</a>' +
+			mmBannerHtml('megamenu_sale', '#2b1512') +
+			mmBannerHtml('megamenu_new', '#12251a') +
 		'</div>' +
 
 		'</div>';

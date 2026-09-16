@@ -61,6 +61,7 @@ require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/categories.p
 require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/buyer_info_pages.php");
 require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/webp.php");
 require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/card-backdrop.php");
+require_once($_SERVER["DOCUMENT_ROOT"]."/local/admin_tools/eporta_banners/lib.php");
 function eportaResolveEnumMap($code) {
 	$map = [];
 	$rs = \CIBlockPropertyEnum::GetList(["SORT" => "ASC"], ["IBLOCK_ID" => 19, "CODE" => $code]);
@@ -90,6 +91,10 @@ $eportaMegaMenuConfig = [
 		"Входные" => "entrance",
 		"Фурнитура" => "hardware",
 	],
+	// Две промо-плитки мегаменю (слоты megamenu_sale/megamenu_new, редактируются в админке
+	// local/admin_tools/eporta_banners/, см. eportaBannersMegamenuBanners() в её lib.php) —
+	// раньше заголовок/подзаголовок/ссылка/фон были захардкожены в assets/app.js.
+	"banners" => eportaBannersMegamenuBanners(),
 ];
 
 $asset = Asset::getInstance();

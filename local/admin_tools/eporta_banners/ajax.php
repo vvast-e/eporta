@@ -24,8 +24,57 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !check_bitrix_sessid()) {
 
 $action = $_POST['action'] ?? '';
 
-if (!in_array($action, ['upload', 'set_overlay', 'save_meta'], true)) {
+if (!in_array($action, ['upload', 'set_overlay', 'save_meta', 'save_slot_meta'], true)) {
     eportaBannersJsonFail('Неизвестное действие');
+}
+
+// save_slot_meta — заголовок/подзаголовок/ссылка промо-плиток мегаменю "Каталог" (слоты
+// megamenu_sale/megamenu_new, см. eportaBannersSlots()/eportaBannersMegamenuBanners() в lib.php).
+// Адресуется по коду слота, не по ID элемента — в отличие от save_meta (карусель, там несколько
+// элементов на один PLACEMENT), у этих слотов элемент один, как у плиток cat_*/coll_*, и может
+// ещё не существовать (плитка на дефолтном тексте/подложке) — тогда создаём его, как и upload/
+// set_overlay ниже для тех же слотов.
+if ($action === 'save_slot_meta') {
+    $slots = eportaBannersSlots();
+    $slotCode = (string)($_POST['slot'] ?? '');
+    if (!isset($slots[$slotCode]) || empty($slots[$slotCode]['has_text'])) {
+        eportaBannersJsonFail('Неизвестный слот');
+    }
+
+    $name = trim((string)($_POST['name'] ?? ''));
+    if ($name === '') {
+        eportaBannersJsonFail('Заголовок не может быть пустым');
+    }
+    $subtitle = trim((string)($_POST['subtitle'] ?? ''));
+    $link = eportaSanitizeBannerLink((string)($_POST['link'] ?? ''));
+
+    $existing = eportaBannersGetSlotElements()[$slotCode] ?? null;
+    if ($existing) {
+        $elObj = new CIBlockElement;
+        if (!$elObj->Update((int)$existing['ID'], ['NAME' => $name])) {
+            eportaBannersJsonFail('Ошибка сохранения заголовка: ' . $elObj->LAST_ERROR, 500);
+        }
+        eportaBannersSetStringProperty((int)$existing['ID'], 'SUBTITLE', $subtitle);
+        eportaBannersSetStringProperty((int)$existing['ID'], 'LINK', $link);
+    } else {
+        $fields = [
+            'IBLOCK_ID' => EPORTA_BANNERS_IBLOCK_ID,
+            'ACTIVE' => 'Y',
+            'NAME' => $name,
+            'PROPERTY_VALUES' => ['PLACEMENT' => $slotCode, 'OVERLAY' => 'Y', 'SUBTITLE' => $subtitle, 'LINK' => $link],
+        ];
+        $tilesSectionId = eportaBannersTilesSectionId();
+        if ($tilesSectionId) {
+            $fields['IBLOCK_SECTION_ID'] = $tilesSectionId;
+        }
+        $elObj = new CIBlockElement;
+        if (!$elObj->Add($fields)) {
+            eportaBannersJsonFail('Ошибка сохранения: ' . $elObj->LAST_ERROR, 500);
+        }
+    }
+
+    echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
 // save_meta адресуется по ID элемента карусели (их несколько на один PLACEMENT), а не по коду
@@ -83,11 +132,17 @@ if ($action === 'set_overlay') {
         // Update()+PROPERTY_VALUES с одним ключом стёр бы всё остальное (см. комментарий в lib.php).
         $ok = eportaBannersSetListProperty((int)$existingForOverlay['ID'], 'OVERLAY', $overlayValue);
     } else {
+        // Для слотов с текстовыми полями (megamenu_sale/megamenu_new) заголовок/подзаголовок/
+        // ссылка при первом создании элемента (до того, как save_slot_meta их сохранит) берём
+        // из text_defaults, а не из технического 'label' админки — иначе на фронте до первого
+        // сохранения текста показался бы служебный лейбл вместо реального заголовка баннера.
+        $textDefaults = $slots[$slotCode]['text_defaults'] ?? null;
         $fields = [
             'IBLOCK_ID' => EPORTA_BANNERS_IBLOCK_ID,
             'ACTIVE' => 'Y',
-            'NAME' => $slots[$slotCode]['label'],
-            'PROPERTY_VALUES' => ['PLACEMENT' => $slotCode, 'OVERLAY' => $overlayValue],
+            'NAME' => $textDefaults['NAME'] ?? $slots[$slotCode]['label'],
+            'PROPERTY_VALUES' => ['PLACEMENT' => $slotCode, 'OVERLAY' => $overlayValue]
+                + ($textDefaults ? ['SUBTITLE' => $textDefaults['SUBTITLE'], 'LINK' => $textDefaults['LINK']] : []),
         ];
         $tilesSectionId = eportaBannersTilesSectionId();
         if ($tilesSectionId) {
@@ -143,13 +198,29 @@ $elObj = new CIBlockElement;
 // иначе выбор "затенения" контент-менеджера молча слетит на значение по умолчанию.
 $currentOverlay = $existing ? (($existing['OVERLAY_ENABLED'] ?? true) ? 'Y' : 'N') : 'Y';
 
+// Слоты с текстовыми полями (megamenu_sale/megamenu_new) — Update()+PROPERTY_VALUES ниже
+// заменяет ВЕСЬ набор свойств элемента (см. предупреждение в lib.php), поэтому при повторной
+// загрузке картинки для уже существующего элемента нужно явно повторить текущие SUBTITLE/LINK,
+// иначе они молча стёрлись бы; для ещё не существующего элемента — взять text_defaults, как и
+// в блоке set_overlay выше.
+$textDefaults = $slots[$slotCode]['text_defaults'] ?? null;
+$currentName = $slots[$slotCode]['label'];
+$textPropertyValues = [];
+if ($textDefaults) {
+    $currentName = $existing ? (string)$existing['NAME'] : $textDefaults['NAME'];
+    $textPropertyValues = [
+        'SUBTITLE' => $existing ? (string)($existing['PROPERTY_SUBTITLE_VALUE'] ?? '') : $textDefaults['SUBTITLE'],
+        'LINK' => $existing ? (string)($existing['PROPERTY_LINK_VALUE'] ?? '') : $textDefaults['LINK'],
+    ];
+}
+
 $fields = [
     'IBLOCK_ID' => EPORTA_BANNERS_IBLOCK_ID,
     'ACTIVE' => 'Y',
-    'NAME' => $slots[$slotCode]['label'],
+    'NAME' => $currentName,
     'DETAIL_PICTURE' => $fileArray,
     'PREVIEW_PICTURE' => $fileArray,
-    'PROPERTY_VALUES' => ['PLACEMENT' => $slotCode, 'OVERLAY' => $currentOverlay],
+    'PROPERTY_VALUES' => ['PLACEMENT' => $slotCode, 'OVERLAY' => $currentOverlay] + $textPropertyValues,
 ];
 // Кладём в раздел "Плитки главной", если он уже заведён (add_iblock27_tiles_section.php) — иначе
 // этот элемент неотличим в общем списке ИБ 27 от слайдов главной карусели и попадает туда как

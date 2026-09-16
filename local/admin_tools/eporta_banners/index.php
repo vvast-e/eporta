@@ -46,6 +46,20 @@ unset($slot);
 
 $catSlots = array_filter($slots, fn($c) => str_starts_with($c, 'cat_'), ARRAY_FILTER_USE_KEY);
 $collSlots = array_filter($slots, fn($c) => str_starts_with($c, 'coll_'), ARRAY_FILTER_USE_KEY);
+// Две промо-плитки мегаменю "Каталог" в шапке (header.php + assets/app.js) — картинка/затенение
+// через тот же механизм, что и у плиток выше, плюс текстовые поля (заголовок/подзаголовок/
+// ссылка), как у слайдов карусели ниже, но один элемент на слот — сохраняются через
+// action=save_slot_meta (ajax.php), не save_meta.
+$megamenuBanners = eportaBannersMegamenuBanners();
+foreach ($slots as $code => &$slot) {
+    if (!empty($slot['has_text'])) {
+        $slot['NAME'] = $megamenuBanners[$code]['NAME'];
+        $slot['SUBTITLE'] = $megamenuBanners[$code]['SUBTITLE'];
+        $slot['LINK'] = $megamenuBanners[$code]['LINK'];
+    }
+}
+unset($slot);
+$megamenuSlots = array_filter($slots, fn($c) => str_starts_with($c, 'megamenu_'), ARRAY_FILTER_USE_KEY);
 
 // Слайды главной карусели (заголовок/подзаголовок/ссылка/кнопка/затемнение) — картинка у них
 // по-прежнему заливается только через штатную админку Bitrix (тот же приём, что и раньше,
@@ -123,6 +137,15 @@ $carouselGroupLabels = [
 <h2>Коллекции фабрики</h2>
 <div class="slot-grid" id="grid-coll"></div>
 
+<h2>Промо-плитки мегаменю «Каталог»</h2>
+<p class="hint">
+    Две плитки в выпадающем списке "Каталог" в шапке сайта (наведение курсора на пункт меню
+    "Каталог"). Заголовок, подзаголовок и ссылка — как у слайдов карусели ниже. Картинка и
+    затенение — как у плиток выше; пока картинка не залита, плитка остаётся на текущей цветной
+    подложке.
+</p>
+<div class="slide-grid" id="grid-megamenu"></div>
+
 <h2>Слайды главной карусели</h2>
 <p class="hint">
     Заголовок, подзаголовок, ссылка и кнопка каждого слайда. Затемнение — то же затемнение, что
@@ -148,6 +171,7 @@ $carouselGroupLabels = [
         coll: <?= json_encode(array_map(fn($c, $s) => ['code' => $c] + $s, array_keys($collSlots), $collSlots), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>
     };
     const SLIDE_GROUPS = <?= json_encode($carouselSlides, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+    const MEGAMENU_SLOTS = <?= json_encode(array_map(fn($c, $s) => ['code' => $c] + $s, array_keys($megamenuSlots), $megamenuSlots), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 
     function renderGrid(containerId, slots) {
         const container = document.getElementById(containerId);
@@ -331,6 +355,104 @@ $carouselGroupLabels = [
     function escapeAttr(s) {
         return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
     }
+
+    // Промо-плитки мегаменю: карточка = поля слайда (заголовок/подзаголовок/ссылка, action=
+    // save_slot_meta, адресация по коду слота) + загрузка картинки и затенение, как у плиток
+    // выше (action=upload/set_overlay — работают "из коробки", т.к. слот уже есть в SLOTS-конфиге
+    // lib.php, отдельного кода на сервере под них не нужно).
+    function renderMegamenuGrid(containerId, slots) {
+        const container = document.getElementById(containerId);
+        slots.forEach(function (slot) {
+            const card = document.createElement('div');
+            card.className = 'slide-card';
+            card.innerHTML =
+                '<div class="thumb">' + (slot.preview ? '<img src="' + slot.preview + '" alt="">' : '') + '</div>' +
+                '<div class="fields">' +
+                    '<label>' + slot.label + '</label>' +
+                    '<input type="file" class="f-image" accept=".jpg,.jpeg,.png">' +
+                    '<label>Заголовок</label>' +
+                    '<input type="text" class="f-name" value="' + escapeAttr(slot.NAME) + '">' +
+                    '<label>Подзаголовок</label>' +
+                    '<input type="text" class="f-subtitle" value="' + escapeAttr(slot.SUBTITLE) + '">' +
+                    '<label>Ссылка</label>' +
+                    '<input type="text" class="f-link" value="' + escapeAttr(slot.LINK) + '" placeholder="/catalog/">' +
+                    '<label class="row-check"><input type="checkbox" class="f-overlay" ' + (slot.overlay ? 'checked' : '') + '> Затенение поверх фото</label>' +
+                    '<button type="button">Сохранить</button>' +
+                    '<div class="status"></div>' +
+                '</div>';
+
+            const imgEl = card.querySelector('.thumb img');
+            const fileInput = card.querySelector('.f-image');
+            const overlayCheckbox = card.querySelector('.f-overlay');
+            const btn = card.querySelector('button');
+            const statusEl = card.querySelector('.status');
+
+            async function postForm(fd) {
+                const r = await fetch('ajax.php', { method: 'POST', body: fd });
+                return r.json();
+            }
+
+            btn.addEventListener('click', async function () {
+                statusEl.textContent = '';
+                statusEl.className = 'status';
+                const name = card.querySelector('.f-name').value.trim();
+                if (!name) {
+                    statusEl.textContent = 'Заголовок не может быть пустым';
+                    statusEl.classList.add('err');
+                    return;
+                }
+                btn.disabled = true;
+                statusEl.textContent = 'Сохранение...';
+                try {
+                    if (fileInput.files.length) {
+                        const fdImg = new FormData();
+                        fdImg.append('action', 'upload');
+                        fdImg.append('sessid', SESSID);
+                        fdImg.append('slot', slot.code);
+                        fdImg.append('image', fileInput.files[0]);
+                        const respImg = await postForm(fdImg);
+                        if (!respImg.ok) throw new Error(respImg.error || 'Ошибка загрузки картинки');
+                        let img = card.querySelector('.thumb img');
+                        if (!img) {
+                            img = document.createElement('img');
+                            card.querySelector('.thumb').appendChild(img);
+                        }
+                        img.src = respImg.image + '?t=' + Date.now();
+                        fileInput.value = '';
+                    }
+
+                    const fdOverlay = new FormData();
+                    fdOverlay.append('action', 'set_overlay');
+                    fdOverlay.append('sessid', SESSID);
+                    fdOverlay.append('slot', slot.code);
+                    fdOverlay.append('overlay', overlayCheckbox.checked ? 'Y' : 'N');
+                    const respOverlay = await postForm(fdOverlay);
+                    if (!respOverlay.ok) throw new Error(respOverlay.error || 'Ошибка сохранения затенения');
+
+                    const fdMeta = new FormData();
+                    fdMeta.append('action', 'save_slot_meta');
+                    fdMeta.append('sessid', SESSID);
+                    fdMeta.append('slot', slot.code);
+                    fdMeta.append('name', name);
+                    fdMeta.append('subtitle', card.querySelector('.f-subtitle').value.trim());
+                    fdMeta.append('link', card.querySelector('.f-link').value.trim());
+                    const respMeta = await postForm(fdMeta);
+                    if (!respMeta.ok) throw new Error(respMeta.error || 'Ошибка сохранения текста');
+
+                    statusEl.textContent = 'Сохранено';
+                    statusEl.classList.add('ok');
+                } catch (e) {
+                    statusEl.textContent = e.message;
+                    statusEl.classList.add('err');
+                }
+                btn.disabled = false;
+            });
+
+            container.appendChild(card);
+        });
+    }
+
+    renderMegamenuGrid('grid-megamenu', MEGAMENU_SLOTS);
 
     Object.keys(SLIDE_GROUPS).forEach(function (groupCode) {
         renderSlideGroup(groupCode, SLIDE_GROUPS[groupCode]);
