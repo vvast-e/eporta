@@ -1,0 +1,15 @@
+User-agent: *
+Disallow: /bitrix/
+Disallow: /local/
+Disallow: /upload/resize_cache/
+Disallow: /*?*
+Disallow: /search/
+Disallow: /personal/
+Disallow: /auth/
+Disallow: /compare/
+Disallow: /wishlist/
+Disallow: /*ORDER_BY=
+Disallow: /*sort=
+Disallow: /*PAGEN_
+
+Sitemap: https://eporta.ru/sitemap.xml

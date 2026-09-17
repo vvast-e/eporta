@@ -10,6 +10,7 @@
 # Большие файлы данных
 *.tar.gz
 *.xml
+!/sitemap.xml
 Dorsum_export_files/
 *.csv
 
