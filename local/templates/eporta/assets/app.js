@@ -411,6 +411,131 @@ document.addEventListener('DOMContentLoaded', function () {
 	});
 });
 
+// ---- Каталог: живая фильтрация сайдбара (catalog/index.php, #eportaFiltersForm) ----
+// Клик по чекбоксу или изменение цены сразу обновляет #eportaCatalogGrid через тот же
+// AJAX-эндпоинт (?eporta_ajax=grid), что и "Показать ещё" выше — без перезагрузки всей
+// страницы. Анимация — "штора": светлая панель полностью закрывает блок ДО подмены карточек,
+// затем уезжает вниз (translateY), постепенно открывая уже подставленный под ней новый
+// результат сверху вниз, а не просто fade всей сетки разом.
+document.addEventListener('DOMContentLoaded', function () {
+	var form = document.getElementById('eportaFiltersForm');
+	var grid = document.getElementById('eportaCatalogGrid');
+	if (!form || !grid) return;
+
+	var submitBtn = document.getElementById('eportaFiltersSubmit');
+	// Растущий счётчик запросов — если пользователь быстро щёлкнул несколько чекбоксов подряд,
+	// ответ на более раннй запрос, пришедший позже, просто игнорируется.
+	var reqSeq = 0;
+
+	function showCurtain() {
+		var curtain = grid.querySelector('.eporta-catalog-curtain');
+		if (!curtain) {
+			curtain = document.createElement('div');
+			curtain.className = 'eporta-catalog-curtain';
+			grid.appendChild(curtain);
+		}
+		// Переиспользуем ту же панель (если пользователь щёлкнул фильтр ещё раз, пока предыдущая
+		// уезжала) — мгновенно возвращаем её в перекрытое состояние без transition.
+		curtain.style.transition = 'none';
+		curtain.style.transform = 'translateY(0)';
+		curtain.offsetHeight; // reflow — чтобы следующий transition снова сработал
+		curtain.style.transition = '';
+		return curtain;
+	}
+
+	function revealCurtain(curtain) {
+		requestAnimationFrame(function () {
+			requestAnimationFrame(function () {
+				curtain.style.transform = 'translateY(100%)';
+			});
+		});
+		curtain.addEventListener('transitionend', function onEnd(e) {
+			if (e.propertyName !== 'transform') return;
+			curtain.removeEventListener('transitionend', onEnd);
+			if (curtain.parentNode) curtain.parentNode.removeChild(curtain);
+		});
+	}
+
+	function updateSidebarCounts(meta) {
+		if (!meta) return;
+		if (meta.counts) {
+			Object.keys(meta.counts).forEach(function (groupKey) {
+				var groupCounts = meta.counts[groupKey];
+				Object.keys(groupCounts).forEach(function (value) {
+					var input = form.querySelector('input[name="' + groupKey + '[]"][value="' + CSS.escape(value) + '"]');
+					var countEl = input && input.closest('label') ? input.closest('label').querySelector('.eporta-filter-count') : null;
+					if (countEl) countEl.textContent = groupCounts[value];
+				});
+			});
+		}
+		if (submitBtn && typeof meta.foundCount === 'number') {
+			submitBtn.textContent = 'Показать ' + meta.foundCount + ' ' + meta.foundLabel;
+		}
+	}
+
+	function apply() {
+		var seq = ++reqSeq;
+		var curtain = showCurtain();
+
+		var queryStr = new URLSearchParams(new FormData(form)).toString();
+		var pageUrl = location.pathname + (queryStr ? '?' + queryStr : '');
+		var ajaxUrl = location.pathname + '?' + (queryStr ? queryStr + '&' : '') + 'eporta_ajax=grid';
+
+		fetch(ajaxUrl, { credentials: 'same-origin' })
+			.then(function (r) { return r.text(); })
+			.then(function (html) {
+				if (seq !== reqSeq) return;
+				var doc = new DOMParser().parseFromString(html, 'text/html');
+				var newGrid = doc.querySelector('.eporta-product-grid');
+				var newPager = doc.getElementById('eportaCatalogPager');
+				var newLoadMoreBtn = doc.getElementById('eportaCatalogLoadMore');
+				var metaScript = doc.getElementById('eportaAjaxMeta');
+				var meta = null;
+				if (metaScript) {
+					try { meta = JSON.parse(metaScript.textContent); } catch (e) {}
+				}
+
+				var oldGrid = grid.querySelector('.eporta-product-grid');
+				if (oldGrid && newGrid) oldGrid.replaceWith(newGrid);
+				var oldPager = document.getElementById('eportaCatalogPager');
+				if (oldPager) {
+					if (newPager) oldPager.replaceWith(newPager); else oldPager.remove();
+				}
+				var oldLoadMoreBtn = document.getElementById('eportaCatalogLoadMore');
+				if (oldLoadMoreBtn) {
+					if (newLoadMoreBtn) oldLoadMoreBtn.replaceWith(newLoadMoreBtn); else oldLoadMoreBtn.remove();
+				} else if (newLoadMoreBtn) {
+					grid.appendChild(newLoadMoreBtn);
+				}
+
+				updateSidebarCounts(meta);
+				history.pushState({ eportaCatalogFilter: true }, '', pageUrl);
+				revealCurtain(curtain);
+			})
+			.catch(function () {
+				if (seq !== reqSeq) return;
+				if (curtain.parentNode) curtain.parentNode.removeChild(curtain);
+			});
+	}
+
+	form.addEventListener('change', function (e) {
+		var t = e.target;
+		if (t.matches('input[type="checkbox"]') || t.matches('input[type="number"]')) apply();
+	});
+
+	form.addEventListener('submit', function (e) {
+		e.preventDefault();
+		apply();
+		document.body.classList.remove('eporta-filters-open');
+	});
+
+	// Назад/вперёд по истории (URL менялся через pushState выше) — состояние формы/сайдбара
+	// проще и надёжнее просто перезагрузить с сервера, чем восстанавливать на клиенте.
+	window.addEventListener('popstate', function (e) {
+		if (e.state && e.state.eportaCatalogFilter) location.reload();
+	});
+});
+
 // ---- Карточка товара в каталоге и карточка модели в коллекции: наведение на кружок цвета
 // меняет фото (и, у товарной карточки, цену) на месте ----
 // (catalog.section/.default/template.php И блок "Модели коллекции" в catalog/index.php — оба

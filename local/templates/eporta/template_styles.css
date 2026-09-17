@@ -1046,6 +1046,27 @@ img { display: block; }
   .eporta-product-grid--list .product-swatches { display: none; }
 }
 
+/* Живая фильтрация каталога (#eportaFiltersForm, assets/app.js): "шторка" перекрывает
+   #eportaCatalogGrid ДО подмены карточек, затем уезжает вниз, постепенно открывая уже
+   подставленный под ней новый результат сверху вниз — а не просто fade всей сетки целиком. */
+.eporta-catalog-curtain {
+  position: absolute;
+  inset: 0;
+  background: var(--bg, #fff);
+  transform: translateY(0);
+  transition: transform .6s cubic-bezier(.65, 0, .35, 1);
+  z-index: 5;
+  pointer-events: none;
+}
+.eporta-catalog-curtain::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 24px;
+  transform: translateY(100%);
+  background: linear-gradient(to bottom, rgba(0, 0, 0, .06), rgba(0, 0, 0, 0));
+}
+
 /* Дропдаун сортировки (заменяет мок-<div> "Сначала популярные"): нативный <details>/<summary>,
    без JS-библиотек. summary — сам контрол, открытие рисует список ссылок абсолютным блоком. */
 .eporta-sort-dd { position: relative; }

@@ -493,6 +493,18 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			$eportaActiveChips[] = ["LABEL" => number_format($eportaPriceSelMin, 0, "", " ")." – ".number_format($eportaPriceSelMax, 0, "", " ")." ₽", "REMOVE_KEY" => "price", "REMOVE_VALUE" => null];
 		}
 
+		// Плоская карта счётчиков "группа => ID варианта => количество" — нужна AJAX-фильтрации
+		// сайдбара (см. $eportaIsAjaxGrid ниже): после смены фильтра счётчики у ОСТАЛЬНЫХ чекбоксов
+		// (см. $eportaBuildFilter — они считаются с учётом уже применённых фильтров других групп)
+		// должны обновиться на клиенте без перезагрузки страницы, тем же ID/VALUE, что и в
+		// $eportaFilterGroups выше.
+		$eportaFilterCountsFlat = [];
+		foreach ($eportaFilterGroups as $eportaGroupKey => $eportaGroup) {
+			foreach ($eportaGroup["ITEMS"] as $eportaItem) {
+				$eportaFilterCountsFlat[$eportaGroupKey][(string)$eportaItem["ID"]] = $eportaItem["COUNT"];
+			}
+		}
+
 		// SEO-тексты категорий: подключаем готовый H1/TITLE/DESC + текст (inc/seo/<slug>.php,
 		// реестр _registry_draft.php) только для "чистых" состояний каталога — ровно один
 		// выбранный фильтр из цвет/стиль/покрытие (без комбинаций — под них заголовок не
@@ -1016,6 +1028,15 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		$APPLICATION->RestartBuffer();
 		header("Content-Type: text/html; charset=UTF-8");
 		header("Cache-Control: no-store");
+		// Метаданные для live-фильтрации (assets/app.js): найдено товаров + свежие счётчики
+		// сайдбара — сборка $eportaFilterCountsFlat не зависит от того, страница ли это (PAGEN_1)
+		// или смена фильтра, поэтому отдаём её всегда, JS сам решает, обновлять ли сайдбар
+		// (при обычной подгрузке "Показать ещё" счётчики не меняются, но лишний JSON не мешает).
+		echo '<script type="application/json" id="eportaAjaxMeta">'.json_encode([
+			"foundCount" => $eportaFoundCount,
+			"foundLabel" => eportaPluralRu($eportaFoundCount, "товар", "товара", "товаров"),
+			"counts" => $eportaFilterCountsFlat,
+		], JSON_UNESCAPED_UNICODE).'</script>';
 		eportaRenderCatalogGrid(
 			$eportaPageIds ?: [0],
 			$eportaCollectionSection ? $eportaCollectionSection["ID"] : false,
@@ -1284,20 +1305,20 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 					<?/* value — строкой: у style/coating/color это числовой ID варианта свойства, у
 				     size (не enum, см. $eportaSizeAllTokens выше) — сама строка размера "ШxВ" */?>
 				<input type="checkbox" name="<?=htmlspecialcharsbx($eportaGroupKey)?>[]" value="<?=htmlspecialcharsbx((string)$eportaItem["ID"])?>" <?=$eportaItem["CHECKED"] ? "checked" : ""?> style="width:18px;height:18px;accent-color:#e8820a;flex:none">
-					<?=htmlspecialcharsbx($eportaItem["VALUE"])?> <span style="color:#c2bdb2;margin-left:auto;font-weight:600"><?=$eportaItem["COUNT"]?></span>
+					<?=htmlspecialcharsbx($eportaItem["VALUE"])?> <span class="eporta-filter-count" style="color:#c2bdb2;margin-left:auto;font-weight:600"><?=$eportaItem["COUNT"]?></span>
 				</label>
 				<?endforeach;?>
 			</div>
 			<?endforeach;?>
 
-			<button type="submit" style="width:100%;background:#e8820a;color:#fff;font:700 14px 'Manrope';padding:13px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 8px 20px rgba(232,130,10,.28)">Показать <?=$eportaFoundCount?> <?=eportaPluralRu($eportaFoundCount, "товар", "товара", "товаров")?></button>
+			<button type="submit" id="eportaFiltersSubmit" style="width:100%;background:#e8820a;color:#fff;font:700 14px 'Manrope';padding:13px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 8px 20px rgba(232,130,10,.28)">Показать <?=$eportaFoundCount?> <?=eportaPluralRu($eportaFoundCount, "товар", "товара", "товаров")?></button>
 		</form>
 
 		<!-- Сетка товаров: реальные данные IBLOCK 19. Раскладка "круговая по моделям" и
 		     пагинация посчитаны выше ($eportaPageIds/$eportaCurPage/$eportaTotalPages), рендерят
 		     их eportaRenderCatalogGrid/eportaRenderCatalogPager — те же функции, что использует
 		     AJAX-подгрузка (короткое замыкание в начале eporta-ветки), без дублирования кода. -->
-		<div style="flex:1" id="eportaCatalogGrid">
+		<div style="flex:1;position:relative" id="eportaCatalogGrid">
 			<?php eportaRenderCatalogGrid(
 				$eportaPageIds ?: [0],
 				$eportaCollectionSection ? $eportaCollectionSection["ID"] : false,
