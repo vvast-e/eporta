@@ -966,7 +966,28 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	// Код элемента из SEF URL детали: "#SECTION_CODE_PATH#/#ELEMENT_CODE#.html"
 	preg_match('~/([^/]+)\.html~', $_SERVER["REQUEST_URI"], $eportaUrlMatch);
 	$eportaElementCode = $eportaUrlMatch[1] ?? "";
+
+	// Товар не найден (снят с продажи/переименован при импорте) — проверяем ДО вызова
+	// компонента: bitrix:catalog.element при "SET_STATUS_404" => "Y" только выставляет код
+	// ответа 404, но продолжает печатать собственный текст "Элемент не найден" без какой-либо
+	// вёрстки (найдено 20.09.2026 вместе с самим soft-404 — заголовок при этом оставался
+	// дефолтным "Каталог товаров"). Явная проверка позволяет вместо этого сразу отдать
+	// брендированную страницу 404_body.php, как и на общесайтовом /404.php.
+	\Bitrix\Main\Loader::includeModule("iblock");
+	$eportaElementExists = $eportaElementCode !== "" && \CIBlockElement::GetList(
+		[],
+		["IBLOCK_ID" => 19, "CODE" => $eportaElementCode, "ACTIVE" => "Y"],
+		false, false, ["ID"]
+	)->Fetch();
 ?>
+	<?if (!$eportaElementExists):?>
+		<?
+			CHTTP::SetStatus("404 Not Found");
+			$eporta404Heading = "Товар не найден";
+			$eporta404Text = "Такого товара больше нет в каталоге — возможно, он снят с продажи. Посмотрите похожие модели в каталоге.";
+		?>
+		<?require($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/404_body.php");?>
+	<?else:?>
 	<?$APPLICATION->IncludeComponent(
 		"bitrix:catalog.element",
 		".default",
@@ -1024,6 +1045,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		],
 		false
 	);?>
+	<?endif;?>
 
 <?elseif ($isEportaTemplate):?>
 
