@@ -353,7 +353,6 @@ $APPLICATION->SetTitle("Страница поиска");
 				// никогда не заполняет, поэтому раньше плашка ХИТ в поиске не показывалась вообще),
 				// зачёркнутая старая цена из свойства DISCOUNT, рабочая ссылка на карточку товара.
 				$eportaRating = (float)($eportaItem["PROPERTY_RATING_VALUE"] ?? 0);
-				$eportaStars = str_repeat("★", max(0, min(5, round($eportaRating)))).str_repeat("☆", 5 - max(0, min(5, round($eportaRating))));
 				$eportaIsHit = $eportaRating >= 4.8;
 				$eportaIsNew = $eportaRating <= 0;
 
@@ -377,39 +376,58 @@ $APPLICATION->SetTitle("Страница поиска");
 			// eportaCleanDisplayName — убирает соседний повтор слова ("Эмаль Эмаль белая" →
 			// "Эмаль белая"), см. local/php_interface/init.php, задача 06.09.2026. Не трогает
 			// $eportaItem["NAME"] в базе — только показ на странице поиска.
+			//
+			// Разметка карточки ниже — 1:1 паритет с components/bitrix/catalog.section/.default/
+			// template.php (найдено 21.09.2026: на /search/ карточка была самодельной, со своей
+			// структурой .info/.price-row-tools — из-за этого .btn-cart не попадал под селектор
+			// ".product-card .card-hover-actions .btn-cart" в template_styles.css и рендерился
+			// нестилизованной браузерной кнопкой). Название делим на модель/покрытие тем же
+			// правилом ("Модель, Покрытие Цвет" → до первой запятой / после), картинка — через
+			// eportaPicture() (webp+srcset, доступна везде — подключена в header.php), кнопка
+			// "В корзину" — в .card-hover-actions вне .card-clip, как и в каталоге.
 			$eportaDisplayName = eportaCleanDisplayName((string)$eportaItem["NAME"]);
+			$eportaNameParts = explode(",", $eportaDisplayName, 2);
+			$eportaModelNamePart = trim($eportaNameParts[0]);
+			$eportaCoatingNamePart = isset($eportaNameParts[1]) ? trim($eportaNameParts[1]) : "";
 			?>
-			<a href="<?=$eportaItemUrl ? htmlspecialcharsbx($eportaItemUrl) : "javascript:void(0)"?>" class="product-card">
+			<div class="product-card" data-id="<?=(int)$eportaItem["ID"]?>">
+			<div class="card-clip">
+			<a href="<?=$eportaItemUrl ? htmlspecialcharsbx($eportaItemUrl) : "javascript:void(0)"?>" class="product-card-link">
 				<div class="img-wrap">
 					<?if ($eportaImgSrc !== ""):?>
-					<img src="<?=htmlspecialcharsbx($eportaImgSrc)?>" alt="<?=htmlspecialcharsbx($eportaDisplayName)?>">
+						<?php eportaPicture($eportaImgSrc, $eportaDisplayName, ["loading" => "lazy", "decoding" => "async"], true); ?>
 					<?else:?>
 					<div class="img-noimg">Нет фото</div>
 					<?endif;?>
 					<?if ($eportaIsHit):?><span class="badge hit">ХИТ</span><?endif;?>
 					<?if ($eportaIsNew):?><span class="badge new">Новинка</span><?endif;?>
 					<?if ($eportaHasDiscount):?><span class="badge" style="background:#c2670a;padding-left:6px;padding-right:6px;top:<?=($eportaIsHit || $eportaIsNew) ? "44px" : "10px"?>">−<?=round($eportaDiscountPercent)?>%</span><?endif;?>
+					<?if ($eportaRating > 0):?><span class="card-rating">★ <?=number_format($eportaRating, 1, ".", "")?></span><?endif;?>
+					<button class="btn-compare" onclick="addCompare(event, <?=(int)$eportaItem["ID"]?>)" title="Сравнить">⇄</button>
 				</div>
 				<div class="info">
-					<div class="stars"><?=$eportaStars?><?if ($eportaRating > 0):?> <span><?=number_format($eportaRating, 1, ".", "")?></span><?endif;?></div>
-					<div class="name"><?=htmlspecialcharsbx($eportaDisplayName)?></div>
+					<div class="name" title="<?=htmlspecialcharsbx($eportaDisplayName)?>"><?=htmlspecialcharsbx($eportaModelNamePart)?></div>
+					<?if ($eportaCoatingNamePart !== ""):?>
+					<div class="coating" title="<?=htmlspecialcharsbx($eportaCoatingNamePart)?>"><?=htmlspecialcharsbx($eportaCoatingNamePart)?></div>
+					<?endif;?>
 					<div class="price-row">
 						<?if ($eportaHasPrice):?>
 							<?if ($eportaHasDiscount):?>
-								<div><span class="price"><?=\CCurrencyLang::CurrencyFormat($eportaPriceVal, "RUB", true)?></span> <span class="price-old"><?=\CCurrencyLang::CurrencyFormat($eportaOldPriceVal, "RUB", true)?></span></div>
+							<div class="price-block"><span class="price"><?=\CCurrencyLang::CurrencyFormat($eportaPriceVal, "RUB", true)?></span> <span class="price-old"><?=\CCurrencyLang::CurrencyFormat($eportaOldPriceVal, "RUB", true)?></span></div>
 							<?else:?>
-								<div class="price"><?=\CCurrencyLang::CurrencyFormat($eportaPriceVal, "RUB", true)?></div>
+							<div class="price-block"><div class="price"><?=\CCurrencyLang::CurrencyFormat($eportaPriceVal, "RUB", true)?></div></div>
 							<?endif;?>
 						<?else:?>
-							<div class="price">по запросу</div>
+							<div class="price-block"><div class="price">по запросу</div></div>
 						<?endif;?>
-						<div class="price-row-tools">
-							<button class="btn-compare" onclick="addCompare(event, <?=(int)$eportaItem["ID"]?>)" title="Сравнить">⇄</button>
-							<button class="btn-cart" onclick="addCartAjax(event, <?=(int)$eportaItem["ID"]?>)">В корзину</button>
-						</div>
 					</div>
 				</div>
 			</a>
+			</div>
+			<div class="card-hover-actions">
+				<button class="btn-cart" onclick="addCartAjax(event, <?=(int)$eportaItem["ID"]?>)">В корзину</button>
+			</div>
+			</div>
 			<?endforeach;?>
 		</div>
 	</div>
