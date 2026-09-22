@@ -58,20 +58,23 @@ document.addEventListener('DOMContentLoaded', function(){
 		var overlayGradient = (b.OVERLAY_ENABLED !== false)
 			? 'linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.55))'
 			: 'linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,0))';
-		// Раньше затенение было отдельным дочерним div с position:absolute;inset:0 поверх
-		// плитки с background-image — два независимо расположенных слоя внутри одного
-		// overflow:hidden;border-radius:14px иногда округлялись браузером на разные субпиксели
-		// (высота плитки задаётся flex-контекстом, не круглым числом), из-за чего градиент
-		// визуально съезжал на 1px и по нижнему скруглённому краю оставалась светлая полоска
-		// не закрытая затенением (баг 22.09.2026). Теперь градиент и картинка — один и тот же
-		// background-image (несколько слоёв), клипуются одинаково, без рассинхрона.
+		// Объединение градиента и картинки в общий background-image (правка 22.09.2026, см. git
+		// blame) не убрало проблему: дело не в рассинхроне двух слоёв, а в антиалиасинге самого
+		// border-radius+overflow:hidden в Chrome — скруглённый клип обрезает фон не идеально
+		// пиксель-в-пиксель, у самого края (особенно нижних углов) остаётся полупрозрачная
+		// кромка в 1px, сквозь которую просвечивает белый фон страницы, а не темнее затенение
+		// (баг всё ещё виден на скрине 22.09.2026 после первого фикса). Решение — вынести фон
+		// в отдельный слой, залезающий на 1px за границы плитки (inset:-1px): overflow:hidden
+		// родителя обрезает именно этот выступ вместе с антиалиасинг-кромкой, так что видимая
+		// область до самого скругления остаётся закрыта фоном/градиентом без просветов.
 		var bgImage = b.IMAGE ? overlayGradient + ",url('" + String(b.IMAGE).replace(/'/g, "%27") + "')" : overlayGradient;
-		var bg = 'background-image:' + bgImage + ';background-size:cover,cover;background-position:center,center;' +
-			'background-repeat:no-repeat,no-repeat;background-color:' + fallbackBg;
+		var bgLayerStyle = 'position:absolute;inset:-1px;background-image:' + bgImage + ';background-size:cover,cover;' +
+			'background-position:center,center;background-repeat:no-repeat,no-repeat;background-color:' + fallbackBg;
 		var href = b.LINK || '/catalog/';
 		var title = b.NAME || '';
 		var subtitle = b.SUBTITLE || '';
-		return '<a href="' + htmlAttr(href) + '" style="flex:1;position:relative;border-radius:14px;overflow:hidden;cursor:pointer;min-height:160px;' + bg + ';display:block;text-decoration:none">' +
+		return '<a href="' + htmlAttr(href) + '" style="flex:1;position:relative;border-radius:14px;overflow:hidden;cursor:pointer;min-height:160px;display:block;text-decoration:none">' +
+			'<div style="' + bgLayerStyle + '"></div>' +
 			'<div style="position:absolute;left:16px;bottom:14px">' +
 				(title ? '<div style="font:800 17px \'Manrope\';color:#fff">' + htmlText(title) + '</div>' : '') +
 				(subtitle ? '<div style="font:700 12px \'Manrope\';color:#ffd7b0;margin-top:3px">' + htmlText(subtitle) + '</div>' : '') +
