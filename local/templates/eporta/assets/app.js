@@ -55,17 +55,23 @@ document.addEventListener('DOMContentLoaded', function(){
 	// вид, что был раньше, до заливки картинки через админку).
 	function mmBannerHtml(key, fallbackBg) {
 		var b = (mm.banners || {})[key] || {};
-		var bg = b.IMAGE
-			? 'background:' + fallbackBg + ' url(\'' + String(b.IMAGE).replace(/'/g, "%27") + '\') center/cover no-repeat'
-			: 'background:' + fallbackBg;
 		var overlayGradient = (b.OVERLAY_ENABLED !== false)
-			? 'rgba(0,0,0,.15),rgba(0,0,0,.55)'
-			: 'rgba(0,0,0,0),rgba(0,0,0,0)';
+			? 'linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.55))'
+			: 'linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,0))';
+		// Раньше затенение было отдельным дочерним div с position:absolute;inset:0 поверх
+		// плитки с background-image — два независимо расположенных слоя внутри одного
+		// overflow:hidden;border-radius:14px иногда округлялись браузером на разные субпиксели
+		// (высота плитки задаётся flex-контекстом, не круглым числом), из-за чего градиент
+		// визуально съезжал на 1px и по нижнему скруглённому краю оставалась светлая полоска
+		// не закрытая затенением (баг 22.09.2026). Теперь градиент и картинка — один и тот же
+		// background-image (несколько слоёв), клипуются одинаково, без рассинхрона.
+		var bgImage = b.IMAGE ? overlayGradient + ",url('" + String(b.IMAGE).replace(/'/g, "%27") + "')" : overlayGradient;
+		var bg = 'background-image:' + bgImage + ';background-size:cover,cover;background-position:center,center;' +
+			'background-repeat:no-repeat,no-repeat;background-color:' + fallbackBg;
 		var href = b.LINK || '/catalog/';
 		var title = b.NAME || '';
 		var subtitle = b.SUBTITLE || '';
 		return '<a href="' + htmlAttr(href) + '" style="flex:1;position:relative;border-radius:14px;overflow:hidden;cursor:pointer;min-height:160px;' + bg + ';display:block;text-decoration:none">' +
-			'<div style="position:absolute;inset:0;background:linear-gradient(180deg,' + overlayGradient + ')"></div>' +
 			'<div style="position:absolute;left:16px;bottom:14px">' +
 				(title ? '<div style="font:800 17px \'Manrope\';color:#fff">' + htmlText(title) + '</div>' : '') +
 				(subtitle ? '<div style="font:700 12px \'Manrope\';color:#ffd7b0;margin-top:3px">' + htmlText(subtitle) + '</div>' : '') +
