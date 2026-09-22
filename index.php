@@ -83,8 +83,13 @@ $APPLICATION->SetTitle("Eporta");?> <?
 			if (isset($arHomeBannerSlides[$slidePlacementRaw])) {
 				// Известное место карусели (main/side1/side2).
 				$slidePlacement = $slidePlacementRaw;
-			} elseif (strpos($slidePlacementRaw, "cat_") === 0 || strpos($slidePlacementRaw, "coll_") === 0) {
+			} elseif (strpos($slidePlacementRaw, "cat_") === 0 || strpos($slidePlacementRaw, "coll_") === 0 || strpos($slidePlacementRaw, "megamenu_") === 0) {
 				// Слотовый баннер плитки (eporta_banners) — не наш, сюда не подмешиваем.
+				// megamenu_* — промо-плитки выпадающего меню "Каталог" (header.php), тот же
+				// IBLOCK 27, но выводятся отдельно через window.EPORTA_MEGAMENU (app.js), а не
+				// через эту карусель. Раньше не были исключены здесь — из-за этого баннер,
+				// залитый в слот мегаменю, дублировался ещё и в большой карусели главной
+				// (трактовался как "незнакомый PLACEMENT" → падал в "main"), см. баг 22.09.2026.
 				continue;
 			} else {
 				// Пустой/незнакомый XML_ID (в т.ч. значение списка, заведённое вручную через

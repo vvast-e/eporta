@@ -227,10 +227,12 @@ function eportaBannersCarouselSlides(): array {
         $enumId = $el['PROPERTY_PLACEMENT_ENUM_ID'] ?? null;
         $xmlId = $enumId !== null ? ($enumIdToXmlId[$enumId] ?? '') : '';
         if (!isset($slides[$xmlId])) {
-            // Слотовые баннеры плиток (cat_*/coll_*) — не наши, сюда не подмешиваем. Пустой/
-            // незнакомый PLACEMENT (старый слайд без PLACEMENT) на главной трактуется как "main" —
-            // здесь для редактирования тоже кладём его в "main".
-            if ($xmlId !== '' && (str_starts_with($xmlId, 'cat_') || str_starts_with($xmlId, 'coll_'))) {
+            // Слотовые баннеры плиток (cat_*/coll_*) и промо-плитки мегаменю (megamenu_*) —
+            // не наши, сюда не подмешиваем. Пустой/незнакомый PLACEMENT (старый слайд без
+            // PLACEMENT) на главной трактуется как "main" — здесь для редактирования тоже
+            // кладём его в "main". megamenu_* исключён отдельно — тот же баг, что и в index.php
+            // (см. комментарий там): без исключения баннер мегаменю дублировался в карусели.
+            if ($xmlId !== '' && (str_starts_with($xmlId, 'cat_') || str_starts_with($xmlId, 'coll_') || str_starts_with($xmlId, 'megamenu_'))) {
                 continue;
             }
             $xmlId = 'main';
