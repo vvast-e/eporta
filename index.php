@@ -493,7 +493,114 @@ $APPLICATION->SetTitle("Eporta");?> <?
 	</div>
 	<?endif;?>
 	<?endif;?>
-	<!-- /Отзывы. Следующей сюда ляжет "Карта салонов" (Этап 3 плана) -->
+	<!-- /Отзывы -->
+
+	<?if ($eportaPreviewBlocks):
+		require_once($_SERVER["DOCUMENT_ROOT"]."/local/php_interface/include/eporta_stores_map_common.php");
+		$eportaHomeStores = eportaStoresMapList();
+		$eportaStoresApiKey = eportaStoresMapApiKey();
+	?>
+	<?if ($eportaHomeStores):?>
+	<!-- Карта салонов — источник: штатный модуль catalog (b_catalog_store, тот же, что у
+	     /stores/), наполняется через штатную админку Bitrix "Магазины -> Склады", не кастомную.
+	     Список рендерится всегда (SSR, работает без JS); сама карта Яндекса подключается ЛЕНИВО
+	     через IntersectionObserver только когда блок подходит к вьюпорту (перф: не тянем чужой
+	     скрипт в общий бандл) и только если есть API-ключ (eportaStoresMapApiKey()) — пока ключа
+	     нет, вместо карты показывается статичная заглушка фиксированной высоты (CLS не растёт). -->
+	<div style="padding:26px var(--pad-x) 4px">
+		<div class="section-heading">
+			<h2>Наши салоны</h2>
+			<a href="/stores/">Все салоны</a>
+		</div>
+		<div style="display:flex;gap:20px;align-items:stretch;flex-wrap:wrap">
+			<div id="eporta-stores-list" style="flex:1 1 320px;min-width:280px;max-width:380px;display:flex;flex-direction:column;gap:10px;max-height:400px;overflow-y:auto">
+				<?foreach ($eportaHomeStores as $eportaStore):?>
+				<div class="eporta-store-row" data-lat="<?=htmlspecialcharsbx($eportaStore["LAT"])?>" data-lon="<?=htmlspecialcharsbx($eportaStore["LON"])?>" style="padding:14px 16px;border:1px solid #ece7de;border-radius:12px;cursor:<?=$eportaStore["HAS_COORDS"] ? "pointer" : "default"?>;background:#fff">
+					<div style="font:800 14.5px 'Manrope'"><?=htmlspecialcharsbx($eportaStore["TITLE"])?></div>
+					<div style="margin-top:4px;font:500 13px 'Manrope';color:#3a3631"><?=htmlspecialcharsbx($eportaStore["ADDRESS"])?></div>
+					<?if ($eportaStore["PHONE"]):?>
+					<div style="margin-top:4px;font:600 13px 'Manrope';color:var(--accent)"><?=htmlspecialcharsbx($eportaStore["PHONE"])?></div>
+					<?endif;?>
+					<?if ($eportaStore["SCHEDULE"]):?>
+					<div style="margin-top:2px;font:500 12px 'Manrope';color:#8a857b"><?=htmlspecialcharsbx($eportaStore["SCHEDULE"])?></div>
+					<?endif;?>
+				</div>
+				<?endforeach;?>
+			</div>
+			<div id="eporta-stores-map" style="flex:2 1 420px;min-width:280px;min-height:400px;border-radius:14px;background:#f2efe9;display:flex;align-items:center;justify-content:center;color:#8a857b;font:600 13px 'Manrope';text-align:center;padding:20px">
+				Карта загрузится при прокрутке до этого блока
+			</div>
+		</div>
+	</div>
+	<script>
+	(function () {
+		var mapEl = document.getElementById('eporta-stores-map');
+		var listEl = document.getElementById('eporta-stores-list');
+		if (!mapEl || !listEl) return;
+		var API_KEY = <?=json_encode($eportaStoresApiKey)?>;
+		var POINTS = <?=json_encode(array_values(array_map(function ($s) {
+			return ['title' => $s["TITLE"], 'address' => $s["ADDRESS"], 'lat' => (float)$s["LAT"], 'lon' => (float)$s["LON"]];
+		}, array_filter($eportaHomeStores, function ($s) { return $s["HAS_COORDS"]; }))), JSON_UNESCAPED_UNICODE)?>;
+
+		var ymap = null;
+		function initMap() {
+			if (!window.ymaps || !POINTS.length) {
+				mapEl.textContent = 'Карта временно недоступна';
+				return;
+			}
+			ymaps.ready(function () {
+				mapEl.textContent = '';
+				ymap = new ymaps.Map(mapEl, {
+					center: [POINTS[0].lat, POINTS[0].lon],
+					zoom: 10,
+					controls: ['zoomControl']
+				});
+				POINTS.forEach(function (p) {
+					ymap.geoObjects.add(new ymaps.Placemark([p.lat, p.lon], { balloonContent: p.title + '<br>' + p.address }));
+				});
+				if (POINTS.length > 1) {
+					ymap.setBounds(ymap.geoObjects.getBounds(), { checkZoomRange: true, zoomMargin: 30 });
+				}
+			});
+		}
+
+		function loadMap() {
+			if (!API_KEY) {
+				mapEl.textContent = 'Карта временно недоступна';
+				return;
+			}
+			if (window.ymaps) { initMap(); return; }
+			var s = document.createElement('script');
+			s.src = 'https://api-maps.yandex.ru/2.1/?apikey=' + encodeURIComponent(API_KEY) + '&lang=ru_RU';
+			s.onload = initMap;
+			s.onerror = function () { mapEl.textContent = 'Не удалось загрузить карту'; };
+			document.head.appendChild(s);
+		}
+
+		if ('IntersectionObserver' in window) {
+			var obs = new IntersectionObserver(function (entries) {
+				entries.forEach(function (entry) {
+					if (entry.isIntersecting) {
+						loadMap();
+						obs.disconnect();
+					}
+				});
+			}, { rootMargin: '200px' });
+			obs.observe(mapEl);
+		} else {
+			loadMap();
+		}
+
+		listEl.addEventListener('click', function (e) {
+			var row = e.target.closest('.eporta-store-row');
+			if (!row || !row.dataset.lat || !row.dataset.lon || !ymap) return;
+			ymap.setCenter([parseFloat(row.dataset.lat), parseFloat(row.dataset.lon)], 14, { duration: 300 });
+		});
+	})();
+	</script>
+	<?endif;?>
+	<?endif;?>
+	<!-- /Карта салонов -->
 
 <?else:?>
 
