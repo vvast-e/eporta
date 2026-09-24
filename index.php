@@ -411,12 +411,12 @@ $APPLICATION->SetTitle("Eporta");?> <?
 		</div>
 	</div>
 
-	<!-- Соцдоказательство -->
-	<div class="social-proof">
-		<span class="stars">★★★★★ 4.9</span>
-		<span class="text">320 отзывов · 40 000+ дверей установлено · 12 лет фабрике</span>
-	</div>
-
+	<?
+		// Захардкоженная строка соцдоказательства (звёзды/число отзывов) убрана по заявке
+		// заказчика 24.09.2026 — цифры были придуманные и не совпадали с реальным блоком
+		// отзывов ниже. Сам блок .social-proof в template_styles.css оставлен нетронутым
+		// на случай, если понадобится вернуть похожую плашку с реальными цифрами.
+	?>
 	<?
 		// Новые блоки в самом низу главной (Наши работы / Отзывы / Карта салонов, заявка
 		// заказчика 24.09.2026) — на проде видны только в preview-режиме до утверждения макета
@@ -458,7 +458,42 @@ $APPLICATION->SetTitle("Eporta");?> <?
 	</div>
 	<?endif;?>
 	<?endif;?>
-	<!-- /Наши работы. Следующими сюда лягут "Отзывы" и "Карта салонов" (Этап 2 и 3 плана) -->
+	<!-- /Наши работы -->
+
+	<?if ($eportaPreviewBlocks):
+		require_once($_SERVER["DOCUMENT_ROOT"]."/local/php_interface/include/eporta_reviews_common.php");
+		$eportaHomeReviews = eportaReviewsList(10);
+		$eportaReviewsAgg = eportaReviewsAggregate();
+	?>
+	<?if ($eportaHomeReviews):?>
+	<!-- Отзывы — источник: инфоблок EPORTA_REVIEWS_IBLOCK_ID, наполняется только через
+	     local/admin_tools/eporta_reviews/ (публичной формы "оставить отзыв" нет, решение
+	     пользователя 24.09.2026). Пустой список -> блок не выводится (см. eportaReviewsList()).
+	     Средняя оценка/количество в подзаголовке — реальные (eportaReviewsAggregate()), не
+	     захардкожены, как было в прежней строке .social-proof (убрана выше). -->
+	<div style="padding:26px var(--pad-x) 4px">
+		<div class="section-heading">
+			<h2>Отзывы покупателей</h2>
+			<?if ($eportaReviewsAgg):?>
+			<span style="font:700 14px 'Manrope';color:#8a857b">★ <?=htmlspecialcharsbx((string)$eportaReviewsAgg["average"])?> · <?=(int)$eportaReviewsAgg["count"]?> отзывов</span>
+			<?endif;?>
+		</div>
+		<div class="home-tabs-banner__scroll" style="gap:16px">
+			<?foreach ($eportaHomeReviews as $eportaReview):?>
+			<div style="flex:0 0 300px;width:300px;scroll-snap-align:start;background:var(--bg-warm);border:1px solid #ece7de;border-radius:14px;padding:20px">
+				<div style="color:var(--accent);font:700 14px 'Manrope';letter-spacing:.02em"><?=str_repeat("★", $eportaReview["RATING"])?><span style="color:#ddd7ca"><?=str_repeat("★", 5 - $eportaReview["RATING"])?></span></div>
+				<div style="margin-top:10px;font:500 13.5px/1.55 'Manrope';color:#3a3631;min-height:78px"><?=nl2br(htmlspecialcharsbx($eportaReview["PREVIEW_TEXT"]))?></div>
+				<div style="margin-top:14px;font:800 13.5px 'Manrope'"><?=htmlspecialcharsbx($eportaReview["NAME"])?></div>
+				<?if ($eportaReview["CITY"]):?>
+				<div style="margin-top:2px;font:500 12px 'Manrope';color:#8a857b"><?=htmlspecialcharsbx($eportaReview["CITY"])?></div>
+				<?endif;?>
+			</div>
+			<?endforeach;?>
+		</div>
+	</div>
+	<?endif;?>
+	<?endif;?>
+	<!-- /Отзывы. Следующей сюда ляжет "Карта салонов" (Этап 3 плана) -->
 
 <?else:?>
 
