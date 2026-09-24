@@ -417,6 +417,49 @@ $APPLICATION->SetTitle("Eporta");?> <?
 		<span class="text">320 отзывов · 40 000+ дверей установлено · 12 лет фабрике</span>
 	</div>
 
+	<?
+		// Новые блоки в самом низу главной (Наши работы / Отзывы / Карта салонов, заявка
+		// заказчика 24.09.2026) — на проде видны только в preview-режиме до утверждения макета
+		// заказчиком: тот же токен, что и переключатель шаблона в header.php (dev_preview
+		// в $_REQUEST либо уже закреплённый в cookie), не новая сущность — см. project memory
+		// project_template_switch_mechanism. Когда заказчик одобрит — заменить условие на
+		// постоянное "true" (или убрать вовсе), блоки станут видны всем посетителям.
+		$eportaPreviewBlocks = (($_REQUEST["dev_preview"] ?? "") === "x7Qm2pR9vL") || (($_COOKIE["dev_preview"] ?? "") === "x7Qm2pR9vL");
+	?>
+	<?if ($eportaPreviewBlocks):
+		require_once($_SERVER["DOCUMENT_ROOT"]."/local/php_interface/include/eporta_works_common.php");
+		$eportaHomeWorks = eportaWorksList(10);
+	?>
+	<?if ($eportaHomeWorks):?>
+	<!-- Наши работы — горизонтальный слайдер карточек, источник: инфоблок
+	     EPORTA_WORKS_IBLOCK_ID, наполняется через local/admin_tools/eporta_works/. Пустой
+	     список -> блок не выводится вовсе (см. eportaWorksList()). Разметка карточек и
+	     прокрутка переиспользуют .home-tabs-banner__scroll (см. template_styles.css) —
+	     тот же горизонтальный scroll-snap, что и у баннер-табов выше на этой странице. -->
+	<div style="padding:26px var(--pad-x) 4px">
+		<div class="section-heading"><h2>Наши работы</h2></div>
+		<div class="home-tabs-banner__scroll" style="gap:16px">
+			<?foreach ($eportaHomeWorks as $eportaWork):?>
+			<div style="flex:0 0 260px;width:260px;scroll-snap-align:start">
+				<div style="position:relative;border-radius:14px;overflow:hidden;aspect-ratio:4/3;background:#f2efe9">
+					<?if ($eportaWork["PREVIEW_PICTURE_SRC"]):?>
+					<?php eportaPicture($eportaWork["PREVIEW_PICTURE_SRC"], $eportaWork["NAME"], ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
+					<?endif;?>
+				</div>
+				<div style="margin-top:10px;font:800 15px 'Manrope';letter-spacing:-0.01em"><?=htmlspecialcharsbx($eportaWork["NAME"])?></div>
+				<?if ($eportaWork["CITY"] || $eportaWork["COLLECTION"]):?>
+				<div style="margin-top:3px;font:500 12.5px 'Manrope';color:#8a857b">
+					<?=htmlspecialcharsbx(trim($eportaWork["CITY"] . ($eportaWork["CITY"] && $eportaWork["COLLECTION"] ? " · " : "") . $eportaWork["COLLECTION"]))?>
+				</div>
+				<?endif;?>
+			</div>
+			<?endforeach;?>
+		</div>
+	</div>
+	<?endif;?>
+	<?endif;?>
+	<!-- /Наши работы. Следующими сюда лягут "Отзывы" и "Карта салонов" (Этап 2 и 3 плана) -->
+
 <?else:?>
 
 <?$APPLICATION->IncludeComponent(
