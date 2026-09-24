@@ -5,9 +5,8 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
     die('Прямой доступ запрещён');
 }
 
-// TODO: заменить на реальный ID после запуска scripts/create_iblock_reviews.php на проде.
-// Пока 0 — eportaReviewsList() отдаёт пустой массив, секция на главной не рендерится.
-const EPORTA_REVIEWS_IBLOCK_ID = 0;
+// ID создан scripts/create_iblock_reviews.php на проде 24.09.2026.
+const EPORTA_REVIEWS_IBLOCK_ID = 31;
 
 function eportaReviewsFields(): array {
     return ['ID', 'NAME', 'ACTIVE', 'SORT', 'ACTIVE_FROM', 'PREVIEW_TEXT', 'PROPERTY_RATING', 'PROPERTY_CITY'];
