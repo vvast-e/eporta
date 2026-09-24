@@ -6,9 +6,8 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
     die('Прямой доступ запрещён');
 }
 
-// TODO: заменить на реальный ID после запуска scripts/create_iblock_works.php на проде.
-// Пока 0 — eportaWorksList() отдаёт пустой массив, секция на главной не рендерится (см. index.php).
-const EPORTA_WORKS_IBLOCK_ID = 0;
+// ID создан scripts/create_iblock_works.php на проде 24.09.2026.
+const EPORTA_WORKS_IBLOCK_ID = 30;
 
 // Транслитерация заголовка в CODE — тот же паттерн, что eportaArticlesGenerateCode().
 function eportaWorksGenerateCode(string $name): string {
