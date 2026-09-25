@@ -433,15 +433,15 @@ $APPLICATION->SetTitle("Eporta");?> <?
 	<?if ($eportaHomeWorks):?>
 	<!-- Наши работы — источник: инфоблок EPORTA_WORKS_IBLOCK_ID, наполняется через
 	     local/admin_tools/eporta_works/. Пустой список -> блок не выводится (см.
-	     eportaWorksList()). Подпись поверх фото с градиентом — тот же приём, что и у
-	     карусели баннеров (.hbc-*) и плиток коллекций выше на этой странице, а не отдельно
-	     придуманный "фото + текст под ним" (редизайн 25.09.2026, см. .home-work-card
-	     в template_styles.css). -->
+	     eportaWorksList()). Первая работа — featured-карточка (в 2 раза шире, крупнее подпись),
+	     остальные — обычная лента (вариант "A", согласовано с пользователем 25.09.2026, см.
+	     .home-work-card--featured в template_styles.css). Подпись поверх фото с градиентом —
+	     тот же приём, что и у карусели баннеров (.hbc-*) и плиток коллекций выше на странице. -->
 	<div style="padding:26px var(--pad-x) 4px">
 		<div class="section-heading"><h2>Наши работы</h2></div>
 		<div class="home-works-scroll">
-			<?foreach ($eportaHomeWorks as $eportaWork):?>
-			<div class="home-work-card">
+			<?foreach ($eportaHomeWorks as $eportaWorkIdx => $eportaWork):?>
+			<div class="home-work-card<?=$eportaWorkIdx === 0 ? " home-work-card--featured" : ""?>">
 				<?if ($eportaWork["PREVIEW_PICTURE_SRC"]):?>
 				<?php eportaPicture($eportaWork["PREVIEW_PICTURE_SRC"], $eportaWork["NAME"]); ?>
 				<?endif;?>
@@ -471,17 +471,17 @@ $APPLICATION->SetTitle("Eporta");?> <?
 	     local/admin_tools/eporta_reviews/ (публичной формы "оставить отзыв" нет, решение
 	     пользователя 24.09.2026). Пустой список -> блок не выводится (см. eportaReviewsList()).
 	     Средняя оценка/количество в подзаголовке — реальные (eportaReviewsAggregate()), не
-	     захардкожены, как было в прежней строке .social-proof (убрана выше). Карточка без
-	     рамки (редизайн 25.09.2026) — только заливка + типографика, рамка не несла иерархии. -->
-	<div style="padding:26px var(--pad-x) 4px">
-		<div class="section-heading">
-			<h2>Отзывы покупателей</h2>
-			<?if ($eportaReviewsAgg):?>
-			<span class="home-reviews-agg"><span class="star">★</span> <?=htmlspecialcharsbx((string)$eportaReviewsAgg["average"])?> · <?=(int)$eportaReviewsAgg["count"]?> отзывов</span>
-			<?endif;?>
-		</div>
-		<div class="home-reviews-scroll">
-			<?foreach ($eportaHomeReviews as $eportaReview):?>
+	     захардкожены, как было в прежней строке .social-proof (убрана выше).
+	     Бегущая строка (вариант "B", согласовано с пользователем 25.09.2026): контент
+	     отрисовывается дважды подряд (eportaReviewCardHtml переиспользуется для обоих наборов) —
+	     второй набор помечен aria-hidden и .home-review-set--dup (см. template_styles.css: под
+	     reduced-motion дубль скрывается, лента становится обычным прокручиваемым рядом).
+	     Длительность анимации зависит от числа отзывов (--marquee-duration), чтобы скорость
+	     ленты не менялась заметно при добавлении новых отзывов через админку. -->
+	<?
+		$eportaReviewCardHtml = function ($eportaReview) {
+			ob_start();
+			?>
 			<div class="home-review-card">
 				<span class="home-review-card__quote-mark">&#8220;</span>
 				<div class="home-review-card__rating"><?=str_repeat("★", $eportaReview["RATING"])?><span class="dim"><?=str_repeat("★", 5 - $eportaReview["RATING"])?></span></div>
@@ -491,7 +491,31 @@ $APPLICATION->SetTitle("Eporta");?> <?
 				<div class="home-review-card__city"><?=htmlspecialcharsbx($eportaReview["CITY"])?></div>
 				<?endif;?>
 			</div>
-			<?endforeach;?>
+			<?
+			return ob_get_clean();
+		};
+		$eportaMarqueeDuration = max(18, count($eportaHomeReviews) * 6) . "s";
+	?>
+	<div style="padding:26px var(--pad-x) 4px">
+		<div class="section-heading">
+			<h2>Отзывы покупателей</h2>
+			<?if ($eportaReviewsAgg):?>
+			<span class="home-reviews-agg"><span class="star">★</span> <?=htmlspecialcharsbx((string)$eportaReviewsAgg["average"])?> · <?=(int)$eportaReviewsAgg["count"]?> отзывов</span>
+			<?endif;?>
+		</div>
+		<div class="home-reviews-marquee">
+			<div class="home-reviews-track" style="--marquee-duration:<?=htmlspecialcharsbx($eportaMarqueeDuration)?>">
+				<div class="home-review-set">
+					<?foreach ($eportaHomeReviews as $eportaReview):?>
+					<?=$eportaReviewCardHtml($eportaReview)?>
+					<?endforeach;?>
+				</div>
+				<div class="home-review-set home-review-set--dup" aria-hidden="true">
+					<?foreach ($eportaHomeReviews as $eportaReview):?>
+					<?=$eportaReviewCardHtml($eportaReview)?>
+					<?endforeach;?>
+				</div>
+			</div>
 		</div>
 	</div>
 	<?endif;?>
@@ -509,14 +533,21 @@ $APPLICATION->SetTitle("Eporta");?> <?
 	     Список рендерится всегда (SSR, работает без JS); сама карта Яндекса подключается ЛЕНИВО
 	     через IntersectionObserver только когда блок подходит к вьюпорту (перф: не тянем чужой
 	     скрипт в общий бандл) и только если есть API-ключ (eportaStoresMapApiKey()) — пока ключа
-	     нет, вместо карты показывается статичная заглушка фиксированной высоты (CLS не растёт). -->
+	     нет, вместо карты показывается статичная заглушка фиксированной высоты (CLS не растёт).
+	     Карта на всю ширину + плавающий список поверх (вариант "A", согласовано с пользователем
+	     25.09.2026, см. .home-stores-hero/.home-stores-overlay в template_styles.css); на
+	     мобильном (<780px) оверлей превращается в обычный блок под картой — правило описано
+	     тут же в CSS, а не молча оставлено браузеру. -->
 	<div style="padding:26px var(--pad-x) 4px">
 		<div class="section-heading">
 			<h2>Наши салоны</h2>
 			<a href="/stores/">Все салоны</a>
 		</div>
-		<div class="home-stores-wrap">
-			<div id="eporta-stores-list" class="home-stores-list">
+		<div class="home-stores-hero">
+			<div id="eporta-stores-map" class="home-stores-map">
+				Карта загрузится при прокрутке до этого блока
+			</div>
+			<div id="eporta-stores-list" class="home-stores-overlay">
 				<?foreach ($eportaHomeStores as $eportaStore):?>
 				<div class="home-store-row<?=$eportaStore["HAS_COORDS"] ? " home-store-row--clickable" : ""?>" data-lat="<?=htmlspecialcharsbx($eportaStore["LAT"])?>" data-lon="<?=htmlspecialcharsbx($eportaStore["LON"])?>">
 					<div class="home-store-row__title"><?=htmlspecialcharsbx($eportaStore["TITLE"])?></div>
@@ -529,9 +560,6 @@ $APPLICATION->SetTitle("Eporta");?> <?
 					<?endif;?>
 				</div>
 				<?endforeach;?>
-			</div>
-			<div id="eporta-stores-map" class="home-stores-map">
-				Карта загрузится при прокрутке до этого блока
 			</div>
 		</div>
 	</div>

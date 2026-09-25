@@ -1324,7 +1324,10 @@ img { display: block; }
    overlay-текст на фото — тот же приём, что уже используют .hbc-* (карусель баннеров) и плитки
    коллекций (.eporta-tile-grid--coll в index.php), а не изобретённый заново card-паттерн. */
 
-/* ---- Наши работы: галерея, портретные карточки с подписью поверх фото ---- */
+/* ---- Наши работы: featured-карточка (первая работа, крупнее) + лента остальных ----
+   Вариант "A" из предложенных 25.09.2026 (согласовано с пользователем): вместо ряда
+   одинаковых плиток первая работа — акцент (в 2 раза шире, крупнее подпись), остальные —
+   обычная лента. Даёт иерархию "вот наша свежая/витринная работа" вместо однородного ряда. */
 .home-works-scroll {
   display: flex;
   gap: 16px;
@@ -1346,6 +1349,7 @@ img { display: block; }
   scroll-snap-align: start;
   display: block;
 }
+.home-work-card--featured { flex: 0 0 480px; width: 480px; aspect-ratio: 16 / 10; }
 .home-work-card img {
   position: absolute;
   inset: 0;
@@ -1369,26 +1373,44 @@ img { display: block; }
   z-index: 1;
 }
 .home-work-card__title { font: 800 15.5px var(--font); color: #fff; letter-spacing: -0.005em; }
+.home-work-card--featured .home-work-card__title { font-size: 22px; }
 .home-work-card__meta { margin-top: 3px; font: 600 12px var(--font); color: rgba(255,255,255,.8); }
+.home-work-card--featured .home-work-card__meta { font-size: 13px; }
 @media (max-width: 640px) {
   .home-work-card { flex-basis: 190px; width: 190px; }
+  .home-work-card--featured { flex-basis: 280px; width: 280px; aspect-ratio: 4 / 3; }
 }
 
-/* ---- Отзывы: без карточной рамки, только заливка + типографика ---- */
-.home-reviews-scroll {
+/* ---- Отзывы: бегущая строка (marquee) ----
+   Вариант "B": вместо ручной горизонтальной прокрутки — непрерывная лента, останавливается
+   под курсором. Контент дублируется 2x для бесшовной прокрутки (translateX(-50%) ровно
+   возвращает на первый набор) — вторая копия скрыта от скринридеров (aria-hidden в разметке)
+   и от reduced-motion (там лента становится обычным прокручиваемым рядом без анимации). */
+.home-reviews-marquee {
+  overflow: hidden;
+  padding: 4px 0 14px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent);
+}
+.home-reviews-track {
   display: flex;
   gap: 16px;
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
-  scroll-behavior: smooth;
-  padding: 4px 2px 14px;
-  scrollbar-width: none;
+  width: max-content;
+  animation: eportaReviewsMarquee var(--marquee-duration, 32s) linear infinite;
 }
-.home-reviews-scroll::-webkit-scrollbar { display: none; }
+/* display:contents — набор не создаёт свой flex-контекст, карточки становятся прямыми
+   flex-элементами трека с единым gap. Без этого второй вложенный flex добавил бы ещё один
+   gap на стыке наборов, и translateX(-50%) не попадал бы ровно на начало первой карточки
+   (заметный микро-скачок раз в цикл анимации). */
+.home-review-set { display: contents; }
+.home-reviews-marquee:hover .home-reviews-track { animation-play-state: paused; }
+@keyframes eportaReviewsMarquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
 .home-review-card {
   flex: 0 0 300px;
   width: 300px;
-  scroll-snap-align: start;
   background: var(--bg-section);
   border-radius: 16px;
   padding: 24px 22px 20px;
@@ -1406,7 +1428,11 @@ img { display: block; }
   margin-top: 10px;
   font: 500 14px/1.55 var(--font);
   color: #3a3631;
-  min-height: 84px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 68px;
 }
 .home-review-card__author { margin-top: 16px; font: 800 13.5px var(--font); color: var(--dark); }
 .home-review-card__city { margin-top: 1px; font: 600 12px var(--font); color: var(--text-muted); }
@@ -1418,37 +1444,26 @@ img { display: block; }
   color: var(--text-mid);
 }
 .home-reviews-agg .star { color: var(--accent); }
+@media (prefers-reduced-motion: reduce) {
+  .home-reviews-track { animation: none; width: auto; overflow-x: auto; scrollbar-width: none; }
+  .home-reviews-track::-webkit-scrollbar { display: none; }
+  .home-reviews-track .home-review-set--dup { display: none; }
+}
 
-/* ---- Карта салонов: список без рамок на каждой строке ---- */
-.home-stores-list {
-  flex: 1 1 320px;
-  min-width: 280px;
-  max-width: 380px;
-  display: flex;
-  flex-direction: column;
-  max-height: 420px;
-  overflow-y: auto;
-}
-.home-store-row {
-  padding: 16px 6px;
-  border-bottom: 1px solid var(--border);
-  border-left: 3px solid transparent;
-  padding-left: 14px;
-  transition: background-color .15s, border-color .15s;
-}
-.home-stores-list .home-store-row:last-child { border-bottom: none; }
-.home-store-row--clickable { cursor: pointer; }
-.home-store-row--clickable:hover { background: var(--bg-section); }
-.home-store-row.is-active { background: var(--bg-section); border-left-color: var(--accent); }
-.home-store-row__title { font: 800 14.5px var(--font); color: var(--dark); }
-.home-store-row__address { margin-top: 4px; font: 500 13px var(--font); color: #3a3631; }
-.home-store-row__phone { margin-top: 4px; font: 700 13px var(--font); color: var(--accent); }
-.home-store-row__schedule { margin-top: 2px; font: 500 12px var(--font); color: var(--text-muted); }
-.home-stores-map {
-  flex: 2 1 420px;
-  min-width: 280px;
-  min-height: 400px;
+/* ---- Карта салонов: карта на всю ширину блока, список плавает поверх ----
+   Вариант "A": карта — главный визуальный элемент секции (как в приложениях Я.Карт/2ГИС на
+   мобильном), список салонов — плавающая карточка сверху слева со своей прокруткой и тенью.
+   На узких экранах (<780px) оверлей превращается в обычный блок под картой (mobile collapse
+   объявлен здесь же, не полагаемся молча на "Tailwind разрулит" — тут и не Tailwind). */
+.home-stores-hero {
+  position: relative;
   border-radius: 16px;
+  overflow: hidden;
+  min-height: 480px;
+}
+.home-stores-map {
+  position: absolute;
+  inset: 0;
   background: var(--bg-warm);
   display: flex;
   align-items: center;
@@ -1458,9 +1473,46 @@ img { display: block; }
   text-align: center;
   padding: 20px;
 }
-.home-stores-wrap { display: flex; gap: 20px; align-items: stretch; flex-wrap: wrap; }
-@media (max-width: 640px) {
-  .home-stores-list { max-width: none; }
+.home-stores-overlay {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 320px;
+  max-width: calc(100% - 40px);
+  max-height: calc(100% - 40px);
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 20px 45px rgba(27,26,23,.16);
+  z-index: 2;
+}
+.home-store-row {
+  padding: 16px 16px 16px 14px;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  transition: background-color .15s, border-color .15s;
+}
+.home-stores-overlay .home-store-row:last-child { border-bottom: none; }
+.home-store-row--clickable { cursor: pointer; }
+.home-store-row--clickable:hover { background: var(--bg-section); }
+.home-store-row.is-active { background: var(--bg-section); border-left-color: var(--accent); }
+.home-store-row__title { font: 800 14.5px var(--font); color: var(--dark); }
+.home-store-row__address { margin-top: 4px; font: 500 13px var(--font); color: #3a3631; }
+.home-store-row__phone { margin-top: 4px; font: 700 13px var(--font); color: var(--accent); }
+.home-store-row__schedule { margin-top: 2px; font: 500 12px var(--font); color: var(--text-muted); }
+@media (max-width: 780px) {
+  .home-stores-hero { min-height: 0; display: flex; flex-direction: column; }
+  .home-stores-map { position: static; height: 260px; border-radius: 16px; }
+  .home-stores-overlay {
+    position: static;
+    width: 100%;
+    max-width: none;
+    max-height: 340px;
+    box-shadow: none;
+    border-radius: 0;
+    margin-top: 14px;
+    background: transparent;
+  }
 }
 
 /* ========== Конструктор комплекта ========== */
