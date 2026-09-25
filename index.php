@@ -542,6 +542,17 @@ $APPLICATION->SetTitle("Eporta");?> <?
 			return ['title' => $s["TITLE"], 'address' => $s["ADDRESS"], 'lat' => (float)$s["LAT"], 'lon' => (float)$s["LON"]];
 		}, array_filter($eportaHomeStores, function ($s) { return $s["HAS_COORDS"]; }))), JSON_UNESCAPED_UNICODE)?>;
 
+		// balloonContent у ymaps.Placemark рендерится как HTML, а не текст — title/address
+		// приходят из штатной админки Bitrix (Магазины -> Склады) и не гарантированно чистые
+		// (это чужая, не наша, форма ввода). Без экранирования это stored XSS: контент-менеджер
+		// (или кто угодно с доступом к той админке) мог бы вписать в название/адрес склада
+		// <script>/onerror и получить выполнение в браузере каждого посетителя, открывшего балун.
+		function eportaEscapeHtml(s) {
+			return String(s).replace(/[&<>"']/g, function (c) {
+				return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+			});
+		}
+
 		var ymap = null;
 		function initMap() {
 			if (!window.ymaps || !POINTS.length) {
@@ -556,7 +567,7 @@ $APPLICATION->SetTitle("Eporta");?> <?
 					controls: ['zoomControl']
 				});
 				POINTS.forEach(function (p) {
-					ymap.geoObjects.add(new ymaps.Placemark([p.lat, p.lon], { balloonContent: p.title + '<br>' + p.address }));
+					ymap.geoObjects.add(new ymaps.Placemark([p.lat, p.lon], { balloonContent: eportaEscapeHtml(p.title) + '<br>' + eportaEscapeHtml(p.address) }));
 				});
 				if (POINTS.length > 1) {
 					ymap.setBounds(ymap.geoObjects.getBounds(), { checkZoomRange: true, zoomMargin: 30 });
