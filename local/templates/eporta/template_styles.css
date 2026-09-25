@@ -1319,6 +1319,150 @@ img { display: block; }
 .social-proof .stars { font: 700 18px var(--font); color: var(--accent); }
 .social-proof .text { font: 500 14px var(--font); color: #5f5a51; }
 
+/* ========== Три блока внизу главной: работы / отзывы / салоны (24-25.09.2026) ==========
+   Редизайн под общий язык сайта: карточки "фото + подпись снизу" (MVP-версия) заменены на
+   overlay-текст на фото — тот же приём, что уже используют .hbc-* (карусель баннеров) и плитки
+   коллекций (.eporta-tile-grid--coll в index.php), а не изобретённый заново card-паттерн. */
+
+/* ---- Наши работы: галерея, портретные карточки с подписью поверх фото ---- */
+.home-works-scroll {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  padding: 4px 2px 14px;
+  scrollbar-width: none;
+}
+.home-works-scroll::-webkit-scrollbar { display: none; }
+.home-work-card {
+  position: relative;
+  flex: 0 0 240px;
+  width: 240px;
+  aspect-ratio: 3 / 4;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--bg-warm);
+  scroll-snap-align: start;
+  display: block;
+}
+.home-work-card img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform .4s cubic-bezier(.16,1,.3,1);
+}
+.home-work-card:hover img { transform: scale(1.045); }
+.home-work-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(20,17,12,0) 45%, rgba(20,17,12,.82) 100%);
+}
+.home-work-card__caption {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 16px;
+  z-index: 1;
+}
+.home-work-card__title { font: 800 15.5px var(--font); color: #fff; letter-spacing: -0.005em; }
+.home-work-card__meta { margin-top: 3px; font: 600 12px var(--font); color: rgba(255,255,255,.8); }
+@media (max-width: 640px) {
+  .home-work-card { flex-basis: 190px; width: 190px; }
+}
+
+/* ---- Отзывы: без карточной рамки, только заливка + типографика ---- */
+.home-reviews-scroll {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  padding: 4px 2px 14px;
+  scrollbar-width: none;
+}
+.home-reviews-scroll::-webkit-scrollbar { display: none; }
+.home-review-card {
+  flex: 0 0 300px;
+  width: 300px;
+  scroll-snap-align: start;
+  background: var(--bg-section);
+  border-radius: 16px;
+  padding: 24px 22px 20px;
+}
+.home-review-card__quote-mark {
+  font: 800 38px/1 var(--font);
+  color: var(--accent);
+  opacity: .5;
+  display: block;
+  margin-bottom: 2px;
+}
+.home-review-card__rating { color: var(--accent); font: 700 13px var(--font); letter-spacing: .04em; }
+.home-review-card__rating .dim { color: var(--border-soft); }
+.home-review-card__text {
+  margin-top: 10px;
+  font: 500 14px/1.55 var(--font);
+  color: #3a3631;
+  min-height: 84px;
+}
+.home-review-card__author { margin-top: 16px; font: 800 13.5px var(--font); color: var(--dark); }
+.home-review-card__city { margin-top: 1px; font: 600 12px var(--font); color: var(--text-muted); }
+.home-reviews-agg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 13.5px var(--font);
+  color: var(--text-mid);
+}
+.home-reviews-agg .star { color: var(--accent); }
+
+/* ---- Карта салонов: список без рамок на каждой строке ---- */
+.home-stores-list {
+  flex: 1 1 320px;
+  min-width: 280px;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  max-height: 420px;
+  overflow-y: auto;
+}
+.home-store-row {
+  padding: 16px 6px;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  padding-left: 14px;
+  transition: background-color .15s, border-color .15s;
+}
+.home-stores-list .home-store-row:last-child { border-bottom: none; }
+.home-store-row--clickable { cursor: pointer; }
+.home-store-row--clickable:hover { background: var(--bg-section); }
+.home-store-row.is-active { background: var(--bg-section); border-left-color: var(--accent); }
+.home-store-row__title { font: 800 14.5px var(--font); color: var(--dark); }
+.home-store-row__address { margin-top: 4px; font: 500 13px var(--font); color: #3a3631; }
+.home-store-row__phone { margin-top: 4px; font: 700 13px var(--font); color: var(--accent); }
+.home-store-row__schedule { margin-top: 2px; font: 500 12px var(--font); color: var(--text-muted); }
+.home-stores-map {
+  flex: 2 1 420px;
+  min-width: 280px;
+  min-height: 400px;
+  border-radius: 16px;
+  background: var(--bg-warm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font: 600 13px var(--font);
+  text-align: center;
+  padding: 20px;
+}
+.home-stores-wrap { display: flex; gap: 20px; align-items: stretch; flex-wrap: wrap; }
+@media (max-width: 640px) {
+  .home-stores-list { max-width: none; }
+}
+
 /* ========== Конструктор комплекта ========== */
 .kit-overlay {
   position: fixed;
