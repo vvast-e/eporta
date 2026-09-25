@@ -431,27 +431,28 @@ $APPLICATION->SetTitle("Eporta");?> <?
 		$eportaHomeWorks = eportaWorksList(10);
 	?>
 	<?if ($eportaHomeWorks):?>
-	<!-- Наши работы — горизонтальный слайдер карточек, источник: инфоблок
-	     EPORTA_WORKS_IBLOCK_ID, наполняется через local/admin_tools/eporta_works/. Пустой
-	     список -> блок не выводится вовсе (см. eportaWorksList()). Разметка карточек и
-	     прокрутка переиспользуют .home-tabs-banner__scroll (см. template_styles.css) —
-	     тот же горизонтальный scroll-snap, что и у баннер-табов выше на этой странице. -->
+	<!-- Наши работы — источник: инфоблок EPORTA_WORKS_IBLOCK_ID, наполняется через
+	     local/admin_tools/eporta_works/. Пустой список -> блок не выводится (см.
+	     eportaWorksList()). Подпись поверх фото с градиентом — тот же приём, что и у
+	     карусели баннеров (.hbc-*) и плиток коллекций выше на этой странице, а не отдельно
+	     придуманный "фото + текст под ним" (редизайн 25.09.2026, см. .home-work-card
+	     в template_styles.css). -->
 	<div style="padding:26px var(--pad-x) 4px">
 		<div class="section-heading"><h2>Наши работы</h2></div>
-		<div class="home-tabs-banner__scroll" style="gap:16px">
+		<div class="home-works-scroll">
 			<?foreach ($eportaHomeWorks as $eportaWork):?>
-			<div style="flex:0 0 260px;width:260px;scroll-snap-align:start">
-				<div style="position:relative;border-radius:14px;overflow:hidden;aspect-ratio:4/3;background:#f2efe9">
-					<?if ($eportaWork["PREVIEW_PICTURE_SRC"]):?>
-					<?php eportaPicture($eportaWork["PREVIEW_PICTURE_SRC"], $eportaWork["NAME"], ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:cover"]); ?>
+			<div class="home-work-card">
+				<?if ($eportaWork["PREVIEW_PICTURE_SRC"]):?>
+				<?php eportaPicture($eportaWork["PREVIEW_PICTURE_SRC"], $eportaWork["NAME"]); ?>
+				<?endif;?>
+				<div class="home-work-card__caption">
+					<div class="home-work-card__title"><?=htmlspecialcharsbx($eportaWork["NAME"])?></div>
+					<?if ($eportaWork["CITY"] || $eportaWork["COLLECTION"]):?>
+					<div class="home-work-card__meta">
+						<?=htmlspecialcharsbx(trim($eportaWork["CITY"] . ($eportaWork["CITY"] && $eportaWork["COLLECTION"] ? " · " : "") . $eportaWork["COLLECTION"]))?>
+					</div>
 					<?endif;?>
 				</div>
-				<div style="margin-top:10px;font:800 15px 'Manrope';letter-spacing:-0.01em"><?=htmlspecialcharsbx($eportaWork["NAME"])?></div>
-				<?if ($eportaWork["CITY"] || $eportaWork["COLLECTION"]):?>
-				<div style="margin-top:3px;font:500 12.5px 'Manrope';color:#8a857b">
-					<?=htmlspecialcharsbx(trim($eportaWork["CITY"] . ($eportaWork["CITY"] && $eportaWork["COLLECTION"] ? " · " : "") . $eportaWork["COLLECTION"]))?>
-				</div>
-				<?endif;?>
 			</div>
 			<?endforeach;?>
 		</div>
@@ -470,22 +471,24 @@ $APPLICATION->SetTitle("Eporta");?> <?
 	     local/admin_tools/eporta_reviews/ (публичной формы "оставить отзыв" нет, решение
 	     пользователя 24.09.2026). Пустой список -> блок не выводится (см. eportaReviewsList()).
 	     Средняя оценка/количество в подзаголовке — реальные (eportaReviewsAggregate()), не
-	     захардкожены, как было в прежней строке .social-proof (убрана выше). -->
+	     захардкожены, как было в прежней строке .social-proof (убрана выше). Карточка без
+	     рамки (редизайн 25.09.2026) — только заливка + типографика, рамка не несла иерархии. -->
 	<div style="padding:26px var(--pad-x) 4px">
 		<div class="section-heading">
 			<h2>Отзывы покупателей</h2>
 			<?if ($eportaReviewsAgg):?>
-			<span style="font:700 14px 'Manrope';color:#8a857b">★ <?=htmlspecialcharsbx((string)$eportaReviewsAgg["average"])?> · <?=(int)$eportaReviewsAgg["count"]?> отзывов</span>
+			<span class="home-reviews-agg"><span class="star">★</span> <?=htmlspecialcharsbx((string)$eportaReviewsAgg["average"])?> · <?=(int)$eportaReviewsAgg["count"]?> отзывов</span>
 			<?endif;?>
 		</div>
-		<div class="home-tabs-banner__scroll" style="gap:16px">
+		<div class="home-reviews-scroll">
 			<?foreach ($eportaHomeReviews as $eportaReview):?>
-			<div style="flex:0 0 300px;width:300px;scroll-snap-align:start;background:var(--bg-warm);border:1px solid #ece7de;border-radius:14px;padding:20px">
-				<div style="color:var(--accent);font:700 14px 'Manrope';letter-spacing:.02em"><?=str_repeat("★", $eportaReview["RATING"])?><span style="color:#ddd7ca"><?=str_repeat("★", 5 - $eportaReview["RATING"])?></span></div>
-				<div style="margin-top:10px;font:500 13.5px/1.55 'Manrope';color:#3a3631;min-height:78px"><?=nl2br(htmlspecialcharsbx($eportaReview["PREVIEW_TEXT"]))?></div>
-				<div style="margin-top:14px;font:800 13.5px 'Manrope'"><?=htmlspecialcharsbx($eportaReview["NAME"])?></div>
+			<div class="home-review-card">
+				<span class="home-review-card__quote-mark">&#8220;</span>
+				<div class="home-review-card__rating"><?=str_repeat("★", $eportaReview["RATING"])?><span class="dim"><?=str_repeat("★", 5 - $eportaReview["RATING"])?></span></div>
+				<div class="home-review-card__text"><?=nl2br(htmlspecialcharsbx($eportaReview["PREVIEW_TEXT"]))?></div>
+				<div class="home-review-card__author"><?=htmlspecialcharsbx($eportaReview["NAME"])?></div>
 				<?if ($eportaReview["CITY"]):?>
-				<div style="margin-top:2px;font:500 12px 'Manrope';color:#8a857b"><?=htmlspecialcharsbx($eportaReview["CITY"])?></div>
+				<div class="home-review-card__city"><?=htmlspecialcharsbx($eportaReview["CITY"])?></div>
 				<?endif;?>
 			</div>
 			<?endforeach;?>
@@ -512,22 +515,22 @@ $APPLICATION->SetTitle("Eporta");?> <?
 			<h2>Наши салоны</h2>
 			<a href="/stores/">Все салоны</a>
 		</div>
-		<div style="display:flex;gap:20px;align-items:stretch;flex-wrap:wrap">
-			<div id="eporta-stores-list" style="flex:1 1 320px;min-width:280px;max-width:380px;display:flex;flex-direction:column;gap:10px;max-height:400px;overflow-y:auto">
+		<div class="home-stores-wrap">
+			<div id="eporta-stores-list" class="home-stores-list">
 				<?foreach ($eportaHomeStores as $eportaStore):?>
-				<div class="eporta-store-row" data-lat="<?=htmlspecialcharsbx($eportaStore["LAT"])?>" data-lon="<?=htmlspecialcharsbx($eportaStore["LON"])?>" style="padding:14px 16px;border:1px solid #ece7de;border-radius:12px;cursor:<?=$eportaStore["HAS_COORDS"] ? "pointer" : "default"?>;background:#fff">
-					<div style="font:800 14.5px 'Manrope'"><?=htmlspecialcharsbx($eportaStore["TITLE"])?></div>
-					<div style="margin-top:4px;font:500 13px 'Manrope';color:#3a3631"><?=htmlspecialcharsbx($eportaStore["ADDRESS"])?></div>
+				<div class="home-store-row<?=$eportaStore["HAS_COORDS"] ? " home-store-row--clickable" : ""?>" data-lat="<?=htmlspecialcharsbx($eportaStore["LAT"])?>" data-lon="<?=htmlspecialcharsbx($eportaStore["LON"])?>">
+					<div class="home-store-row__title"><?=htmlspecialcharsbx($eportaStore["TITLE"])?></div>
+					<div class="home-store-row__address"><?=htmlspecialcharsbx($eportaStore["ADDRESS"])?></div>
 					<?if ($eportaStore["PHONE"]):?>
-					<div style="margin-top:4px;font:600 13px 'Manrope';color:var(--accent)"><?=htmlspecialcharsbx($eportaStore["PHONE"])?></div>
+					<div class="home-store-row__phone"><?=htmlspecialcharsbx($eportaStore["PHONE"])?></div>
 					<?endif;?>
 					<?if ($eportaStore["SCHEDULE"]):?>
-					<div style="margin-top:2px;font:500 12px 'Manrope';color:#8a857b"><?=htmlspecialcharsbx($eportaStore["SCHEDULE"])?></div>
+					<div class="home-store-row__schedule"><?=htmlspecialcharsbx($eportaStore["SCHEDULE"])?></div>
 					<?endif;?>
 				</div>
 				<?endforeach;?>
 			</div>
-			<div id="eporta-stores-map" style="flex:2 1 420px;min-width:280px;min-height:400px;border-radius:14px;background:#f2efe9;display:flex;align-items:center;justify-content:center;color:#8a857b;font:600 13px 'Manrope';text-align:center;padding:20px">
+			<div id="eporta-stores-map" class="home-stores-map">
 				Карта загрузится при прокрутке до этого блока
 			</div>
 		</div>
@@ -603,8 +606,10 @@ $APPLICATION->SetTitle("Eporta");?> <?
 		}
 
 		listEl.addEventListener('click', function (e) {
-			var row = e.target.closest('.eporta-store-row');
+			var row = e.target.closest('.home-store-row');
 			if (!row || !row.dataset.lat || !row.dataset.lon || !ymap) return;
+			listEl.querySelectorAll('.home-store-row.is-active').forEach(function (r) { r.classList.remove('is-active'); });
+			row.classList.add('is-active');
 			ymap.setCenter([parseFloat(row.dataset.lat), parseFloat(row.dataset.lon)], 14, { duration: 300 });
 		});
 	})();
