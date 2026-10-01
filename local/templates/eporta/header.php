@@ -152,6 +152,8 @@ if (\Bitrix\Main\Loader::includeModule("dw.deluxe")) {
      из-за этого никогда не срабатывают на реальных телефонах, хотя работают в DevTools
      device toolbar (там вьюпорт эмулируется правильно даже без этого тега). -->
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="<?= SITE_TEMPLATE_PATH ?>/assets/img/favicon.svg">
+<link rel="icon" href="/favicon.ico" sizes="any">
 <?php $APPLICATION->ShowHead(); ?>
 <title><?php $APPLICATION->ShowTitle(); ?></title>
 </head>
