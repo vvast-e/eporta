@@ -363,40 +363,114 @@ $APPLICATION->SetTitle("Eporta");?> <?
 	})();
 	</script>
 
-	<!-- Коллекции фабрики: единый источник данных local/lib/eporta_collections.php (все активные
-	     подразделы 183 из IBLOCK 19, в порядке SORT). Раньше здесь были захардкожены ровно 6
-	     коллекций с фиксированным описанием и кнопкой "Все коллекции" на отдельный хаб — теперь
-	     показываются все коллекции сразу, сеткой 4 в ряд (см. .eporta-tile-grid--coll в
-	     template_styles.css), кнопка убрана (заявка заказчика 05.09.2026). Описание — реальное
-	     поле DESCRIPTION секции, редактируется в local/admin_tools/eporta_collections/. -->
+	<!-- Коллекции фабрики: единый источник данных local/lib/eporta_collections.php (активные
+	     подразделы 183 из IBLOCK 19, в порядке SORT). На главной только коллекции верхнего уровня
+	     (подколлекции — UF_PARENT_COLLECTION — доступны со страницы родителя) и два блока по
+	     параметру UF_HOME_BLOCK: 1 — слева, 2 — справа мозаикой. Пока в блоке 2 нет реальных
+	     коллекций, в нём показываются 6 моковых плиток-заглушек. На мобильном каждый блок —
+	     горизонтальный слайдер 2x2 (см. .eporta-coll-pane в template_styles.css). Описание
+	     коллекции на плитке не показывается (заявки заказчика 08-09.09.2026). -->
 	<?
-		// Подпись с числом товаров под плиткой коллекции убрана (заявка заказчика 08.09.2026) —
-		// eportaCollectionsElementCounts() больше не нужен.
 		require_once($_SERVER["DOCUMENT_ROOT"]."/local/lib/eporta_collections.php");
-		$eportaHomeCollections = eportaCollections();
+		$eportaHomeCollections = eportaCollectionsTopLevel(eportaCollections());
+		$eportaHomePane1 = [];
+		$eportaHomePane2 = [];
+		foreach ($eportaHomeCollections as $eportaHomeColl) {
+			if (eportaCollectionHomeBlock($eportaHomeColl) === 2) {
+				$eportaHomePane2[] = $eportaHomeColl;
+			} else {
+				$eportaHomePane1[] = $eportaHomeColl;
+			}
+		}
+		$eportaHomeMocks = [];
+		if (!$eportaHomePane2) {
+			for ($eportaMockI = 1; $eportaMockI <= 6; $eportaMockI++) {
+				$eportaHomeMocks[] = $eportaMockI;
+			}
+		}
+		$eportaHomeHasPane2 = $eportaHomePane2 || $eportaHomeMocks;
+
+		if (!function_exists("eportaRenderHomeCollTile")) {
+			function eportaRenderHomeCollTile(array $coll) {
+				$slot = eportaCollectionSlotCode($coll["CODE"]);
+				$overlayOn = eportaBannersSlotOverlayEnabled($slot);
+				?>
+				<a class="eporta-coll-tile" href="/catalog/collections/<?=htmlspecialcharsbx($coll["CODE"])?>/">
+					<?php eportaPicture(eportaBannersResolveImage($slot, ""), $coll["NAME"], ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:contain"]); ?>
+					<?if ($overlayOn):?>
+					<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 38%,rgba(20,17,12,.8) 100%)"></div>
+					<?endif;?>
+					<div class="eporta-coll-tile-name"><div style="font:800 22px 'Manrope';color:#fff;letter-spacing:.01em<?=$overlayOn ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>"><?=htmlspecialcharsbx($coll["NAME"])?></div></div>
+				</a>
+				<?php
+			}
+		}
 	?>
+	<?if ($eportaHomePane1 || $eportaHomeHasPane2):?>
 	<div style="padding:26px var(--pad-x) 4px">
 		<h2 style="margin:0 0 6px;font:800 27px 'Manrope';letter-spacing:-0.01em">Коллекции фабрики</h2>
 		<div style="font:500 13.5px;color:#8a857b;margin-bottom:18px">Серии дверей с единым дизайном — от полотна до фурнитуры</div>
-		<div class="eporta-tile-grid eporta-tile-grid--coll">
-			<?foreach ($eportaHomeCollections as $eportaHomeColl):
-				$eportaHomeCollSlot = eportaCollectionSlotCode($eportaHomeColl["CODE"]);
-				// Квадрат 1:1 с фоновой подложкой (как на alfaporta.ru) — картинка вписывается
-				// целиком (object-fit:contain), не обрезается при несовпадении пропорций с блоком.
-				$eportaCollOverlayOn = eportaBannersSlotOverlayEnabled($eportaHomeCollSlot);
-			?>
-			<a href="/catalog/collections/<?=htmlspecialcharsbx($eportaHomeColl["CODE"])?>/" style="position:relative;border-radius:16px;overflow:hidden;cursor:pointer;aspect-ratio:1/1;display:block;text-decoration:none;background:#f2efe9">
-				<?php eportaPicture(eportaBannersResolveImage($eportaHomeCollSlot, ""), $eportaHomeColl["NAME"], ["style" => "position:absolute;inset:0;width:100%;height:100%;object-fit:contain"]); ?>
-				<?if ($eportaCollOverlayOn):?>
-				<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 38%,rgba(20,17,12,.8) 100%)"></div>
-				<?endif;?>
-				<!-- Описание коллекции под названием убрано (заявка заказчика 09.09.2026, вслед за
-				     подписью с числом товаров) — на плитке остаётся только название. -->
-				<div style="position:absolute;left:20px;right:20px;bottom:18px"><div style="font:800 22px 'Manrope';color:#fff;letter-spacing:.01em<?=$eportaCollOverlayOn ? "" : ";text-shadow:0 1px 6px rgba(0,0,0,.55)"?>"><?=htmlspecialcharsbx($eportaHomeColl["NAME"])?></div></div>
-			</a>
-			<?endforeach;?>
+		<div class="eporta-coll-split<?=($eportaHomePane1 && $eportaHomeHasPane2) ? "" : " eporta-coll-split--single"?>">
+			<?if ($eportaHomePane1):?>
+			<div class="eporta-coll-pane eporta-coll-pane--1" data-coll-pane>
+				<?foreach ($eportaHomePane1 as $eportaHomeColl) { eportaRenderHomeCollTile($eportaHomeColl); }?>
+			</div>
+			<?endif;?>
+			<?if ($eportaHomeHasPane2):?>
+			<div class="eporta-coll-pane eporta-coll-pane--2" data-coll-pane>
+				<?foreach ($eportaHomePane2 as $eportaHomeColl) { eportaRenderHomeCollTile($eportaHomeColl); }?>
+				<?foreach ($eportaHomeMocks as $eportaMockN):?>
+				<div class="eporta-coll-tile eporta-coll-tile--mock eporta-coll-tile--mock<?=$eportaMockN?>" aria-hidden="true">
+					<div class="eporta-coll-tile-name"><div style="font:800 20px 'Manrope';color:#5a5348;letter-spacing:.01em">Новая коллекция</div><div style="font:600 12.5px 'Manrope';color:#8a857b;margin-top:3px">Скоро</div></div>
+				</div>
+				<?endforeach;?>
+			</div>
+			<?endif;?>
 		</div>
 	</div>
+	<script>
+	// Мобильный слайдер коллекций: один раз, когда блок попал в зону видимости, плавно сдвигаем
+	// его на ~40% плитки и возвращаем — подсказка, что блок листается. Отменяется при первом же
+	// касании/прокрутке пользователя, отключается при prefers-reduced-motion.
+	(function () {
+		var panes = document.querySelectorAll("[data-coll-pane]");
+		if (!panes.length || !window.IntersectionObserver || !window.matchMedia) return;
+		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+		var mq = window.matchMedia("(max-width: 640px)");
+		var io = new IntersectionObserver(function (entries) {
+			entries.forEach(function (entry) {
+				if (!entry.isIntersecting) return;
+				var pane = entry.target;
+				io.unobserve(pane);
+				if (!mq.matches || pane.scrollWidth <= pane.clientWidth + 4) return;
+				var cancelled = false;
+				["touchstart", "pointerdown", "wheel"].forEach(function (evt) {
+					pane.addEventListener(evt, function () { cancelled = true; }, { once: true, passive: true });
+				});
+				var snap = pane.style.scrollSnapType;
+				pane.style.scrollSnapType = "none";
+				var distance = Math.min(pane.clientWidth * 0.2, 90);
+				var duration = 1100;
+				var startTs = null;
+				function step(ts) {
+					if (cancelled) { pane.style.scrollSnapType = snap; return; }
+					if (startTs === null) startTs = ts;
+					var t = Math.min(1, (ts - startTs) / duration);
+					pane.scrollLeft = distance * Math.sin(Math.PI * t);
+					if (t < 1) {
+						requestAnimationFrame(step);
+					} else {
+						pane.scrollLeft = 0;
+						pane.style.scrollSnapType = snap;
+					}
+				}
+				requestAnimationFrame(step);
+			});
+		}, { threshold: 0.6 });
+		panes.forEach(function (pane) { io.observe(pane); });
+	})();
+	</script>
+	<?endif;?>
 
 	<!-- Популярные запросы -->
 	<div style="padding:26px var(--pad-x) 4px">
