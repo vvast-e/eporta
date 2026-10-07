@@ -1,4 +1,9 @@
 <?php
+// Только консоль: скрипт подставляет права/меняет данные и не должен выполняться по HTTP (каталог scripts/ лежит в webroot).
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
 // Проверки чистой логики иерархии коллекций (local/lib/eporta_collections.php) — Bitrix не нужен.
 // Запуск: php scripts/tests/collections_hierarchy_test.php  (код возврата 0 = всё прошло)
 define('B_PROLOG_INCLUDED', true);

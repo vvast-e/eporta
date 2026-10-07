@@ -1,4 +1,9 @@
 <?php
+// Только консоль: скрипт подставляет права/меняет данные и не должен выполняться по HTTP (каталог scripts/ лежит в webroot).
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
 // Проверки чистой логики «Популярных запросов» (local/lib/eporta_quick_queries.php) — Bitrix не нужен.
 // Запуск: php scripts/tests/quick_queries_test.php  (код возврата 0 = всё прошло)
 define('B_PROLOG_INCLUDED', true);
