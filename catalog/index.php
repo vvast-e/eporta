@@ -759,6 +759,35 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			}
 			$eportaModelCount = count($eportaModelGroups);
 		}
+		// «Популярные запросы» с главной (?pq=<ID запроса>, local/lib/eporta_quick_queries.php):
+		// вручную закреплённые админом двери идут первыми (в его порядке), затем результат фильтра.
+		// Закреплённая дверь показывается, даже если под фильтр не попала. Параметр pq есть только
+		// в ссылке кнопки — AJAX-форма сайдбара его не передаёт, поэтому при смене фильтра
+		// пользователем закреплённые двери исчезают. Только общий каталог (не страницы коллекций).
+		$eportaPinnedIds = [];
+		if (!$eportaCollectionSection && !empty($_GET["pq"]) && is_scalar($_GET["pq"])) {
+			require_once($_SERVER["DOCUMENT_ROOT"]."/local/lib/eporta_quick_queries.php");
+			$eportaQuickQuery = null;
+			foreach ((eportaQuickQueriesGet() ?: []) as $eportaQuickCandidate) {
+				if ($eportaQuickCandidate["id"] === (int)$_GET["pq"]) {
+					$eportaQuickQuery = $eportaQuickCandidate;
+					break;
+				}
+			}
+			if ($eportaQuickQuery && $eportaQuickQuery["pinned"]) {
+				$eportaPinnedActive = [];
+				$eportaPinnedRes = \CIBlockElement::GetList([], ["IBLOCK_ID" => 19, "ACTIVE" => "Y", "ID" => $eportaQuickQuery["pinned"]], false, false, ["ID"]);
+				while ($eportaPinnedRow = $eportaPinnedRes->Fetch()) {
+					$eportaPinnedActive[(int)$eportaPinnedRow["ID"]] = true;
+				}
+				// Порядок — как у админа, неактивные/удалённые двери пропускаются.
+				$eportaPinnedIds = array_values(array_filter($eportaQuickQuery["pinned"], function ($eportaPinnedId) use ($eportaPinnedActive) {
+					return isset($eportaPinnedActive[$eportaPinnedId]);
+				}));
+				$eportaOrderedIds = eportaQuickQueryPinnedFirst($eportaOrderedIds, $eportaPinnedIds);
+				$eportaActiveChips[] = ["LABEL" => $eportaQuickQuery["label"], "REMOVE_KEY" => "pq", "REMOVE_VALUE" => null];
+			}
+		}
 		$eportaFoundCount = count($eportaOrderedIds);
 
 		// Заглушка "раздел пока не заполнен" — для категорий, в которых по решению заказчика
@@ -854,8 +883,15 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		// FILTER_NAME=>"arrFilter" ниже читает ГЛОБАЛЬНУЮ переменную "arrFilter" — обязательно
 		// global, иначе компонент её не увидит (в отличие от вызова на верхнем уровне скрипта,
 		// внутри функции локальная переменная не совпадает с глобальной).
-		function eportaRenderCatalogGrid($eportaIds, $eportaSectionId, $eportaSortField, $eportaSortOrder, $eportaColsArg, $eportaPageElementCountArg, $eportaSquareCardsArg = false) {
-			global $arrFilter, $APPLICATION;
+		function eportaRenderCatalogGrid($eportaIds, $eportaSectionId, $eportaSortField, $eportaSortOrder, $eportaColsArg, $eportaPageElementCountArg, $eportaSquareCardsArg = false, $eportaKeepOrderArg = false) {
+			global $arrFilter, $APPLICATION, $arrEportaHomeTabOrder;
+			// Компонент пересортировывает ID страницы по ELEMENT_SORT_FIELD; шаблон
+			// catalog.section/.default умеет вернуть заданный порядок через одноразовую глобальную
+			// $arrEportaHomeTabOrder (тот же механизм, что у табов главной). Нужно для запроса с
+			// закреплёнными дверями (?pq=), чтобы они реально шли первыми внутри страницы.
+			if ($eportaKeepOrderArg) {
+				$arrEportaHomeTabOrder = $eportaIds;
+			}
 			// $eportaIds уже полностью отфильтрован (категория/распродажа/новинки/чекбоксы/цена/
 			// коллекция — см. $eportaGroupFilter выше), доп. условия компоненту не нужны.
 			$arrFilter = ["ID" => $eportaIds ?: [0]];
@@ -1101,7 +1137,8 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			$eportaSortOptions[$eportaSort]["ORDER"],
 			$eportaCols,
 			$eportaPageElementCount,
-			$eportaIsSquareCollection
+			$eportaIsSquareCollection,
+			!empty($eportaPinnedIds)
 		);
 		eportaRenderCatalogPager($eportaCurPage, $eportaTotalPages, $eportaCatalogPageUrl);
 		eportaRenderCatalogLoadMoreBtn($eportaCurPage, $eportaTotalPages);
@@ -1337,6 +1374,9 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 				$eportaChipParams[$eportaChip["REMOVE_KEY"]] = array_values(array_diff((array)($eportaChipParams[$eportaChip["REMOVE_KEY"]] ?? []), [(string)$eportaChip["REMOVE_VALUE"]]));
 				if (empty($eportaChipParams[$eportaChip["REMOVE_KEY"]])) unset($eportaChipParams[$eportaChip["REMOVE_KEY"]]);
 			}
+			// Снятие любого фильтра — смена фильтра: закреплённые двери запроса (?pq=) тоже убираются,
+			// как и при изменении чекбоксов в сайдбаре.
+			unset($eportaChipParams["pq"]);
 			$eportaChipUrl = $eportaResetUrl.($eportaChipParams ? "?".http_build_query($eportaChipParams) : "");
 		?>
 		<a href="<?=htmlspecialcharsbx($eportaChipUrl)?>" style="display:inline-flex;align-items:center;gap:8px;font:600 12.5px 'Manrope';background:#f3f1ec;color:#3a3631;padding:8px 12px;border-radius:20px;cursor:pointer;text-decoration:none"><?=htmlspecialcharsbx($eportaChip["LABEL"])?> <span style="color:#a39e95">✕</span></a>
@@ -1401,7 +1441,8 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 				$eportaSortOptions[$eportaSort]["ORDER"],
 				$eportaCols,
 				$eportaPageElementCount,
-				$eportaIsSquareCollection
+				$eportaIsSquareCollection,
+				!empty($eportaPinnedIds)
 			); ?>
 			<?php eportaRenderCatalogPager($eportaCurPage, $eportaTotalPages, $eportaCatalogPageUrl); ?>
 			<!-- Кнопка "Показать ещё" (eportaRenderCatalogLoadMoreBtn — общая с AJAX-подгрузкой

@@ -472,18 +472,33 @@ $APPLICATION->SetTitle("Eporta");?> <?
 	</script>
 	<?endif;?>
 
-	<!-- Популярные запросы -->
-	<div style="padding:26px var(--pad-x) 4px">
+	<!-- Популярные запросы: кнопки настраиваются в local/admin_tools/eporta_quick_queries/ (текст,
+	     фильтры каталога, закреплённые двери), порядок — как задал админ. Пока настройки ни разу
+	     не сохранялись — прежний набор из шести кнопок на /catalog/. -->
+	<?
+		require_once($_SERVER["DOCUMENT_ROOT"]."/local/lib/eporta_quick_queries.php");
+		$eportaQuickQueries = eportaQuickQueriesGet();
+		if ($eportaQuickQueries === null) {
+			$eportaQuickQueries = [];
+			foreach (["Белые двери", "Современные двери", "Классические двери", "Двери с терморазрывом", "Двери экошпон", "Ульяновские двери"] as $eportaLegacyLabel) {
+				$eportaQuickQueries[] = ["label" => $eportaLegacyLabel, "url" => "/catalog/"];
+			}
+		} else {
+			foreach ($eportaQuickQueries as $eportaQuickKey => $eportaQuickItem) {
+				$eportaQuickQueries[$eportaQuickKey]["url"] = eportaQuickQueryUrl($eportaQuickItem);
+			}
+		}
+	?>
+	<?if ($eportaQuickQueries):?>
+	<div data-quick-queries style="padding:26px var(--pad-x) 4px">
 		<div style="font:800 18px 'Manrope';letter-spacing:-0.01em;margin-bottom:14px">Популярные запросы</div>
 		<div style="display:flex;flex-wrap:wrap;gap:10px">
-			<a href="/catalog/" style="font:600 13px 'Manrope';color:#3a3631;background:#f4f1ea;border:1px solid #ece7de;border-radius:999px;padding:9px 16px;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s">Белые двери</a>
-			<a href="/catalog/" style="font:600 13px 'Manrope';color:#3a3631;background:#f4f1ea;border:1px solid #ece7de;border-radius:999px;padding:9px 16px;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s">Современные двери</a>
-			<a href="/catalog/" style="font:600 13px 'Manrope';color:#3a3631;background:#f4f1ea;border:1px solid #ece7de;border-radius:999px;padding:9px 16px;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s">Классические двери</a>
-			<a href="/catalog/" style="font:600 13px 'Manrope';color:#3a3631;background:#f4f1ea;border:1px solid #ece7de;border-radius:999px;padding:9px 16px;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s">Двери с терморазрывом</a>
-			<a href="/catalog/" style="font:600 13px 'Manrope';color:#3a3631;background:#f4f1ea;border:1px solid #ece7de;border-radius:999px;padding:9px 16px;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s">Двери экошпон</a>
-			<a href="/catalog/" style="font:600 13px 'Manrope';color:#3a3631;background:#f4f1ea;border:1px solid #ece7de;border-radius:999px;padding:9px 16px;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s">Ульяновские двери</a>
+			<?foreach ($eportaQuickQueries as $eportaQuickItem):?>
+			<a href="<?=htmlspecialcharsbx($eportaQuickItem["url"])?>" style="font:600 13px 'Manrope';color:#3a3631;background:#f4f1ea;border:1px solid #ece7de;border-radius:999px;padding:9px 16px;cursor:pointer;text-decoration:none;transition:background .15s,border-color .15s"><?=htmlspecialcharsbx($eportaQuickItem["label"])?></a>
+			<?endforeach;?>
 		</div>
 	</div>
+	<?endif;?>
 
 	<?
 		// Захардкоженная строка соцдоказательства (звёзды/число отзывов) убрана по заявке
