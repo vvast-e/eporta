@@ -1119,6 +1119,13 @@ img { display: block; }
    заказчик попросил убрать счётчик только на мобильном, оставив его на десктопе/планшете. */
 @media (max-width: 640px) { .eporta-coll-count { display: none !important; } }
 
+/* Полоска подколлекций на странице коллекции (родитель + подколлекции): только текст, по центру,
+   текущая страница залита с рамкой, остальные — ссылки на соответствующие страницы. */
+.eporta-subcoll-nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 20px var(--pad-x) 4px; }
+.eporta-subcoll-btn { display: inline-flex; align-items: center; padding: 10px 22px; border: 1.6px solid #e7e3db; border-radius: 999px; background: #fff; color: #2b2620; font: 700 14px 'Manrope'; text-decoration: none; transition: border-color .15s, background .15s; }
+a.eporta-subcoll-btn:hover { border-color: #e8820a; }
+.eporta-subcoll-btn--active { background: #e8820a; border-color: #c96f06; color: #fff; cursor: default; }
+
 /* Мозаика категорий на главной — на десктопе 4 колонки с явной раскладкой плиток
    (grid-column/grid-row в инлайн-стилях), на узких экранах раскладка ломается,
    поэтому ниже 860px сбрасываем сетку в простой 2-колоночный поток и убираем

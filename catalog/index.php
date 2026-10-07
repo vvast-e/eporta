@@ -1150,6 +1150,24 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	</div>
 	<?endif;?>
 
+	<?if ($eportaCollectionSection):
+		// Полоска подколлекций (иерархия — UF_PARENT_COLLECTION, local/lib/eporta_collections.php):
+		// родитель + его подколлекции, только текст, текущая страница залита. Нет связи — нет полоски.
+		$eportaCollectionFamily = eportaCollectionFamily(eportaCollections(), (int)$eportaCollectionSection["ID"]);
+	?>
+	<?if ($eportaCollectionFamily):?>
+	<nav class="eporta-subcoll-nav" aria-label="Подколлекции">
+		<?foreach ($eportaCollectionFamily as $eportaFamilyColl):?>
+			<?if ((int)$eportaFamilyColl["ID"] === (int)$eportaCollectionSection["ID"]):?>
+			<span class="eporta-subcoll-btn eporta-subcoll-btn--active" aria-current="page"><?=htmlspecialcharsbx($eportaFamilyColl["NAME"])?></span>
+			<?else:?>
+			<a class="eporta-subcoll-btn" href="/catalog/collections/<?=htmlspecialcharsbx($eportaFamilyColl["CODE"])?>/"><?=htmlspecialcharsbx($eportaFamilyColl["NAME"])?></a>
+			<?endif;?>
+		<?endforeach;?>
+	</nav>
+	<?endif;?>
+	<?endif;?>
+
 	<?if ($eportaCollectionSection && $eportaCollectionModelCards):?>
 	<!-- Модели коллекции: лёгкая карточка-представитель на модель (лучший по RATING вариант —
 	     "популярный цвет"), клик ведёт сразу на карточку этого конкретного товара. Своя, более
