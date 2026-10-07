@@ -40,7 +40,7 @@ function eportaCollections(bool $includeInactive = false): array {
         ['SORT' => 'ASC'],
         $filter,
         false,
-        ['ID', 'NAME', 'CODE', 'DESCRIPTION', 'SORT', 'ACTIVE', 'PICTURE', 'DETAIL_PICTURE', 'IBLOCK_SECTION_ID', 'UF_BANNER_OVERLAY', 'UF_BANNER_CTA_TEXT', 'UF_BANNER_CTA_LINK', 'UF_SQUARE_CARDS']
+        ['ID', 'NAME', 'CODE', 'DESCRIPTION', 'SORT', 'ACTIVE', 'PICTURE', 'DETAIL_PICTURE', 'IBLOCK_SECTION_ID', 'UF_BANNER_OVERLAY', 'UF_BANNER_CTA_TEXT', 'UF_BANNER_CTA_LINK', 'UF_SQUARE_CARDS', 'UF_PARENT_COLLECTION', 'UF_HOME_BLOCK']
     );
     while ($row = $res->GetNext()) {
         if ((int)$row['IBLOCK_SECTION_ID'] !== EPORTA_COLLECTIONS_PARENT_SECTION_ID) {
@@ -59,6 +59,107 @@ function eportaCollections(bool $includeInactive = false): array {
     }
     $cache[$cacheKey] = $collections;
     return $collections;
+}
+
+// Иерархия коллекций (подколлекции, глубина 2) и блоки главной. Связь логическая — UF-поле
+// UF_PARENT_COLLECTION (scripts/add_section_collection_hierarchy_ufields.php), физически все
+// коллекции остаются подразделами 183, поэтому URL /catalog/collections/<code>/, слот баннера и
+// подсчёт товаров не зависят от иерархии. Функции ниже чистые (работают по переданному списку, без
+// обращения к БД) и терпимы к отсутствию UF-полей — тогда все коллекции верхнего уровня.
+function eportaCollectionParentId(array $collection): int {
+    return (int)($collection['UF_PARENT_COLLECTION'] ?? 0);
+}
+
+// Блок плитки на главной: 2 (правый) или 1 (левый, по умолчанию для пустого/любого другого значения).
+function eportaCollectionHomeBlock(array $collection): int {
+    return (int)($collection['UF_HOME_BLOCK'] ?? 0) === 2 ? 2 : 1;
+}
+
+// Карта "ID подколлекции => ID родителя" только по ДЕЙСТВУЮЩИМ связям среди переданных коллекций.
+// Связь не действует (коллекция считается верхнего уровня), если: родитель не найден в списке
+// (скрыт/удалён), коллекция указана родителем самой себе, либо родитель сам подколлекция —
+// глубина строго 2 уровня, это же защищает от циклов A->B, B->A.
+function eportaCollectionsParentMap(array $collections): array {
+    $byId = [];
+    foreach ($collections as $collection) {
+        $byId[(int)$collection['ID']] = $collection;
+    }
+    $map = [];
+    foreach ($byId as $id => $collection) {
+        $parentId = eportaCollectionParentId($collection);
+        if ($parentId <= 0 || $parentId === $id || !isset($byId[$parentId])) {
+            continue;
+        }
+        $grandParentId = eportaCollectionParentId($byId[$parentId]);
+        if ($grandParentId > 0 && isset($byId[$grandParentId])) {
+            continue;
+        }
+        $map[$id] = $parentId;
+    }
+    return $map;
+}
+
+// Проверка назначения родителя в админке (drag-and-drop) — null если можно, иначе текст ошибки.
+// $parentId = 0 снимает связь (коллекция становится верхнего уровня). Работает по полному списку
+// коллекций (включая скрытые) и по СЫРЫМ значениям UF_PARENT_COLLECTION — строже, чем
+// eportaCollectionsParentMap(): запрещает сам факт трёхуровневой цепочки, а не только игнорирует её.
+function eportaCollectionsValidateParent(array $collections, int $sectionId, int $parentId): ?string {
+    $byId = [];
+    foreach ($collections as $collection) {
+        $byId[(int)$collection['ID']] = $collection;
+    }
+    if (!isset($byId[$sectionId])) {
+        return 'Коллекция не найдена';
+    }
+    if ($parentId === 0) {
+        return null;
+    }
+    if ($parentId === $sectionId) {
+        return 'Коллекция не может быть подколлекцией самой себя';
+    }
+    if (!isset($byId[$parentId])) {
+        return 'Родительская коллекция не найдена';
+    }
+    if (eportaCollectionParentId($byId[$parentId]) > 0) {
+        return 'Глубина вложенности — 2 уровня: выбранный родитель сам является подколлекцией';
+    }
+    foreach ($byId as $collection) {
+        if (eportaCollectionParentId($collection) === $sectionId) {
+            return 'У этой коллекции уже есть подколлекции — сначала вынесите их на верхний уровень';
+        }
+    }
+    return null;
+}
+
+// Коллекции верхнего уровня (без действующего родителя) — то, что показывается на главной.
+function eportaCollectionsTopLevel(array $collections): array {
+    $parentMap = eportaCollectionsParentMap($collections);
+    return array_values(array_filter($collections, function ($collection) use ($parentMap) {
+        return !isset($parentMap[(int)$collection['ID']]);
+    }));
+}
+
+// Полоска переключения для страницы коллекции: родитель первым, затем его подколлекции в порядке
+// списка (SORT). Пусто, если у коллекции нет ни родителя, ни подколлекций — тогда полоска не
+// показывается вовсе.
+function eportaCollectionFamily(array $collections, int $collectionId): array {
+    $parentMap = eportaCollectionsParentMap($collections);
+    $rootId = $parentMap[$collectionId] ?? $collectionId;
+    $family = [];
+    $root = null;
+    foreach ($collections as $collection) {
+        $id = (int)$collection['ID'];
+        if ($id === $rootId) {
+            $root = $collection;
+        } elseif (($parentMap[$id] ?? 0) === $rootId) {
+            $family[] = $collection;
+        }
+    }
+    if ($root === null || !$family) {
+        return [];
+    }
+    array_unshift($family, $root);
+    return $family;
 }
 
 // ID => количество активных товаров в коллекции. Один запрос с группировкой вместо отдельного

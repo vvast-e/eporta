@@ -218,7 +218,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 
 	<!-- Галерея -->
 	<div class="product-detail-gallery" style="flex:1.15;display:flex;flex-direction:column;gap:12px;height:560px;background:#fcfcfc;border-radius:20px;padding:16px;box-sizing:border-box">
-		<div class="product-detail-main-photo" style="position:relative;flex:1;min-height:0">
+		<div class="product-detail-main-photo" style="position:relative;flex:1;min-height:0"<?php if ($eportaHasPhoto): ?> data-zoom tabindex="0" role="button" aria-label="Открыть фото на весь экран"<?php endif; ?>>
 			<?php if ($eportaHasPhoto): ?>
 			<?php eportaPicture($galleryPhotos[0], $eportaDisplayName, [
 				"id" => "mainPhoto",
@@ -566,6 +566,126 @@ function changePhoto(img) {
 	img.style.border = '2px solid #e8820a';
 	img.classList.add('active-thumb');
 }
+
+// Полноэкранный просмотр фото (только десктоп >860px, на мобильном пока не делаем) со сменой фона
+// вокруг двери: готовые цвета + произвольный (color picker), выбор запоминается в localStorage.
+// Фото товара — JPEG без прозрачности с дверью во весь кадр (проверено 07.10.2026), поэтому
+// "смена фона" — это цвет подложки вокруг фото в полноэкранном режиме, а не вырезание двери.
+// Список фото — миниатюры .thumb (src оригинала), при одном фото — само основное изображение.
+(function () {
+	var main = document.querySelector('.product-detail-main-photo[data-zoom]');
+	var mainImg = document.getElementById('mainPhoto');
+	if (!main || !mainImg || !window.matchMedia) return;
+	var mq = window.matchMedia('(min-width: 861px)');
+	var STORE_KEY = 'eporta_lightbox_bg';
+	var DEFAULT_BG = '#f2f0ec';
+	var PRESETS = [
+		['#ffffff', 'Белый'], ['#f2f0ec', 'Светлый тёплый'], ['#e4e4e4', 'Светло-серый'], ['#d9cfbf', 'Бежевый'],
+		['#c4b8a5', 'Тёмно-бежевый'], ['#a9b0a4', 'Серо-зелёный'], ['#4a4a4a', 'Графит'], ['#111111', 'Чёрный']
+	];
+	var box, imgEl, counter, prevBtn, nextBtn, picker, swatches, photos = [], idx = 0, lastFocus = null;
+
+	function readBg() {
+		try { var v = localStorage.getItem(STORE_KEY); return /^#[0-9a-f]{6}$/i.test(v || '') ? v : null; } catch (e) { return null; }
+	}
+	function saveBg(v) {
+		try { localStorage.setItem(STORE_KEY, v); } catch (e) {}
+	}
+	function applyBg(color) {
+		box.style.setProperty('--lb-bg', color);
+		var r = parseInt(color.substr(1, 2), 16), g = parseInt(color.substr(3, 2), 16), b = parseInt(color.substr(5, 2), 16);
+		var light = (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.55;
+		box.style.setProperty('--lb-fg', light ? '#2b2620' : '#ffffff');
+		picker.value = color;
+		Array.prototype.forEach.call(swatches.children, function (sw) {
+			sw.classList.toggle('active', sw.getAttribute('data-color') === color.toLowerCase());
+		});
+	}
+	function show(i) {
+		idx = (i + photos.length) % photos.length;
+		imgEl.src = photos[idx];
+		counter.textContent = photos.length > 1 ? (idx + 1) + ' / ' + photos.length : '';
+		prevBtn.hidden = nextBtn.hidden = photos.length < 2;
+	}
+	function build() {
+		box = document.createElement('div');
+		box.className = 'eporta-lightbox';
+		box.hidden = true;
+		box.setAttribute('role', 'dialog');
+		box.setAttribute('aria-modal', 'true');
+		box.setAttribute('aria-label', 'Просмотр фото');
+		box.innerHTML = '<button type="button" class="eporta-lb-btn eporta-lb-close" aria-label="Закрыть">✕</button>' +
+			'<button type="button" class="eporta-lb-btn eporta-lb-nav eporta-lb-prev" aria-label="Предыдущее фото">‹</button>' +
+			'<div class="eporta-lb-stage"><img alt=""></div>' +
+			'<button type="button" class="eporta-lb-btn eporta-lb-nav eporta-lb-next" aria-label="Следующее фото">›</button>' +
+			'<div class="eporta-lb-bar"><span class="eporta-lb-count"></span><span class="eporta-lb-label">Фон:</span>' +
+			'<span class="eporta-lb-swatches"></span>' +
+			'<label class="eporta-lb-custom" title="Выбрать свой цвет"><input type="color"><span>Свой цвет</span></label></div>';
+		document.body.appendChild(box);
+		imgEl = box.querySelector('.eporta-lb-stage img');
+		counter = box.querySelector('.eporta-lb-count');
+		prevBtn = box.querySelector('.eporta-lb-prev');
+		nextBtn = box.querySelector('.eporta-lb-next');
+		picker = box.querySelector('input[type=color]');
+		swatches = box.querySelector('.eporta-lb-swatches');
+		PRESETS.forEach(function (p) {
+			var sw = document.createElement('button');
+			sw.type = 'button';
+			sw.className = 'eporta-lb-swatch';
+			sw.style.background = p[0];
+			sw.title = p[1];
+			sw.setAttribute('aria-label', 'Фон: ' + p[1]);
+			sw.setAttribute('data-color', p[0]);
+			sw.addEventListener('click', function () { applyBg(p[0]); saveBg(p[0]); });
+			swatches.appendChild(sw);
+		});
+		picker.addEventListener('input', function () { applyBg(picker.value); saveBg(picker.value); });
+		box.querySelector('.eporta-lb-close').addEventListener('click', close);
+		prevBtn.addEventListener('click', function () { show(idx - 1); });
+		nextBtn.addEventListener('click', function () { show(idx + 1); });
+		box.addEventListener('click', function (e) {
+			if (e.target === box || e.target.classList.contains('eporta-lb-stage')) close();
+		});
+	}
+	function onKey(e) {
+		if (e.key === 'Escape') close();
+		else if (e.key === 'ArrowLeft' && photos.length > 1) show(idx - 1);
+		else if (e.key === 'ArrowRight' && photos.length > 1) show(idx + 1);
+	}
+	function open() {
+		if (!mq.matches) return;
+		if (!box) build();
+		var thumbs = document.querySelectorAll('.thumb');
+		if (thumbs.length > 1) {
+			photos = Array.prototype.map.call(thumbs, function (t) { return t.src; });
+			idx = Math.max(0, Array.prototype.findIndex.call(thumbs, function (t) { return t.classList.contains('active-thumb'); }));
+		} else {
+			photos = [mainImg.currentSrc || mainImg.src];
+			idx = 0;
+		}
+		applyBg(readBg() || DEFAULT_BG);
+		show(idx);
+		lastFocus = document.activeElement;
+		box.hidden = false;
+		document.documentElement.style.overflow = 'hidden';
+		document.addEventListener('keydown', onKey);
+		box.querySelector('.eporta-lb-close').focus();
+	}
+	function close() {
+		if (!box || box.hidden) return;
+		box.hidden = true;
+		document.documentElement.style.overflow = '';
+		document.removeEventListener('keydown', onKey);
+		if (lastFocus && lastFocus.focus) lastFocus.focus();
+	}
+	main.addEventListener('click', open);
+	main.addEventListener('keydown', function (e) {
+		if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+	});
+	// Окно сузилось до мобильной ширины, пока просмотр открыт — закрываем (на мобильном его нет).
+	var onMq = function () { if (!mq.matches) close(); };
+	if (mq.addEventListener) mq.addEventListener('change', onMq); else if (mq.addListener) mq.addListener(onMq);
+})();
 
 var isFav = false;
 function toggleFav() {

@@ -148,6 +148,31 @@ function eportaCollectionsUpdate(int $sectionId, string $name, string $descripti
     return $ok;
 }
 
+// Иерархия и блок главной (UF_PARENT_COLLECTION / UF_HOME_BLOCK, см.
+// scripts/add_section_collection_hierarchy_ufields.php). Правила вложенности — в
+// eportaCollectionsValidateParent() (local/lib/eporta_collections.php), здесь только запись.
+function eportaCollectionsSetParent(int $sectionId, int $parentId, ?string &$error = null): bool {
+    $error = eportaCollectionsValidateParent(eportaCollections(true), $sectionId, $parentId);
+    if ($error !== null) {
+        return false;
+    }
+    $sectionObj = new CIBlockSection;
+    $ok = $sectionObj->Update($sectionId, ['UF_PARENT_COLLECTION' => $parentId]);
+    if (!$ok) {
+        $error = $sectionObj->LAST_ERROR ?: 'Не удалось сохранить родителя коллекции';
+    }
+    return $ok;
+}
+
+function eportaCollectionsSetHomeBlock(int $sectionId, int $block, ?string &$error = null): bool {
+    $sectionObj = new CIBlockSection;
+    $ok = $sectionObj->Update($sectionId, ['UF_HOME_BLOCK' => $block === 2 ? 2 : 1]);
+    if (!$ok) {
+        $error = $sectionObj->LAST_ERROR ?: 'Не удалось сохранить блок на главной';
+    }
+    return $ok;
+}
+
 // Баннер страницы САМОЙ коллекции (/catalog/collections/<code>/ — шапка с фото и описанием,
 // catalog/index.php: $eportaCollectionSection["DETAIL_PICTURE"] ?: ["PICTURE"]). НЕ то же самое,
 // что слотовый баннер плитки коллекции на главной/на /collection/ — тот отдельный элемент

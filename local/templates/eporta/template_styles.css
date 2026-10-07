@@ -1119,6 +1119,80 @@ img { display: block; }
    заказчик попросил убрать счётчик только на мобильном, оставив его на десктопе/планшете. */
 @media (max-width: 640px) { .eporta-coll-count { display: none !important; } }
 
+/* Главная, "Коллекции фабрики": два блока — слева плитки блока 1, справа мозаика блока 2
+   (UF_HOME_BLOCK). Пока в блоке 2 нет реальных коллекций — 6 моковых плиток .eporta-coll-tile--mock.
+   Ниже 861px блоки друг под другом, на мобильном (<=640px) каждый — горизонтальный слайдер 2x2. */
+.eporta-coll-split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: stretch; }
+.eporta-coll-split--single { grid-template-columns: 1fr; }
+.eporta-coll-tile { position: relative; display: block; border-radius: 16px; overflow: hidden; background: #f2efe9; text-decoration: none; cursor: pointer; }
+.eporta-coll-tile-name { position: absolute; left: 20px; right: 20px; bottom: 18px; }
+.eporta-coll-pane--1 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-content: start; }
+.eporta-coll-split--single .eporta-coll-pane--1 { grid-template-columns: repeat(4, 1fr); }
+.eporta-coll-pane--1 .eporta-coll-tile { aspect-ratio: 1 / 1; }
+.eporta-coll-pane--2 { display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, minmax(130px, 1fr)); grid-auto-rows: minmax(130px, 1fr); gap: 14px; min-height: 520px; }
+.eporta-coll-pane--2 > :nth-child(1) { grid-column: 1; grid-row: 1 / span 2; }
+.eporta-coll-pane--2 > :nth-child(2) { grid-column: 2; grid-row: 1; }
+.eporta-coll-pane--2 > :nth-child(3) { grid-column: 2; grid-row: 2; }
+.eporta-coll-pane--2 > :nth-child(4) { grid-column: 1; grid-row: 3; }
+.eporta-coll-pane--2 > :nth-child(5) { grid-column: 2; grid-row: 3 / span 2; }
+.eporta-coll-pane--2 > :nth-child(6) { grid-column: 1; grid-row: 4; }
+.eporta-coll-tile--mock { cursor: default; border: 1.5px dashed #d9d2c4; }
+.eporta-coll-tile--mock1 { background: linear-gradient(135deg, #f1e9db, #e4d8c3); }
+.eporta-coll-tile--mock2 { background: linear-gradient(135deg, #ece6dc, #ddd3c4); }
+.eporta-coll-tile--mock3 { background: linear-gradient(135deg, #f3ece0, #e6dac6); }
+.eporta-coll-tile--mock4 { background: linear-gradient(135deg, #eee7da, #dfd4c0); }
+.eporta-coll-tile--mock5 { background: linear-gradient(135deg, #f0e8dc, #e2d6c1); }
+.eporta-coll-tile--mock6 { background: linear-gradient(135deg, #ede5d8, #ded2bd); }
+@media (max-width: 860px) {
+  .eporta-coll-split { grid-template-columns: 1fr; gap: 18px; }
+  .eporta-coll-pane--1, .eporta-coll-split--single .eporta-coll-pane--1 { grid-template-columns: repeat(4, 1fr); }
+  .eporta-coll-pane--2 { min-height: 440px; }
+}
+@media (max-width: 640px) {
+  .eporta-coll-pane--1, .eporta-coll-pane--2, .eporta-coll-split--single .eporta-coll-pane--1 {
+    display: grid; grid-template-columns: none; grid-template-rows: repeat(2, auto); grid-auto-rows: auto;
+    grid-auto-flow: column; grid-auto-columns: calc((100% - 10px) / 2); gap: 10px; min-height: 0; align-content: start;
+    overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .eporta-coll-pane--1::-webkit-scrollbar, .eporta-coll-pane--2::-webkit-scrollbar { display: none; }
+  .eporta-coll-pane--1 > .eporta-coll-tile, .eporta-coll-pane--2 > .eporta-coll-tile { grid-column: auto !important; grid-row: auto !important; aspect-ratio: 1 / 1; }
+  /* Страница слайдера = 4 плитки (2 колонки x 2 ряда): привязка к началу каждой второй колонки. */
+  .eporta-coll-pane--1 > :nth-child(4n+1), .eporta-coll-pane--1 > :nth-child(4n+2),
+  .eporta-coll-pane--2 > :nth-child(4n+1), .eporta-coll-pane--2 > :nth-child(4n+2) { scroll-snap-align: start; }
+  .eporta-coll-tile-name { left: 12px; right: 12px; bottom: 12px; }
+  .eporta-coll-tile-name > div:first-child { font-size: 16px !important; }
+}
+
+/* Полноэкранный просмотр фото товара (карточка товара, только десктоп >860px): подложка --lb-bg
+   меняется выбором цвета, цвет элементов управления --lb-fg подстраивается под яркость фона. */
+@media (min-width: 861px) { .product-detail-main-photo[data-zoom] { cursor: zoom-in; } }
+.eporta-lightbox { --lb-bg: #f2f0ec; --lb-fg: #2b2620; position: fixed; inset: 0; z-index: 10000; background: var(--lb-bg); color: var(--lb-fg); display: flex; flex-direction: column; }
+.eporta-lightbox[hidden] { display: none; }
+.eporta-lb-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 28px 96px 8px; box-sizing: border-box; }
+.eporta-lb-stage img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.eporta-lb-btn { position: absolute; border: 0; border-radius: 50%; width: 46px; height: 46px; background: rgba(127, 127, 127, .2); color: var(--lb-fg); font: 400 22px/1 'Manrope', sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.eporta-lb-btn:hover { background: rgba(127, 127, 127, .35); }
+.eporta-lb-btn[hidden] { display: none; }
+.eporta-lb-close { top: 18px; right: 22px; }
+.eporta-lb-nav { top: 50%; margin-top: -23px; font-size: 30px; }
+.eporta-lb-prev { left: 22px; }
+.eporta-lb-next { right: 22px; }
+.eporta-lb-bar { flex: none; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 12px 20px 22px; font: 600 13px 'Manrope', sans-serif; }
+.eporta-lb-count { min-width: 44px; opacity: .7; }
+.eporta-lb-label { opacity: .7; }
+.eporta-lb-swatches { display: inline-flex; gap: 8px; }
+.eporta-lb-swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(127, 127, 127, .45); padding: 0; cursor: pointer; }
+.eporta-lb-swatch.active { box-shadow: 0 0 0 2px var(--lb-bg), 0 0 0 4px var(--lb-fg); }
+.eporta-lb-custom { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.eporta-lb-custom input { width: 30px; height: 30px; padding: 0; border: 0; background: none; cursor: pointer; }
+
+/* Полоска подколлекций на странице коллекции (родитель + подколлекции): только текст, по центру,
+   текущая страница залита с рамкой, остальные — ссылки на соответствующие страницы. */
+.eporta-subcoll-nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 20px var(--pad-x) 4px; }
+.eporta-subcoll-btn { display: inline-flex; align-items: center; padding: 10px 22px; border: 1.6px solid #e7e3db; border-radius: 999px; background: #fff; color: #2b2620; font: 700 14px 'Manrope'; text-decoration: none; transition: border-color .15s, background .15s; }
+a.eporta-subcoll-btn:hover { border-color: #e8820a; }
+.eporta-subcoll-btn--active { background: #e8820a; border-color: #c96f06; color: #fff; cursor: default; }
+
 /* Мозаика категорий на главной — на десктопе 4 колонки с явной раскладкой плиток
    (grid-column/grid-row в инлайн-стилях), на узких экранах раскладка ломается,
    поэтому ниже 860px сбрасываем сетку в простой 2-колоночный поток и убираем

@@ -51,6 +51,26 @@ if ($action === 'update') {
     if (!$ok) {
         eportaCollectionsJsonFail($error ?: 'Ошибка сохранения коллекции', 500);
     }
+    if (isset($_POST['home_block'])) {
+        $ok = eportaCollectionsSetHomeBlock($sectionId, (int)$_POST['home_block'], $error);
+        if (!$ok) {
+            eportaCollectionsJsonFail($error ?: 'Ошибка сохранения блока на главной', 500);
+        }
+    }
+    echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+if ($action === 'set_parent') {
+    $sectionId = (int)($_POST['id'] ?? 0);
+    $parentId = (int)($_POST['parent_id'] ?? 0);
+    if ($sectionId <= 0 || $parentId < 0) {
+        eportaCollectionsJsonFail('Некорректные данные');
+    }
+    $error = null;
+    if (!eportaCollectionsSetParent($sectionId, $parentId, $error)) {
+        eportaCollectionsJsonFail($error ?: 'Ошибка сохранения иерархии', 422);
+    }
     echo json_encode(['ok' => true], JSON_UNESCAPED_UNICODE);
     exit;
 }
