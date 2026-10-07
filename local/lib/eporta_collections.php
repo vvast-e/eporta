@@ -99,6 +99,38 @@ function eportaCollectionsParentMap(array $collections): array {
     return $map;
 }
 
+// Проверка назначения родителя в админке (drag-and-drop) — null если можно, иначе текст ошибки.
+// $parentId = 0 снимает связь (коллекция становится верхнего уровня). Работает по полному списку
+// коллекций (включая скрытые) и по СЫРЫМ значениям UF_PARENT_COLLECTION — строже, чем
+// eportaCollectionsParentMap(): запрещает сам факт трёхуровневой цепочки, а не только игнорирует её.
+function eportaCollectionsValidateParent(array $collections, int $sectionId, int $parentId): ?string {
+    $byId = [];
+    foreach ($collections as $collection) {
+        $byId[(int)$collection['ID']] = $collection;
+    }
+    if (!isset($byId[$sectionId])) {
+        return 'Коллекция не найдена';
+    }
+    if ($parentId === 0) {
+        return null;
+    }
+    if ($parentId === $sectionId) {
+        return 'Коллекция не может быть подколлекцией самой себя';
+    }
+    if (!isset($byId[$parentId])) {
+        return 'Родительская коллекция не найдена';
+    }
+    if (eportaCollectionParentId($byId[$parentId]) > 0) {
+        return 'Глубина вложенности — 2 уровня: выбранный родитель сам является подколлекцией';
+    }
+    foreach ($byId as $collection) {
+        if (eportaCollectionParentId($collection) === $sectionId) {
+            return 'У этой коллекции уже есть подколлекции — сначала вынесите их на верхний уровень';
+        }
+    }
+    return null;
+}
+
 // Коллекции верхнего уровня (без действующего родителя) — то, что показывается на главной.
 function eportaCollectionsTopLevel(array $collections): array {
     $parentMap = eportaCollectionsParentMap($collections);

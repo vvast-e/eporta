@@ -55,5 +55,17 @@ check('block: по умолчанию 1', eportaCollectionHomeBlock(coll(1)), 1)
 check('block: 2', eportaCollectionHomeBlock(coll(1, 0, 2)), 2);
 check('block: мусор -> 1', eportaCollectionHomeBlock(['UF_HOME_BLOCK' => '7']), 1);
 
+// Валидация назначения родителя (drag-and-drop в админке)
+$v = [coll(1), coll(2, 1), coll(3), coll(4)];
+check('validate: нормальный перенос 3 -> 1', eportaCollectionsValidateParent($v, 3, 1), null);
+check('validate: снять родителя (0)', eportaCollectionsValidateParent($v, 2, 0), null);
+check('validate: на самого себя', is_string(eportaCollectionsValidateParent($v, 3, 3)), true);
+check('validate: родитель сам подколлекция (глубина 3)', is_string(eportaCollectionsValidateParent($v, 3, 2)), true);
+check('validate: у коллекции есть дети — нельзя вложить', is_string(eportaCollectionsValidateParent($v, 1, 3)), true);
+check('validate: несуществующий родитель', is_string(eportaCollectionsValidateParent($v, 3, 99)), true);
+check('validate: несуществующая коллекция', is_string(eportaCollectionsValidateParent($v, 99, 1)), true);
+check('validate: пустой список', is_string(eportaCollectionsValidateParent([], 1, 0)), true);
+check('validate: перенос подколлекции к другому родителю', eportaCollectionsValidateParent([coll(1), coll(2, 1), coll(3)], 2, 3), null);
+
 echo $failures ? "\nПровалено: $failures\n" : "\nВсе проверки прошли\n";
 exit($failures ? 1 : 0);

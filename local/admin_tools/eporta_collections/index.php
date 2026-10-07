@@ -26,7 +26,25 @@ $sessid = bitrix_sessid();
 $collections = eportaCollections(true);
 $counts = eportaCollectionsElementCounts(true);
 
-$collectionsForJs = array_map(function ($coll) use ($counts) {
+// Иерархия (UF_PARENT_COLLECTION): подколлекции выводим сразу под родителем, порядок внутри
+// уровня — по SORT (как отдаёт eportaCollections()). Действующие связи — по полному списку,
+// включая скрытые, чтобы связь со скрытым родителем не пропадала из админки.
+$parentMap = eportaCollectionsParentMap($collections);
+$orderedCollections = [];
+foreach ($collections as $coll) {
+    if (isset($parentMap[(int)$coll['ID']])) {
+        continue;
+    }
+    $orderedCollections[] = $coll;
+    foreach ($collections as $child) {
+        if (($parentMap[(int)$child['ID']] ?? 0) === (int)$coll['ID']) {
+            $orderedCollections[] = $child;
+        }
+    }
+}
+$childCounts = array_count_values($parentMap);
+
+$collectionsForJs = array_map(function ($coll) use ($counts, $parentMap, $childCounts) {
     // Баннер страницы САМОЙ коллекции (DETAIL_PICTURE ?: PICTURE секции) — тот же приоритет
     // полей, что и на публичной странице /catalog/collections/<code>/ (catalog/index.php).
     // Не путать с плиткой на главной/на /collection/ — та отдельный слот IBLOCK 27, см. hint выше.
@@ -49,8 +67,11 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
         // обычных портретных (Invi и позже входные двери/перегородки), см.
         // local/lib/eporta_collections.php::eportaCollectionHasSquareCards().
         'square_cards' => ($coll['UF_SQUARE_CARDS'] ?? '') === 'Y',
+        'parent_id' => $parentMap[(int)$coll['ID']] ?? 0,
+        'children_count' => $childCounts[(int)$coll['ID']] ?? 0,
+        'home_block' => eportaCollectionHomeBlock($coll),
     ];
-}, $collections);
+}, $orderedCollections);
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -110,6 +131,14 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
     .variant-card .color { font-size: 10.5px; margin-top: 5px; color: #444; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .variant-card .star { font-size: 10.5px; color: #2f9e44; font-weight: 700; margin-top: 2px; min-height: 13px; }
     .variant-card .show-toggle { display: flex; align-items: center; gap: 4px; justify-content: center; margin-top: 6px; font-size: 10px; color: #666; cursor: pointer; }
+    .drag-handle { cursor: grab; color: #999; font-size: 16px; line-height: 1; user-select: none; display: inline-block; margin-right: 4px; }
+    .drop-top { display: none; margin: 0 0 12px; padding: 10px; border: 2px dashed #bbb; border-radius: 6px; color: #777; font-size: 12.5px; text-align: center; }
+    body.is-dragging .drop-top { display: block; }
+    .drop-top.over { border-color: #2f9e44; background: #f1fbf3; color: #2f9e44; }
+    tr.is-child > td:first-child { padding-left: 22px; }
+    tr.drop-target-ok { outline: 2px solid #2f9e44; outline-offset: -2px; background: #f1fbf3; }
+    tr.dragging-row { opacity: .45; }
+    .child-label { font-size: 11.5px; color: #2f9e44; margin-top: 3px; }
     .models-status { font-size: 12px; margin-top: 8px; min-height: 16px; }
     .models-status.ok { color: #2f9e44; }
     .models-status.err { color: #c0392b; }
@@ -132,8 +161,15 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
     кнопки нет) и включением/выключением тёмного градиента поверх фото.<br>
     Галочка «Квадратные фото» — для коллекций, где фото товара интерьерное (квадратное
     1200×1200/520×520), а не обычное портретное. Меняет карточки на странице коллекции на более
-    крупные, 3 в ряд.
+    крупные, 3 в ряд.<br>
+    Иерархия: перетащите коллекцию за значок ⠿ на другую коллекцию — она станет её подколлекцией
+    (глубина 2 уровня). На странице родителя и подколлекций появится полоска кнопок для перехода
+    между ними, на главной подколлекции не показываются. Чтобы вернуть коллекцию на верхний
+    уровень, перетащите её на серую полосу над таблицей. Столбец «Блок на главной» (1 — левый,
+    2 — правый) применяется кнопкой «Сохранить».
 </p>
+<div id="drop-top" class="drop-top">Перетащите сюда подколлекцию, чтобы вернуть её на верхний уровень</div>
+<div class="status" id="dnd-status"></div>
 
 <table id="collections-table">
     <thead>
@@ -144,6 +180,7 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
             <th style="width:80px">Порядок</th>
             <th style="width:60px">Активна</th>
             <th style="width:90px">Квадратные фото</th>
+            <th style="width:80px">Блок на главной</th>
             <th style="width:90px">Моделей</th>
             <th style="width:130px">Баннер страницы</th>
             <th style="width:200px">Кнопка/затемнение баннера</th>
@@ -178,13 +215,15 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
     function renderRow(coll, index) {
         const tr = document.createElement('tr');
         tr.innerHTML =
-            '<td>' + (index + 1) + '</td>' +
+            '<td><span class="drag-handle" draggable="true" title="Перетащите на другую коллекцию, чтобы сделать подколлекцией">⠿</span>' + (index + 1) + '</td>' +
             '<td><input type="text" class="f-name" value="' + coll.name.replace(/"/g, '&quot;') + '">' +
-                '<div class="code-cell">/catalog/collections/' + coll.code + '/</div></td>' +
+                '<div class="code-cell">/catalog/collections/' + coll.code + '/</div>' +
+                (coll.parent_id ? '<div class="child-label">↳ подколлекция «' + (COLLECTIONS.find(function (c) { return c.id === coll.parent_id; }) || { name: '' }).name.replace(/</g, '&lt;') + '»</div>' : '') + '</td>' +
             '<td><textarea class="f-description" rows="2">' + coll.description.replace(/</g, '&lt;') + '</textarea></td>' +
             '<td><input type="number" class="f-sort" value="' + coll.sort + '" step="100"></td>' +
             '<td style="text-align:center"><input type="checkbox" class="f-active"' + (coll.active ? ' checked' : '') + '></td>' +
             '<td style="text-align:center"><input type="checkbox" class="f-square-cards"' + (coll.square_cards ? ' checked' : '') + '></td>' +
+            '<td><select class="f-home-block"><option value="1"' + (coll.home_block === 1 ? ' selected' : '') + '>1</option><option value="2"' + (coll.home_block === 2 ? ' selected' : '') + '>2</option></select></td>' +
             '<td class="cnt-cell">' + coll.cnt + '</td>' +
             '<td><div class="banner-cell">' + bannerThumbHtml(coll.banner) +
                 '<label class="banner-upload-btn">Изменить<input type="file" class="f-banner" accept="image/jpeg,image/png" hidden></label>' +
@@ -246,6 +285,7 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
             fd.append('sort', tr.querySelector('.f-sort').value);
             fd.append('active', tr.querySelector('.f-active').checked ? 'Y' : 'N');
             fd.append('square_cards', tr.querySelector('.f-square-cards').checked ? 'Y' : 'N');
+            fd.append('home_block', tr.querySelector('.f-home-block').value);
             try {
                 const r = await fetch('ajax.php', { method: 'POST', body: fd });
                 const resp = await r.json();
@@ -270,7 +310,7 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
         modelsRow.className = 'models-row';
         modelsRow.style.display = 'none';
         const modelsCell = document.createElement('td');
-        modelsCell.colSpan = 10;
+        modelsCell.colSpan = 11;
         const modelsPanel = document.createElement('div');
         modelsPanel.className = 'models-panel';
         modelsCell.appendChild(modelsPanel);
@@ -420,9 +460,96 @@ $collectionsForJs = array_map(function ($coll) use ($counts) {
         });
     }
 
+    // Иерархия коллекций: перетаскивание за значок ⠿ на другую коллекцию делает её подколлекцией,
+    // на серую полосу сверху — возвращает на верхний уровень. Здесь только UX-подсказки допустимости
+    // (глубина 2, нельзя на себя, нельзя вложить коллекцию с подколлекциями) — окончательные
+    // правила проверяет сервер (eportaCollectionsValidateParent), после успеха страница
+    // перезагружается и показывает дерево в актуальном порядке.
+    const dndStatus = document.getElementById('dnd-status');
+    const dropTop = document.getElementById('drop-top');
+    let dragId = 0;
+
+    function draggedColl() {
+        return COLLECTIONS.find(function (c) { return c.id === dragId; }) || null;
+    }
+
+    async function setParent(id, parentId) {
+        dndStatus.textContent = 'Сохраняю...';
+        dndStatus.className = 'status';
+        const fd = new FormData();
+        fd.append('action', 'set_parent');
+        fd.append('sessid', SESSID);
+        fd.append('id', id);
+        fd.append('parent_id', parentId);
+        try {
+            const r = await fetch('ajax.php', { method: 'POST', body: fd });
+            const resp = await r.json();
+            if (!resp.ok) {
+                dndStatus.textContent = resp.error || 'Ошибка';
+                dndStatus.classList.add('err');
+                return;
+            }
+            dndStatus.textContent = 'Сохранено, страница обновится...';
+            dndStatus.classList.add('ok');
+            setTimeout(function () { location.reload(); }, 500);
+        } catch (e) {
+            dndStatus.textContent = 'Ошибка сети: ' + e.message;
+            dndStatus.classList.add('err');
+        }
+    }
+
+    dropTop.addEventListener('dragover', function (e) {
+        const dragged = draggedColl();
+        if (dragged && dragged.parent_id) {
+            e.preventDefault();
+            dropTop.classList.add('over');
+        }
+    });
+    dropTop.addEventListener('dragleave', function () { dropTop.classList.remove('over'); });
+    dropTop.addEventListener('drop', function (e) {
+        e.preventDefault();
+        dropTop.classList.remove('over');
+        const dragged = draggedColl();
+        if (dragged && dragged.parent_id) setParent(dragged.id, 0);
+    });
+
     COLLECTIONS.forEach(function (coll, index) {
         const rows = renderRow(coll, index);
-        tbody.appendChild(rows[0]);
+        const tr = rows[0];
+        if (coll.parent_id) tr.classList.add('is-child');
+
+        tr.querySelector('.drag-handle').addEventListener('dragstart', function (e) {
+            dragId = coll.id;
+            e.dataTransfer.setData('text/plain', String(coll.id));
+            e.dataTransfer.effectAllowed = 'move';
+            tr.classList.add('dragging-row');
+            document.body.classList.add('is-dragging');
+        });
+        tr.querySelector('.drag-handle').addEventListener('dragend', function () {
+            dragId = 0;
+            tr.classList.remove('dragging-row');
+            document.body.classList.remove('is-dragging');
+            document.querySelectorAll('tr.drop-target-ok').forEach(function (el) { el.classList.remove('drop-target-ok'); });
+        });
+        function canDropHere() {
+            const dragged = draggedColl();
+            return !!dragged && dragged.id !== coll.id && !coll.parent_id && !dragged.children_count && dragged.parent_id !== coll.id;
+        }
+        tr.addEventListener('dragover', function (e) {
+            if (canDropHere()) {
+                e.preventDefault();
+                tr.classList.add('drop-target-ok');
+            }
+        });
+        tr.addEventListener('dragleave', function () { tr.classList.remove('drop-target-ok'); });
+        tr.addEventListener('drop', function (e) {
+            if (!canDropHere()) return;
+            e.preventDefault();
+            tr.classList.remove('drop-target-ok');
+            setParent(dragId, coll.id);
+        });
+
+        tbody.appendChild(tr);
         tbody.appendChild(rows[1]);
     });
 
