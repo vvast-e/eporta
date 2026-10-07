@@ -1163,6 +1163,29 @@ img { display: block; }
   .eporta-coll-tile-name > div:first-child { font-size: 16px !important; }
 }
 
+/* Полноэкранный просмотр фото товара (карточка товара, только десктоп >860px): подложка --lb-bg
+   меняется выбором цвета, цвет элементов управления --lb-fg подстраивается под яркость фона. */
+@media (min-width: 861px) { .product-detail-main-photo[data-zoom] { cursor: zoom-in; } }
+.eporta-lightbox { --lb-bg: #f2f0ec; --lb-fg: #2b2620; position: fixed; inset: 0; z-index: 10000; background: var(--lb-bg); color: var(--lb-fg); display: flex; flex-direction: column; }
+.eporta-lightbox[hidden] { display: none; }
+.eporta-lb-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 28px 96px 8px; box-sizing: border-box; }
+.eporta-lb-stage img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.eporta-lb-btn { position: absolute; border: 0; border-radius: 50%; width: 46px; height: 46px; background: rgba(127, 127, 127, .2); color: var(--lb-fg); font: 400 22px/1 'Manrope', sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.eporta-lb-btn:hover { background: rgba(127, 127, 127, .35); }
+.eporta-lb-btn[hidden] { display: none; }
+.eporta-lb-close { top: 18px; right: 22px; }
+.eporta-lb-nav { top: 50%; margin-top: -23px; font-size: 30px; }
+.eporta-lb-prev { left: 22px; }
+.eporta-lb-next { right: 22px; }
+.eporta-lb-bar { flex: none; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 12px 20px 22px; font: 600 13px 'Manrope', sans-serif; }
+.eporta-lb-count { min-width: 44px; opacity: .7; }
+.eporta-lb-label { opacity: .7; }
+.eporta-lb-swatches { display: inline-flex; gap: 8px; }
+.eporta-lb-swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(127, 127, 127, .45); padding: 0; cursor: pointer; }
+.eporta-lb-swatch.active { box-shadow: 0 0 0 2px var(--lb-bg), 0 0 0 4px var(--lb-fg); }
+.eporta-lb-custom { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.eporta-lb-custom input { width: 30px; height: 30px; padding: 0; border: 0; background: none; cursor: pointer; }
+
 /* Полоска подколлекций на странице коллекции (родитель + подколлекции): только текст, по центру,
    текущая страница залита с рамкой, остальные — ссылки на соответствующие страницы. */
 .eporta-subcoll-nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 20px var(--pad-x) 4px; }
