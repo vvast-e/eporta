@@ -43,7 +43,9 @@ if ($page === 'collection_banner') {
     $_GET['id'] = $_REQUEST['id'] = $argv[3] ?? 194;
 }
 ob_start();
-require($_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools/' . ($pages[$page] ?? $pages['collections']));
+// EPORTA_ADMIN_ROOT — каталог с копией admin_tools для проверки изменений до выкатки (по умолчанию боевой).
+$adminRoot = getenv('EPORTA_ADMIN_ROOT') ?: $_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools';
+require($adminRoot . '/' . ($pages[$page] ?? $pages['collections']));
 $html = ob_get_clean();
 file_put_contents("$outDir/admin_$page.html", $html);
 echo "page=$page bytes=" . strlen($html) . "\n";
