@@ -18,19 +18,6 @@ $groups = ['main' => 'Витрина', 'content' => 'Контент'];
 <head>
 <meta charset="utf-8">
 <title>Управление витриной (eporta.ru)</title>
-<style>
-    body { font-family: -apple-system, Segoe UI, Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; color: #222; }
-    h1 { font-size: 20px; }
-    h2 { font-size: 16px; margin: 28px 0 10px; }
-    .hint { color: #666; font-size: 13px; margin-bottom: 20px; }
-    .sf-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid #eee; }
-    .sf-list li { border-bottom: 1px solid #eee; }
-    .sf-list a { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 12px 10px; color: inherit; text-decoration: none; }
-    .sf-list a:hover { background: #f2f7fc; }
-    .sf-list a:focus-visible { outline: 2px solid #2b6cb0; outline-offset: -2px; }
-    .sf-list .name { font-weight: 600; color: #2b6cb0; min-width: 180px; }
-    .sf-list .desc { color: #666; font-size: 13px; flex: 1 1 320px; align-self: center; }
-</style>
 </head>
 <body>
 <?php eportaStorefrontNav(''); ?>

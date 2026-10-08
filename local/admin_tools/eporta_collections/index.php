@@ -79,11 +79,6 @@ $collectionsForJs = array_map(function ($coll) use ($counts, $parentMap, $childC
 <meta charset="utf-8">
 <title>Коллекции фабрики (eporta.ru)</title>
 <style>
-    body { font-family: -apple-system, Segoe UI, Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; color: #222; }
-    h1 { font-size: 20px; }
-    h2 { font-size: 16px; margin: 32px 0 14px; }
-    .hint { color: #666; font-size: 13px; margin-bottom: 20px; }
-    .hint a { color: #2b6cb0; }
     table { width: 100%; border-collapse: collapse; }
     th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; vertical-align: top; }
     th { font-size: 12px; color: #888; font-weight: 600; }

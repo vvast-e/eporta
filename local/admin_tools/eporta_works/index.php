@@ -40,12 +40,8 @@ $works = eportaWorksAdminList();
 <meta charset="utf-8">
 <title>Наши работы (eporta.ru)</title>
 <style>
-    body { font-family: -apple-system, Segoe UI, Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; color: #222; }
-    h1 { font-size: 20px; }
-    .hint { color: #666; font-size: 13px; margin-bottom: 20px; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
-    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; font-size: 13px; vertical-align: middle; }
-    th { color: #888; font-weight: 600; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #e3e8ee; font-size: 13px; vertical-align: middle; }
     td.thumb img { width: 64px; height: 48px; object-fit: cover; border-radius: 4px; background: #eee; display: block; }
     td.thumb .noimg { width: 64px; height: 48px; border-radius: 4px; background: #eee; }
     .status-y { color: #2f9e44; font-weight: 600; }

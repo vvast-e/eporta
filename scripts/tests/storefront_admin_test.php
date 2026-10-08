@@ -55,6 +55,7 @@ foreach ($pages as $key => [$dir]) {
     check("шапка $key: ссылок на вкладки", substr_count($html, 'class="sf-tab'), count($all));
     check("шапка $key: без скриптов", strpos($html, '<script'), false);
 }
+check('общий файл стилей на месте', is_file("$root/eporta_storefront/admin.css"), true);
 check('шапка без активной вкладки', substr_count(navHtml(''), 'aria-current'), 0);
 check('шапка: неизвестный ключ не ломает вывод', substr_count(navHtml('zzz'), 'aria-current'), 0);
 check('шапка: группа Контент подсвечена для promo', (bool)preg_match('~sf-group is-active">Контент~', navHtml('promo')), true);

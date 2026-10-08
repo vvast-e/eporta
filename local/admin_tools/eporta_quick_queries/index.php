@@ -60,10 +60,6 @@ foreach ($options as $group => $values) {
 <meta charset="utf-8">
 <title>Популярные запросы (eporta.ru)</title>
 <style>
-    body { font-family: -apple-system, Segoe UI, Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; color: #222; }
-    h1 { font-size: 20px; }
-    .hint { color: #666; font-size: 13px; margin-bottom: 20px; line-height: 1.5; }
-    .hint a { color: #2b6cb0; }
     .q-card { border: 1px solid #ddd; border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; background: #fff; }
     .q-head { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
     .q-head .num { width: 22px; color: #888; font-size: 13px; }
