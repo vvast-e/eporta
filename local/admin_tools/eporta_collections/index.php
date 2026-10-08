@@ -142,6 +142,17 @@ $collectionsForJs = array_map(function ($coll) use ($counts, $parentMap, $childC
     .models-status { font-size: 12px; margin-top: 8px; min-height: 16px; }
     .models-status.ok { color: #2f9e44; }
     .models-status.err { color: #c0392b; }
+
+    /* Иерархия: полоса «На верхний уровень» постоянно на месте (не появляется при dragstart —
+       сдвиг раскладки в этот момент сбивал перетаскивание), статус виден при прокрутке таблицы,
+       выбор родителя и кнопка «На верхний уровень» в строке — запасной путь без перетаскивания. */
+    .drop-top.has-children { display: block; }
+    body.is-dragging .drop-top:not(.has-children) { display: none; }
+    #dnd-status { position: sticky; top: 0; z-index: 5; background: #fff; padding: 4px 0; }
+    .parent-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; color: #666; }
+    .parent-pick select { font-size: 12.5px; padding: 3px 5px; border: 1px solid #ddd; border-radius: 4px; max-width: 170px; }
+    .parent-pick button { background: #fff; color: #2b6cb0; border: 1px solid #cfe0f0; padding: 3px 9px; font-size: 12px; }
+    .parent-pick button:hover { background: #f2f7fc; }
 </style>
 </head>
 <body>
@@ -468,6 +479,7 @@ $collectionsForJs = array_map(function ($coll) use ($counts, $parentMap, $childC
     // перезагружается и показывает дерево в актуальном порядке.
     const dndStatus = document.getElementById('dnd-status');
     const dropTop = document.getElementById('drop-top');
+    if (COLLECTIONS.some(function (c) { return c.parent_id; })) dropTop.classList.add('has-children');
     let dragId = 0;
 
     function draggedColl() {
@@ -518,6 +530,23 @@ $collectionsForJs = array_map(function ($coll) use ($counts, $parentMap, $childC
         const rows = renderRow(coll, index);
         const tr = rows[0];
         if (coll.parent_id) tr.classList.add('is-child');
+
+        // Запасной путь без перетаскивания: «Родитель» + «На верхний уровень» (тот же action=set_parent).
+        // Коллекции с подколлекциями сами подколлекцией стать не могут — для них выбора нет.
+        if (!coll.children_count) {
+            const pick = document.createElement('div');
+            pick.className = 'parent-pick';
+            const parentOptions = COLLECTIONS.filter(function (c) { return c.id !== coll.id && !c.parent_id; });
+            pick.innerHTML = '<label>Родитель</label><select class="f-parent"><option value="0">— верхний уровень —</option>' +
+                parentOptions.map(function (c) {
+                    return '<option value="' + c.id + '"' + (c.id === coll.parent_id ? ' selected' : '') + '>' + c.name.replace(/</g, '&lt;') + '</option>';
+                }).join('') + '</select>' +
+                (coll.parent_id ? '<button type="button" class="f-to-top">На верхний уровень</button>' : '');
+            tr.children[1].appendChild(pick);
+            pick.querySelector('.f-parent').addEventListener('change', function () { setParent(coll.id, parseInt(this.value, 10) || 0); });
+            const toTop = pick.querySelector('.f-to-top');
+            if (toTop) toTop.addEventListener('click', function () { setParent(coll.id, 0); });
+        }
 
         tr.querySelector('.drag-handle').addEventListener('dragstart', function (e) {
             dragId = coll.id;
