@@ -32,7 +32,62 @@ function eportaBreadcrumbHtml(array $items, string $modifier = ''): string
     return '<nav class="' . $class . '" aria-label="Хлебные крошки">' . implode(' · ', $parts) . '</nav>';
 }
 
+// Выводит крошки и помечает, что страница показала свои — тогда автокрошки из header.php
+// (eportaAutoBreadcrumb) второй раз не добавляются.
 function eportaBreadcrumb(array $items, string $modifier = ''): void
 {
+    $GLOBALS['EPORTA_BREADCRUMB_RENDERED'] = true;
     echo eportaBreadcrumbHtml($items, $modifier);
+}
+
+// Цепочка коллекций от верхнего уровня до $id по UF_PARENT_COLLECTION: [[имя, /catalog/collections/<code>/], ...].
+// Чистая функция (список коллекций передаётся), защищена от циклов и от отсутствия родителя в списке.
+function eportaBreadcrumbCollectionChain(array $collections, int $id): array
+{
+    $byId = [];
+    foreach ($collections as $c) {
+        $byId[(int)$c['ID']] = $c;
+    }
+    $chain = [];
+    $seen = [];
+    while ($id > 0 && isset($byId[$id]) && !isset($seen[$id])) {
+        $seen[$id] = true;
+        $c = $byId[$id];
+        array_unshift($chain, [(string)$c['NAME'], '/catalog/collections/' . $c['CODE'] . '/']);
+        $id = (int)($c['UF_PARENT_COLLECTION'] ?? 0);
+    }
+    return $chain;
+}
+
+// Автокрошки для страниц, которые своих не вывели: «Главная › [раздел] › заголовок страницы».
+// Регистрируется в header.php через $APPLICATION->AddBufferContent и вызывается в конце страницы,
+// когда уже известны заголовок и то, вывела ли страница свои крошки.
+function eportaAutoBreadcrumb(): string
+{
+    global $APPLICATION;
+    if (!empty($GLOBALS['EPORTA_BREADCRUMB_RENDERED'])) {
+        return '';
+    }
+    $path = (string)parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+    if ($path === '/' || $path === '/index.php' || strpos((string)\CHTTP::GetLastStatus(), '404') === 0) {
+        return '';
+    }
+    $title = trim((string)$APPLICATION->GetTitle());
+    return eportaBreadcrumbHtml(eportaAutoBreadcrumbItems($path, $title));
+}
+
+// Чистая часть автокрошек: родительский раздел по первому сегменту пути (только для вложенных страниц).
+function eportaAutoBreadcrumbItems(string $path, string $title): array
+{
+    static $parents = [
+        'about' => ['О магазине', '/about/'],
+        'personal' => ['Личный кабинет', '/personal/'],
+    ];
+    $segments = array_values(array_filter(explode('/', $path), 'strlen'));
+    $items = [['Главная', '/']];
+    if (count($segments) > 1 && isset($parents[$segments[0]])) {
+        $items[] = $parents[$segments[0]];
+    }
+    $items[] = [$title];
+    return $items;
 }

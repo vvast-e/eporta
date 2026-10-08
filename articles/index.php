@@ -37,7 +37,7 @@
 		$eportaArticleHasPhoto = !empty($eportaArticle["DETAIL_PICTURE"]);
 		$eportaArticlePhotoSrc = $eportaArticleHasPhoto ? \CFile::GetPath($eportaArticle["DETAIL_PICTURE"]) : "";
 	?>
-	<div style="padding:12px var(--pad-x) 0"><div style="font:500 13px;color:#726c62">Главная · <a href="/articles/" style="color:inherit">Статьи</a> · <?=htmlspecialcharsbx($eportaArticle["NAME"])?></div></div>
+	<?php eportaBreadcrumb([["Главная","/"],["Статьи","/articles/"],[$eportaArticle["NAME"]]]);?>
 
 	<div style="max-width:760px;margin:0 auto;padding:20px var(--pad-x) 60px">
 		<?if ($eportaArticleHasPhoto):?>
@@ -76,7 +76,7 @@
 		$eportaArticlesList[] = $eportaArticleRow;
 	}
 ?>
-	<div style="padding:12px var(--pad-x) 0"><div style="font:500 13px;color:#726c62">Главная · Статьи</div></div>
+	<?php eportaBreadcrumb([["Главная","/"],["Статьи"]]);?>
 
 	<div style="padding:14px var(--pad-x) 6px">
 		<h1 style="margin:0;font:800 28px 'Manrope';letter-spacing:-0.01em">Статьи</h1>

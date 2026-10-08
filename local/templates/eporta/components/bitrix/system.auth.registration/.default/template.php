@@ -12,7 +12,7 @@ if ($arResult["SHOW_SMS_FIELD"] == true) {
 ?>
 <div class="auth-page-wrap">
 <div class="lk-card">
-	<div class="lk-breadcrumb"><a href="/">Главная</a> · <a href="<?=$arResult["AUTH_AUTH_URL"]?>">Авторизация</a> · Регистрация</div>
+	<?php eportaBreadcrumb([["Главная","/"],["Авторизация",$arResult["AUTH_AUTH_URL"]],["Регистрация"]], "breadcrumb--lk");?>
 	<div class="lk-title"><h1>Регистрация</h1></div>
 
 	<div class="auth-tabs">

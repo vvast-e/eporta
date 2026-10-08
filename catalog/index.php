@@ -1053,6 +1053,15 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		?>
 		<?require($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/404_body.php");?>
 	<?else:?>
+	<?
+		// Хлебные крошки карточки: Главная › Каталог › [коллекция и её родитель] › товар.
+		$eportaCrumbEl = \CIBlockElement::GetList([], ["IBLOCK_ID" => 19, "CODE" => $eportaElementCode, "ACTIVE" => "Y"], false, false, ["ID", "NAME", "IBLOCK_SECTION_ID"])->Fetch();
+		eportaBreadcrumb(array_merge(
+			[["Главная", "/"], ["Каталог", "/catalog/"]],
+			eportaBreadcrumbCollectionChain(eportaCollections(), (int)($eportaCrumbEl["IBLOCK_SECTION_ID"] ?? 0)),
+			[[(string)($eportaCrumbEl["NAME"] ?? "")]]
+		));
+	?>
 	<?$APPLICATION->IncludeComponent(
 		"bitrix:catalog.element",
 		".default",
@@ -1147,9 +1156,9 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 
 	<!-- Хлебные крошки -->
 	<?if ($eportaCollectionSection):?>
-	<div class="breadcrumb" style="padding:12px var(--pad-x) 0">Главная · <a href="/collection/" style="color:inherit">Коллекции</a> · <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></div>
+	<?php eportaBreadcrumb([["Главная","/"],["Коллекции","/collection/"],...eportaBreadcrumbCollectionChain(eportaCollections(), (int)$eportaCollectionSection["ID"])]);?>
 	<?else:?>
-	<div class="breadcrumb" style="padding:12px var(--pad-x) 0">Главная · Каталог · Межкомнатные</div>
+	<?php eportaBreadcrumb([["Главная","/"],["Каталог","/catalog/"],["Межкомнатные"]]);?>
 	<?endif;?>
 
 	<?if ($eportaCollectionSection):

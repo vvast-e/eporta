@@ -10,7 +10,7 @@ $isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH
 <?if ($isEportaTemplate):?>
 	<div class="lk-page-wrap">
 	<div class="lk-card">
-		<div class="lk-breadcrumb"><a href="/">Главная</a> · Личный кабинет · Персональные данные</div>
+		<?php eportaBreadcrumb([["Главная","/"],["Личный кабинет","/personal/"],["Персональные данные"]], "breadcrumb--lk");?>
 		<div class="lk-title"><h1>Личный кабинет</h1></div>
 		<?php $active = 'profile'; require $_SERVER["DOCUMENT_ROOT"] . SITE_TEMPLATE_PATH . '/include/lk-tabs.php'; ?>
 		<?$APPLICATION->IncludeComponent(

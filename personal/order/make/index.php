@@ -16,7 +16,7 @@ $isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH
 <?if ($isEportaTemplate):?>
 	<div class="lk-page-wrap">
 	<div class="lk-card">
-		<div class="lk-breadcrumb"><a href="/">Главная</a> · <a href="/personal/cart/">Корзина</a> · Оформление заказа</div>
+		<?php eportaBreadcrumb([["Главная","/"],["Корзина","/personal/cart/"],["Оформление заказа"]], "breadcrumb--lk");?>
 		<div class="lk-title"><h1>Оформление заказа</h1></div>
 		<div style="padding:0 28px 40px">
 		<?$APPLICATION->IncludeComponent("bitrix:sale.order.ajax", "eporta", array(

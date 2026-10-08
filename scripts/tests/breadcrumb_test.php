@@ -36,5 +36,20 @@ check('пустая подпись пропускается',
     '<nav class="breadcrumb" aria-label="Хлебные крошки"><a href="/">Главная</a> · <span aria-current="page">Конец</span></nav>');
 check('модификатор', strpos(eportaBreadcrumbHtml([['A']], 'breadcrumb--lk'), 'class="breadcrumb breadcrumb--lk"') !== false, true);
 
+$cols = [
+    ['ID' => '1', 'NAME' => 'Dorsum', 'CODE' => 'dorsum'],
+    ['ID' => '2', 'NAME' => 'Dorsum-F', 'CODE' => 'dorsum-f', 'UF_PARENT_COLLECTION' => '1'],
+    ['ID' => '3', 'NAME' => 'Loop', 'CODE' => 'loop', 'UF_PARENT_COLLECTION' => '4'],
+    ['ID' => '4', 'NAME' => 'Loop2', 'CODE' => 'loop2', 'UF_PARENT_COLLECTION' => '3'],
+];
+check('цепочка коллекции верхнего уровня', eportaBreadcrumbCollectionChain($cols, 1), [['Dorsum', '/catalog/collections/dorsum/']]);
+check('цепочка подколлекции: родитель, затем она', eportaBreadcrumbCollectionChain($cols, 2),
+    [['Dorsum', '/catalog/collections/dorsum/'], ['Dorsum-F', '/catalog/collections/dorsum-f/']]);
+check('цикл родителей не зацикливает', count(eportaBreadcrumbCollectionChain($cols, 3)), 2);
+check('неизвестная коллекция — пусто', eportaBreadcrumbCollectionChain($cols, 99), []);
+check('автокрошки: верхний уровень', eportaAutoBreadcrumbItems('/zamer/', 'Вызвать замерщика'), [['Главная', '/'], ['Вызвать замерщика']]);
+check('автокрошки: вложенная about', eportaAutoBreadcrumbItems('/about/contacts/', 'Контакты'), [['Главная', '/'], ['О магазине', '/about/'], ['Контакты']]);
+check('автокрошки: корень about без родителя', eportaAutoBreadcrumbItems('/about/', 'О магазине'), [['Главная', '/'], ['О магазине']]);
+
 echo $failures ? "\nПровалено: $failures\n" : "\nВсе проверки пройдены\n";
 exit($failures ? 1 : 0);
