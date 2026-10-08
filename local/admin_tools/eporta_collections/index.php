@@ -144,6 +144,7 @@ $collectionsForJs = array_map(function ($coll) use ($counts, $parentMap, $childC
     .drop-top.has-children { display: block; }
     body.is-dragging .drop-top:not(.has-children) { display: none; }
     #dnd-status { position: sticky; top: 0; z-index: 5; background: #fff; padding: 4px 0; }
+    .add-form select { display: block; margin-bottom: 12px; max-width: 100%; font-size: 13px; padding: 6px 8px; }
     .parent-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; color: #666; }
     .parent-pick select { font-size: 12.5px; padding: 3px 5px; border: 1px solid #ddd; border-radius: 4px; max-width: 170px; }
     .parent-pick button { background: #fff; color: #2b6cb0; border: 1px solid #cfe0f0; padding: 3px 9px; font-size: 12px; }
@@ -203,6 +204,8 @@ $collectionsForJs = array_map(function ($coll) use ($counts, $parentMap, $childC
     <input type="text" id="new-name" placeholder="Например, Vetus-Loft">
     <label>Описание (подзаголовок на плитке, необязательно)</label>
     <textarea id="new-description" rows="2"></textarea>
+    <label>Родитель (необязательно: если выбрать, новая коллекция сразу станет подколлекцией)</label>
+    <select id="new-parent"><option value="0">— верхний уровень —</option></select>
     <button type="button" id="new-submit">Добавить</button>
     <div class="status" id="new-status"></div>
 </div>
@@ -578,6 +581,14 @@ $collectionsForJs = array_map(function ($coll) use ($counts, $parentMap, $childC
         tbody.appendChild(rows[1]);
     });
 
+    const newParent = document.getElementById('new-parent');
+    COLLECTIONS.filter(function (c) { return !c.parent_id; }).forEach(function (c) {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.name;
+        newParent.appendChild(opt);
+    });
+
     document.getElementById('new-submit').addEventListener('click', async function () {
         const btn = document.getElementById('new-submit');
         const status = document.getElementById('new-status');
@@ -603,9 +614,31 @@ $collectionsForJs = array_map(function ($coll) use ($counts, $parentMap, $childC
                 status.textContent = resp.error || 'Ошибка';
                 status.classList.add('err');
             } else {
-                status.textContent = 'Коллекция добавлена, страница обновится...';
-                status.classList.add('ok');
-                setTimeout(function () { location.reload(); }, 700);
+                // Родитель выбран — тот же action=set_parent, что и при перетаскивании/выборе в строке.
+                const parentId = parseInt(newParent.value, 10) || 0;
+                let parentError = '';
+                if (parentId) {
+                    const fdParent = new FormData();
+                    fdParent.append('action', 'set_parent');
+                    fdParent.append('sessid', SESSID);
+                    fdParent.append('id', resp.id);
+                    fdParent.append('parent_id', parentId);
+                    try {
+                        const rp = await fetch('ajax.php', { method: 'POST', body: fdParent });
+                        const respParent = await rp.json();
+                        if (!respParent.ok) parentError = respParent.error || 'Ошибка';
+                    } catch (e) {
+                        parentError = 'Ошибка сети: ' + e.message;
+                    }
+                }
+                if (parentError) {
+                    status.textContent = 'Коллекция добавлена, но подколлекцией не стала: ' + parentError + '. Выберите родителя в её строке.';
+                    status.classList.add('err');
+                } else {
+                    status.textContent = 'Коллекция добавлена, страница обновится...';
+                    status.classList.add('ok');
+                }
+                setTimeout(function () { location.reload(); }, parentError ? 2500 : 700);
             }
         } catch (e) {
             status.textContent = 'Ошибка сети: ' + e.message;
