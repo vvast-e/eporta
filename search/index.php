@@ -328,7 +328,7 @@ $APPLICATION->SetTitle("Страница поиска");
 			["ID" => $eportaPageIds, "ACTIVE" => "Y"],
 			false,
 			false,
-			["ID", "NAME", "CODE", "DETAIL_PAGE_URL", "PREVIEW_PICTURE", "DETAIL_PICTURE", "CATALOG_PRICE_1", "PROPERTY_RATING", "PROPERTY_DISCOUNT"]
+			["ID", "NAME", "CODE", "DETAIL_PAGE_URL", "PREVIEW_PICTURE", "DETAIL_PICTURE", "CATALOG_PRICE_1", "PROPERTY_RATING", "PROPERTY_DISCOUNT", "PROPERTY_ORIGINAL_PRICE"]
 		);
 		$eportaPageDataById = [];
 		while ($eportaRow = $eportaPageRes->GetNext()) {
@@ -360,7 +360,8 @@ $APPLICATION->SetTitle("Страница поиска");
 				$eportaHasPrice = ($eportaItem["CATALOG_PRICE_1"] ?? null) !== null && $eportaPriceVal > 0;
 				$eportaDiscountPercent = (float)($eportaItem["PROPERTY_DISCOUNT_VALUE"] ?? 0);
 				$eportaHasDiscount = $eportaHasPrice && $eportaDiscountPercent > 0;
-				$eportaOldPriceVal = $eportaHasDiscount ? round($eportaPriceVal / (1 - $eportaDiscountPercent / 100)) : 0;
+				require_once($_SERVER["DOCUMENT_ROOT"]."/local/lib/eporta_price.php");
+				$eportaOldPriceVal = $eportaHasDiscount ? eportaPriceOld($eportaPriceVal, $eportaDiscountPercent, (float)($eportaItem["PROPERTY_ORIGINAL_PRICE_VALUE"] ?? 0)) : 0;
 
 				// Раньше при отсутствии фото сюда подставлялся общий hit-1.jpg — тот же баг,
 				// что и в catalog.element/.default/template.php (см. коммит e85175f, арт. 0593).

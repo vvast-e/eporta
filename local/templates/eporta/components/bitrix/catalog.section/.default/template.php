@@ -25,6 +25,7 @@ if ($eportaIsSquareCards) $eportaGridView .= " eporta-product-grid--square";
 // коллекции по SECTION_ID элемента (не по параметру компонента — этот шаблон рендерит смешанные
 // списки, где не у всех элементов одна и та же секция).
 require_once($_SERVER["DOCUMENT_ROOT"]."/local/lib/eporta_collections.php");
+require_once($_SERVER["DOCUMENT_ROOT"]."/local/lib/eporta_price.php");
 $eportaSquareSectionIds = [];
 foreach (eportaCollections(true) as $eportaSquareColl) {
 	if (eportaCollectionHasSquareCards($eportaSquareColl)) {
@@ -60,7 +61,7 @@ if ($eportaItemIds) {
 		["IBLOCK_ID" => $arParams["IBLOCK_ID"], "ID" => $eportaItemIds],
 		false,
 		false,
-		["ID", "IBLOCK_ID", "IBLOCK_SECTION_ID", "PROPERTY_RATING", "PROPERTY_VOTE_COUNT", "PROPERTY_PRODUCT_DAY", "PROPERTY_DISCOUNT"]
+		["ID", "IBLOCK_ID", "IBLOCK_SECTION_ID", "PROPERTY_RATING", "PROPERTY_VOTE_COUNT", "PROPERTY_PRODUCT_DAY", "PROPERTY_DISCOUNT", "PROPERTY_ORIGINAL_PRICE"]
 	);
 	while ($eportaPropsEl = $eportaPropsRes->GetNextElement()) {
 		$eportaFields = $eportaPropsEl->GetFields();
@@ -69,6 +70,7 @@ if ($eportaItemIds) {
 			"VOTE_COUNT" => $eportaFields["PROPERTY_VOTE_COUNT_VALUE"] ?? 0,
 			"PRODUCT_DAY" => $eportaFields["PROPERTY_PRODUCT_DAY_VALUE"] ?? "",
 			"DISCOUNT" => $eportaFields["PROPERTY_DISCOUNT_VALUE"] ?? 0,
+			"ORIGINAL_PRICE" => $eportaFields["PROPERTY_ORIGINAL_PRICE_VALUE"] ?? 0,
 			"SECTION_ID" => (int)($eportaFields["IBLOCK_SECTION_ID"] ?? 0),
 		];
 	}
@@ -98,7 +100,7 @@ if ($eportaItemIds) {
 	$discountPercent = (float)$eportaExtra["DISCOUNT"];
 	$priceValue = (float)($price["VALUE"] ?? 0);
 	$hasDiscount = $price && $discountPercent > 0 && $priceValue > 0;
-	$priceOldPrint = $hasDiscount ? \CCurrencyLang::CurrencyFormat(round($priceValue / (1 - $discountPercent / 100)), $price["CURRENCY"] ?? "RUB") : "";
+	$priceOldPrint = $hasDiscount ? \CCurrencyLang::CurrencyFormat(eportaPriceOld($priceValue, $discountPercent, (float)($eportaExtra["ORIGINAL_PRICE"] ?? 0)), $price["CURRENCY"] ?? "RUB") : "";
 
 	// Раньше при отсутствии обеих картинок сюда подставлялся общий hit-1.jpg — визуально
 	// правдоподобное, но не относящееся к товару фото (см. catalog.element/.default/template.php,

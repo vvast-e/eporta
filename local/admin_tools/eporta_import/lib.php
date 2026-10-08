@@ -9,6 +9,7 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
 }
 
 require_once __DIR__ . '/webp_convert.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/local/lib/eporta_price.php';
 
 const EPORTA_IMPORT_IBLOCK_ID = 19;
 const EPORTA_IMPORT_COLLECTIONS_SECTION_ID = 183;
@@ -553,6 +554,7 @@ function eportaImportOneProduct(array $p): array {
         'CATEGORY'        => $p['category'] ?? '',
         'COLLECTION'      => $collection,
         'DISCOUNT'        => $p['discount'] ?? 0,
+        'ORIGINAL_PRICE'  => !empty($p['price']) ? $p['price'] : '',
         'EDGE'            => $p['edge'] ?? '',
         'INSERT'          => $p['insert'] ?? '',
         'OPEN_TYPE'       => $p['open_type'] ?? [],
@@ -697,14 +699,10 @@ function eportaImportOneProduct(array $p): array {
         \CCatalogProduct::Add(array_merge(['ID' => $elementId], $catalogProductFields));
     }
 
-    // "Цена" в 1С-выгрузке — цена ДО скидки, "Скидка" — процент. В b_catalog_price (BASE)
-    // кладём уже итоговую цену: это и есть то, что реально спишется в корзине/заказе.
-    // Исходную цену для зачёркнутого "было" считаем на витрине обратно от DISCOUNT-свойства
-    // (см. eportaPropText-замену в шаблонах карточки/списка) — второй ценовой тип заводить незачем.
-    $discountPercent = max(0, min(100, (float)($p['discount'] ?? 0)));
-    $finalPrice = $discountPercent > 0
-        ? round(($p['price'] ?? 0) * (1 - $discountPercent / 100))
-        : ($p['price'] ?? 0);
+    // "Цена" в 1С-выгрузке — исходная цена ДО скидки, "Скидка" — процент. Исходная цена хранится
+    // явно (свойство ORIGINAL_PRICE выше, её витрина показывает зачёркнутой), а в b_catalog_price
+    // (BASE) кладём рассчитанную от неё цену со скидкой: её реально списывает корзина/заказ.
+    $finalPrice = eportaPriceFinal((float)($p['price'] ?? 0), (float)($p['discount'] ?? 0));
 
     if (!empty($p['price'])) {
         $priceFields = [
