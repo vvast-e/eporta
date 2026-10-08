@@ -77,10 +77,6 @@ $carouselGroupLabels = [
 <meta charset="utf-8">
 <title>Баннеры главной (eporta.ru)</title>
 <style>
-    body { font-family: -apple-system, Segoe UI, Arial, sans-serif; max-width: 1100px; margin: 40px auto; padding: 0 20px; color: #222; }
-    h1 { font-size: 20px; }
-    h2 { font-size: 16px; margin: 32px 0 14px; }
-    .hint { color: #666; font-size: 13px; margin-bottom: 20px; }
     .slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
     .slot-card { border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: #fff; }
     .slot-card .thumb { position: relative; width: 100%; aspect-ratio: 16/10; background: #eee; overflow: hidden; }
@@ -121,6 +117,7 @@ $carouselGroupLabels = [
 </style>
 </head>
 <body>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools/eporta_storefront/nav.php'; eportaStorefrontNav('banners'); ?>
 <h1>Баннеры главной страницы</h1>
 <p class="hint">
     Замена картинок для плиток блоков «Каталог по категориям» и «Коллекции фабрики» на главной.

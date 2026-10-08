@@ -61,10 +61,7 @@ $ctaLink = (string)($collection['UF_BANNER_CTA_LINK'] ?? '');
 <meta charset="utf-8">
 <title>Баннер коллекции «<?= htmlspecialcharsbx($collection['NAME']) ?>» (eporta.ru)</title>
 <style>
-    body { font-family: -apple-system, Segoe UI, Arial, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 20px; color: #222; }
-    h1 { font-size: 20px; margin-bottom: 4px; }
     .back-link { display: inline-block; margin-bottom: 20px; font-size: 13px; color: #2b6cb0; }
-    .hint { color: #666; font-size: 13px; margin-bottom: 24px; }
     .preview { position: relative; border-radius: 12px; overflow: hidden; min-height: 140px; background: #e5e0d5 center/cover no-repeat; margin-bottom: 24px; }
     .preview .noimg { padding: 50px 0; text-align: center; color: #999; font-size: 13px; }
     .preview .overlay-demo { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(20,17,12,.86) 0%, rgba(20,17,12,.5) 55%, rgba(20,17,12,.08) 100%); }
@@ -83,6 +80,7 @@ $ctaLink = (string)($collection['UF_BANNER_CTA_LINK'] ?? '');
 </style>
 </head>
 <body>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools/eporta_storefront/nav.php'; eportaStorefrontNav('collections'); ?>
 <a class="back-link" href="index.php">← Назад к списку коллекций</a>
 <h1>Баннер коллекции «<?= htmlspecialcharsbx($collection['NAME']) ?>»</h1>
 <p class="hint">

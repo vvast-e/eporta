@@ -29,9 +29,6 @@ $sessid = bitrix_sessid();
 <meta charset="utf-8">
 <title>Загрузка товаров из 1С (eporta.ru)</title>
 <style>
-    body { font-family: -apple-system, Segoe UI, Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; color: #222; }
-    h1 { font-size: 20px; }
-    .hint { color: #666; font-size: 13px; margin-bottom: 20px; }
     .panel { border: 1px solid #ddd; border-radius: 6px; padding: 20px; margin-bottom: 20px; }
     button { background: #2b6cb0; color: #fff; border: none; padding: 8px 18px; border-radius: 4px; cursor: pointer; font-size: 14px; }
     button:disabled { background: #999; cursor: default; }
@@ -49,6 +46,7 @@ $sessid = bitrix_sessid();
 </style>
 </head>
 <body>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools/eporta_storefront/nav.php'; eportaStorefrontNav('import'); ?>
 <h1>Загрузка товаров из 1С</h1>
 <p class="hint">
     Формат файла — как в эталоне (лист «Выгрузка»): Артикул, Модель, Название, Фабрика, Бренд, Категория,

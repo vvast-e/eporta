@@ -64,9 +64,6 @@ foreach (eportaHomeTabsKeys() as $tabKey) {
 <meta charset="utf-8">
 <title>Табы главной (eporta.ru)</title>
 <style>
-    body { font-family: -apple-system, Segoe UI, Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; color: #222; }
-    h1 { font-size: 20px; }
-    .hint { color: #666; font-size: 13px; margin-bottom: 24px; }
     .tab-card { border: 1px solid #ddd; border-radius: 8px; padding: 18px 20px; margin-bottom: 20px; background: #fff; }
     .tab-card h2 { font-size: 16px; margin: 0 0 6px; }
     .tab-hint { color: #888; font-size: 12px; margin-bottom: 14px; }
@@ -101,6 +98,7 @@ foreach (eportaHomeTabsKeys() as $tabKey) {
 </style>
 </head>
 <body>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools/eporta_storefront/nav.php'; eportaStorefrontNav('home_tabs'); ?>
 <h1>Табы главной страницы</h1>
 <p class="hint">
     Настройка переключателей «Хиты / Распродажа / Новинки» на главной (блок под баннерами коллекций).

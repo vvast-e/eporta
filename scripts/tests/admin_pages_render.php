@@ -25,12 +25,27 @@ $USER = new class extends CUser {
     public function IsAdmin() { return true; }
 };
 
-ob_start();
-if ($page === 'quick') {
-    require($_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools/eporta_quick_queries/index.php');
-} else {
-    require($_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools/eporta_collections/index.php');
+// Страницы админок: ключ -> путь относительно local/admin_tools/ (collections/quick — как раньше).
+$pages = [
+    'collections' => 'eporta_collections/index.php',
+    'quick' => 'eporta_quick_queries/index.php',
+    'banners' => 'eporta_banners/index.php',
+    'home_tabs' => 'eporta_home_tabs/index.php',
+    'import' => 'eporta_import/index.php',
+    'promo' => 'eporta_promo/index.php',
+    'works' => 'eporta_works/index.php',
+    'reviews' => 'eporta_reviews/index.php',
+    'articles' => 'eporta_articles/index.php',
+    'collection_banner' => 'eporta_collections/banner.php',
+    'storefront' => 'eporta_storefront/index.php',
+];
+if ($page === 'collection_banner') {
+    $_GET['id'] = $_REQUEST['id'] = $argv[3] ?? 194;
 }
+ob_start();
+// EPORTA_ADMIN_ROOT — каталог с копией admin_tools для проверки изменений до выкатки (по умолчанию боевой).
+$adminRoot = getenv('EPORTA_ADMIN_ROOT') ?: $_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools';
+require($adminRoot . '/' . ($pages[$page] ?? $pages['collections']));
 $html = ob_get_clean();
 file_put_contents("$outDir/admin_$page.html", $html);
 echo "page=$page bytes=" . strlen($html) . "\n";
