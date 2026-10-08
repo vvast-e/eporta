@@ -34,7 +34,7 @@ $groups = ['main' => 'Витрина', 'content' => 'Контент'];
 </head>
 <body>
 <?php eportaStorefrontNav(''); ?>
-<h1>Управление витриной</h1>
+<h1>Разделы</h1>
 <p class="hint">Всё, что настраивается на сайте, в одном месте. Если на нужной странице нет доступа, обратитесь к администратору сайта.</p>
 <?php foreach ($groups as $key => $title) { ?>
     <h2><?= htmlspecialchars($title, ENT_QUOTES) ?></h2>
