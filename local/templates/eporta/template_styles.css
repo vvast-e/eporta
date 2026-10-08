@@ -2303,7 +2303,9 @@ a.eporta-subcoll-btn:hover { border-color: #e8820a; }
 .header-phone a:hover { text-decoration: none; }
 .header-actions a:hover { text-decoration: none; }
 .cat-nav a:hover, .cat-nav .nav-item:hover { text-decoration: none; }
-.breadcrumb a:hover { text-decoration: none; color: inherit; }
+.breadcrumb a:hover { text-decoration: underline; color: inherit; }
+/* Внутри карточек ЛК/авторизации (.lk-card) — отступ как у заголовка карточки. */
+.breadcrumb--lk { padding-left: 28px; padding-right: 28px; background: none; }
 .site-footer nav a:hover { text-decoration: none; }
 
 /* Та же история, что и с :hover выше, но со второй частью вендорского правила —
