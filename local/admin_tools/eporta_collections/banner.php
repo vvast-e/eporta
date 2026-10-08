@@ -83,6 +83,7 @@ $ctaLink = (string)($collection['UF_BANNER_CTA_LINK'] ?? '');
 </style>
 </head>
 <body>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools/eporta_storefront/nav.php'; eportaStorefrontNav('collections'); ?>
 <a class="back-link" href="index.php">← Назад к списку коллекций</a>
 <h1>Баннер коллекции «<?= htmlspecialcharsbx($collection['NAME']) ?>»</h1>
 <p class="hint">

@@ -89,6 +89,7 @@ $articles = eportaArticlesList();
 </style>
 </head>
 <body>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools/eporta_storefront/nav.php'; eportaStorefrontNav('articles'); ?>
 <h1>Статьи раздела /articles/</h1>
 <p class="hint">Список статей, доступных на сайте. Публикация видна сразу после сохранения с включённым «Активна».</p>
 

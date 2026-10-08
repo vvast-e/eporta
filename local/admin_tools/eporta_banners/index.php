@@ -121,6 +121,7 @@ $carouselGroupLabels = [
 </style>
 </head>
 <body>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools/eporta_storefront/nav.php'; eportaStorefrontNav('banners'); ?>
 <h1>Баннеры главной страницы</h1>
 <p class="hint">
     Замена картинок для плиток блоков «Каталог по категориям» и «Коллекции фабрики» на главной.

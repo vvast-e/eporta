@@ -101,6 +101,7 @@ foreach (eportaHomeTabsKeys() as $tabKey) {
 </style>
 </head>
 <body>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools/eporta_storefront/nav.php'; eportaStorefrontNav('home_tabs'); ?>
 <h1>Табы главной страницы</h1>
 <p class="hint">
     Настройка переключателей «Хиты / Распродажа / Новинки» на главной (блок под баннерами коллекций).

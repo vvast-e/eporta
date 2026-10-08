@@ -145,6 +145,7 @@ $collectionsForJs = array_map(function ($coll) use ($counts, $parentMap, $childC
 </style>
 </head>
 <body>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools/eporta_storefront/nav.php'; eportaStorefrontNav('collections'); ?>
 <h1>Коллекции фабрики</h1>
 <p class="hint">
     Название, описание (подзаголовок на плитке) и порядок показа коллекций на главной и на

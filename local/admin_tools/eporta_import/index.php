@@ -49,6 +49,7 @@ $sessid = bitrix_sessid();
 </style>
 </head>
 <body>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools/eporta_storefront/nav.php'; eportaStorefrontNav('import'); ?>
 <h1>Загрузка товаров из 1С</h1>
 <p class="hint">
     Формат файла — как в эталоне (лист «Выгрузка»): Артикул, Модель, Название, Фабрика, Бренд, Категория,

@@ -90,6 +90,7 @@ $promoItems = eportaPromoList();
 </style>
 </head>
 <body>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools/eporta_storefront/nav.php'; eportaStorefrontNav('promo'); ?>
 <h1>Акции раздела /promo/</h1>
 <p class="hint">Список акций, доступных на сайте. Публикация видна сразу после сохранения с включённым «Активна».</p>
 

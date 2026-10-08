@@ -94,6 +94,7 @@ foreach ($options as $group => $values) {
 </style>
 </head>
 <body>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools/eporta_storefront/nav.php'; eportaStorefrontNav('quick'); ?>
 <h1>Популярные запросы на главной</h1>
 <p class="hint">
     Кнопки под блоком коллекций на главной. У каждой: <b>текст</b>, <b>фильтры каталога</b> (какие значения

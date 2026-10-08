@@ -67,6 +67,7 @@ $reviews = eportaReviewsAdminList();
 </style>
 </head>
 <body>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools/eporta_storefront/nav.php'; eportaStorefrontNav('reviews'); ?>
 <h1>Блок «Отзывы» на главной</h1>
 <p class="hint">Отзывы добавляются только здесь — публичной формы «оставить отзыв» на сайте нет.
 Публикация видна сразу после сохранения с включённым «Активен». Если активных отзывов нет — блок

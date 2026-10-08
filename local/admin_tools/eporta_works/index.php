@@ -68,6 +68,7 @@ $works = eportaWorksAdminList();
 </style>
 </head>
 <body>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools/eporta_storefront/nav.php'; eportaStorefrontNav('works'); ?>
 <h1>Блок «Наши работы» на главной</h1>
 <p class="hint">Список работ, показываемых в слайдере на главной странице. Публикация видна сразу
 после сохранения с включённым «Активна». Если работ нет ни одной активной — блок на главной не выводится.</p>
