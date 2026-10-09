@@ -605,6 +605,14 @@ function eportaImportOneProduct(array $p): array {
     if ($galleryFiles) {
         $propertyValues['MORE_PHOTO'] = $galleryFiles;
     }
+    // Галерея из файла ЗАМЕНЯЕТ прежнюю (правка 09.10.2026): Update() с файловым свойством лишь
+    // ДОБАВЛЯЛ новые фото к старым, из-за чего они копились и дублировались. Старые удаляются явно
+    // ниже, в ветке Update. Три случая: колонки «Галерея» в файле нет (ключ gallery не задан) —
+    // не трогаем; ячейка пустая — галерея очищается; ссылки есть, но ни одна не скачалась (сбой
+    // чужого сервера фото) — оставляем прежнюю, чтобы не обнулить фото из-за сбоя.
+    $galleryGiven = array_key_exists('gallery', $p);
+    $galleryReplace = $galleryGiven && ($galleryFiles || empty($p['gallery']));
+    $galleryDownloadFailed = $galleryGiven && !empty($p['gallery']) && !$galleryFiles;
 
     $elName = eportaImportComposeName($p, $article);
     $elFields = [
@@ -658,6 +666,20 @@ function eportaImportOneProduct(array $p): array {
         }
         if (!empty($currentPropsEl['PROPERTY_SHOW_IN_LIST_ENUM_ID'])) {
             $elFields['PROPERTY_VALUES']['SHOW_IN_LIST'] = (int)$currentPropsEl['PROPERTY_SHOW_IN_LIST_ENUM_ID'];
+        }
+
+        if ($galleryReplace) {
+            $galleryValues = [];
+            $oldGallery = CIBlockElement::GetProperty(EPORTA_IMPORT_IBLOCK_ID, $existingId, [], ['CODE' => 'MORE_PHOTO']);
+            while ($oldPhoto = $oldGallery->Fetch()) {
+                if (!empty($oldPhoto['PROPERTY_VALUE_ID'])) {
+                    $galleryValues[$oldPhoto['PROPERTY_VALUE_ID']] = ['VALUE' => ['del' => 'Y']];
+                }
+            }
+            foreach ($galleryFiles as $i => $galleryFile) {
+                $galleryValues['n' . $i] = ['VALUE' => $galleryFile];
+            }
+            $elFields['PROPERTY_VALUES']['MORE_PHOTO'] = $galleryValues;
         }
 
         $ok = $elObj->Update($existingId, $elFields);
@@ -722,6 +744,6 @@ function eportaImportOneProduct(array $p): array {
     return [
         'article' => $article,
         'status' => $existingId ? 'updated' : 'created',
-        'message' => "Элемент #$elementId",
+        'message' => "Элемент #$elementId" . ($galleryDownloadFailed ? ' (фото галереи не скачались — оставлена прежняя галерея)' : ''),
     ];
 }
