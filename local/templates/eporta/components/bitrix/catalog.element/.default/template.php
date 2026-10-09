@@ -62,6 +62,8 @@ $isHit = $rating >= 4.8;
 $isNew = $rating <= 0;
 $article = eportaPropText($eportaDirectProps, "CML2_ARTICLE");
 $discountPercent = (float)eportaPropText($eportaDirectProps, "DISCOUNT");
+require_once($_SERVER["DOCUMENT_ROOT"]."/local/lib/eporta_price.php");
+$originalPrice = (float)eportaPropText($eportaDirectProps, "ORIGINAL_PRICE");
 
 // Гарантия/наличие/срок поставки — реальные свойства IBLOCK 19 (см.
 // ensure_iblock19_properties.php), раньше в шаблоне были захардкожены.
@@ -88,7 +90,7 @@ $addToBasketUrl = !empty($arResult["~ADD_URL_TEMPLATE"])
 $price = $arResult["PRICES"]["BASE"] ?? null;
 $priceValue = (float)($price["VALUE"] ?? 0);
 $hasDiscount = $price && $discountPercent > 0 && $priceValue > 0;
-$priceOldValue = $hasDiscount ? round($priceValue / (1 - $discountPercent / 100)) : $priceValue;
+$priceOldValue = $hasDiscount ? eportaPriceOld($priceValue, $discountPercent, $originalPrice) : $priceValue;
 $priceOldValuePrint = $hasDiscount ? \CCurrencyLang::CurrencyFormat($priceOldValue, $price["CURRENCY"] ?? "RUB") : "";
 
 // Варианты модели (цвет покрытия/остекление): группировка по свойству MODEL — задел под

@@ -19,7 +19,7 @@ if ($arResult["ERROR_MESSAGE"] <> '')
 }
 ?>
 <div class="store-list-page">
-	<div class="store-breadcrumb"><a href="/">Главная</a> · <?=htmlspecialcharsbx($arParams["TITLE"] ?: "Магазины")?></div>
+	<?php eportaBreadcrumb([["Главная","/"],[$arParams["TITLE"] ?: "Магазины"]]);?>
 	<div class="store-title"><h1><?=htmlspecialcharsbx($arParams["TITLE"] ?: "Магазины")?></h1></div>
 	<?php if (empty($arResult["STORES"])): ?>
 		<div class="lk-empty">

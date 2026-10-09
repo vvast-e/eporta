@@ -9,7 +9,7 @@ $isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH
 <?if ($isEportaTemplate):?>
 	<div class="lk-page-wrap">
 	<div class="lk-card">
-		<div class="lk-breadcrumb"><a href="/">Главная</a> · <a href="/personal/">Личный кабинет</a> · Подписка на рассылку</div>
+		<?php eportaBreadcrumb([["Главная","/"],["Личный кабинет","/personal/"],["Подписка на рассылку"]], "breadcrumb--lk");?>
 		<div class="lk-title"><h1>Настройка подписки</h1></div>
 		<?php $active = 'subscribe'; require $_SERVER["DOCUMENT_ROOT"] . SITE_TEMPLATE_PATH . '/include/lk-tabs.php'; ?>
 		<div style="padding:28px 28px 8px">

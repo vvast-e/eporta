@@ -21,6 +21,7 @@ if (($_REQUEST["dev_preview"] ?? "") === "x7Qm2pR9vL" && empty($_COOKIE["dev_pre
 require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/categories.php");
 require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/buyer_info_pages.php");
 require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/webp.php");
+require_once($_SERVER["DOCUMENT_ROOT"]."/local/lib/eporta_breadcrumb.php");
 require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/card-backdrop.php");
 require_once($_SERVER["DOCUMENT_ROOT"]."/local/admin_tools/eporta_banners/lib.php");
 function eportaResolveEnumMap($code) {
@@ -242,3 +243,4 @@ $eportaNavPromo = str_starts_with($eportaCurPath, "/promo/");
 		</div>
 	</div>
 </div>
+<?php $APPLICATION->AddBufferContent("eportaAutoBreadcrumb"); ?>

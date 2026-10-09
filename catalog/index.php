@@ -807,7 +807,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		// текст по центру) — заказчик попросил именно такой вид, а не блок внутри сетки каталога
 		// (правка 15.09.2026). RestartBuffer сбрасывает уже выведенные header.php/шапку/сайдбар —
 		// тот же приём, что и в короткое замыкание AJAX-подгрузки ниже ($eportaIsAjaxGrid) и в
-		// самом dev-гейте header.php. Кнопка "Назад" ведёт в общий каталог без фильтра категории.
+		// самом dev-гейте header.php. Кнопка "Назад" ведёт на главную (правка 08.10.2026, раньше вела в /catalog/).
 		if ($eportaSelectedCategory && $eportaSelectedCategory !== "hidden" && !$eportaCollectionSection && $eportaFoundCount === 0) {
 			$APPLICATION->RestartBuffer();
 			header("Content-Type: text/html; charset=UTF-8");
@@ -843,7 +843,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 </style>
 </head>
 <body>
-	<a class="back-btn" href="/catalog/">‹ Назад</a>
+	<a class="back-btn" href="/">‹ Назад</a>
 	<div class="wrap">
 		<h1>Раздел «<?=htmlspecialcharsbx($eportaStubHeading)?>» пока не заполнен</h1>
 		<p>Мы наполняем каталог этой категории. Загляните чуть позже — скоро здесь появятся товары.</p>
@@ -1053,6 +1053,15 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		?>
 		<?require($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/404_body.php");?>
 	<?else:?>
+	<?
+		// Хлебные крошки карточки: Главная › Каталог › [коллекция и её родитель] › товар.
+		$eportaCrumbEl = \CIBlockElement::GetList([], ["IBLOCK_ID" => 19, "CODE" => $eportaElementCode, "ACTIVE" => "Y"], false, false, ["ID", "NAME", "IBLOCK_SECTION_ID"])->Fetch();
+		eportaBreadcrumb(array_merge(
+			[["Главная", "/"], ["Каталог", "/catalog/"]],
+			eportaBreadcrumbCollectionChain(eportaCollections(), (int)($eportaCrumbEl["IBLOCK_SECTION_ID"] ?? 0)),
+			[[(string)($eportaCrumbEl["NAME"] ?? "")]]
+		));
+	?>
 	<?$APPLICATION->IncludeComponent(
 		"bitrix:catalog.element",
 		".default",
@@ -1147,9 +1156,9 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 
 	<!-- Хлебные крошки -->
 	<?if ($eportaCollectionSection):?>
-	<div class="breadcrumb" style="padding:12px var(--pad-x) 0">Главная · <a href="/collection/" style="color:inherit">Коллекции</a> · <?=htmlspecialcharsbx($eportaCollectionSection["NAME"])?></div>
+	<?php eportaBreadcrumb([["Главная","/"],["Коллекции","/collection/"],...eportaBreadcrumbCollectionChain(eportaCollections(), (int)$eportaCollectionSection["ID"])]);?>
 	<?else:?>
-	<div class="breadcrumb" style="padding:12px var(--pad-x) 0">Главная · Каталог · Межкомнатные</div>
+	<?php eportaBreadcrumb([["Главная","/"],["Каталог","/catalog/"],["Межкомнатные"]]);?>
 	<?endif;?>
 
 	<?if ($eportaCollectionSection):

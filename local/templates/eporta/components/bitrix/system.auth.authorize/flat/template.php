@@ -8,7 +8,7 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
      feedback_bitrix_override_gotchas — здесь mutator.php у вендора нет). -->
 <div class="auth-page-wrap">
 <div class="lk-card">
-	<div class="lk-breadcrumb"><a href="/">Главная</a> · Авторизация</div>
+	<?php eportaBreadcrumb([["Главная","/"],["Авторизация"]], "breadcrumb--lk");?>
 	<div class="lk-title"><h1>Авторизация</h1></div>
 
 	<div class="auth-tabs">

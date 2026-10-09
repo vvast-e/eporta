@@ -37,7 +37,7 @@
 		$eportaPromoHasPhoto = !empty($eportaPromo["DETAIL_PICTURE"]);
 		$eportaPromoPhotoSrc = $eportaPromoHasPhoto ? \CFile::GetPath($eportaPromo["DETAIL_PICTURE"]) : "";
 	?>
-	<div style="padding:12px var(--pad-x) 0"><div style="font:500 13px;color:#726c62">Главная · <a href="/promo/" style="color:inherit">Акции</a> · <?=htmlspecialcharsbx($eportaPromo["NAME"])?></div></div>
+	<?php eportaBreadcrumb([["Главная","/"],["Акции","/promo/"],[$eportaPromo["NAME"]]]);?>
 
 	<div style="max-width:760px;margin:0 auto;padding:20px var(--pad-x) 60px">
 		<?if ($eportaPromoHasPhoto):?>
@@ -74,7 +74,7 @@
 		$eportaPromoList[] = $eportaPromoRow;
 	}
 ?>
-	<div style="padding:12px var(--pad-x) 0"><div style="font:500 13px;color:#726c62">Главная · Акции</div></div>
+	<?php eportaBreadcrumb([["Главная","/"],["Акции"]]);?>
 
 	<div style="padding:14px var(--pad-x) 6px">
 		<h1 style="margin:0;font:800 28px 'Manrope';letter-spacing:-0.01em">Акции</h1>

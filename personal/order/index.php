@@ -9,7 +9,7 @@ $isEportaTemplate = defined("SITE_TEMPLATE_PATH") && basename(SITE_TEMPLATE_PATH
 <?if ($isEportaTemplate):?>
 	<div class="lk-page-wrap">
 	<div class="lk-card">
-		<div class="lk-breadcrumb"><a href="/">Главная</a> · <a href="/personal/">Личный кабинет</a> · История заказов</div>
+		<?php eportaBreadcrumb([["Главная","/"],["Личный кабинет","/personal/"],["История заказов"]], "breadcrumb--lk");?>
 		<div class="lk-title"><h1>История заказов</h1></div>
 		<?php $active = 'orders'; require $_SERVER["DOCUMENT_ROOT"] . SITE_TEMPLATE_PATH . '/include/lk-tabs.php'; ?>
 		<div style="padding:0 28px 40px">

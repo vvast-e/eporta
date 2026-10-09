@@ -11,13 +11,7 @@ if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)
 // (MAP_TYPE=0) — $arResult['GPS_N']/GPS_S не используются, только адрес текстом.
 ?>
 <div class="store-detail-page">
-	<div class="store-breadcrumb">
-		<a href="/">Главная</a>
-		<?php if (isset($arResult["LIST_URL"])): ?>
-			· <a href="<?=htmlspecialcharsbx($arResult["LIST_URL"])?>">Магазины</a>
-		<?php endif; ?>
-		· <?=htmlspecialcharsbx($arResult["TITLE"])?>
-	</div>
+	<?php eportaBreadcrumb([["Главная","/"],isset($arResult["LIST_URL"]) ? ["Магазины",$arResult["LIST_URL"]] : [],[$arResult["TITLE"]]]);?>
 	<div class="store-detail-card">
 		<?php if ((int)$arResult["IMAGE_ID"] > 0): ?>
 			<div class="store-detail-image">

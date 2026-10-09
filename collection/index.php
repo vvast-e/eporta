@@ -34,7 +34,7 @@ $APPLICATION->SetTitle("Коллекции фабрики EPORTA");
 ?>
 <?if ($isEportaTemplate):?>
 
-	<div style="padding:12px var(--pad-x) 0"><div style="font:500 13px;color:#726c62">Главная · Коллекции</div></div>
+	<?php eportaBreadcrumb([["Главная","/"],["Коллекции"]]);?>
 
 	<div style="padding:14px var(--pad-x) 6px">
 		<h1 style="margin:0;font:800 28px 'Manrope';letter-spacing:-0.01em">Коллекции фабрики EPORTA</h1>
