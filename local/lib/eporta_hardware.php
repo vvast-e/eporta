@@ -65,8 +65,12 @@ function eportaSectionNameMap(array $rows, int $parentId): array {
 }
 
 // Все разделы IBLOCK 19 (кэш на запрос) — выбор по родителю делается в PHP.
-function eportaHardwareAllSections(bool $onlyActive = true): array {
+// $refresh сбрасывает кэш (после записи в админке типов).
+function eportaHardwareAllSections(bool $onlyActive = true, bool $refresh = false): array {
     static $cache = [];
+    if ($refresh) {
+        $cache = [];
+    }
     $key = $onlyActive ? 'a' : 'all';
     if (!isset($cache[$key])) {
         \CModule::IncludeModule('iblock');

@@ -71,6 +71,7 @@ function eportaHardwareKindsCreate(string $name, ?string &$error = null) {
         $error = $section->LAST_ERROR ?: 'Не удалось создать тип';
         return false;
     }
+    eportaHardwareAllSections(false, true);
     return (int)$id;
 }
 
@@ -97,5 +98,6 @@ function eportaHardwareKindsUpdate(int $id, string $name, int $sort, bool $activ
         $error = $section->LAST_ERROR ?: 'Не удалось сохранить тип';
         return false;
     }
+    eportaHardwareAllSections(false, true);
     return true;
 }
