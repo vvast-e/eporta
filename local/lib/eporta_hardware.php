@@ -65,8 +65,12 @@ function eportaSectionNameMap(array $rows, int $parentId): array {
 }
 
 // Все разделы IBLOCK 19 (кэш на запрос) — выбор по родителю делается в PHP.
-function eportaHardwareAllSections(bool $onlyActive = true): array {
+// $refresh сбрасывает кэш (после записи в админке типов).
+function eportaHardwareAllSections(bool $onlyActive = true, bool $refresh = false): array {
     static $cache = [];
+    if ($refresh) {
+        $cache = [];
+    }
     $key = $onlyActive ? 'a' : 'all';
     if (!isset($cache[$key])) {
         \CModule::IncludeModule('iblock');
@@ -75,7 +79,7 @@ function eportaHardwareAllSections(bool $onlyActive = true): array {
             $filter['ACTIVE'] = 'Y';
         }
         $rows = [];
-        $res = \CIBlockSection::GetList(['SORT' => 'ASC', 'ID' => 'ASC'], $filter, false, ['ID', 'NAME', 'CODE', 'SORT', 'IBLOCK_SECTION_ID']);
+        $res = \CIBlockSection::GetList(['SORT' => 'ASC', 'ID' => 'ASC'], $filter, false, ['ID', 'NAME', 'CODE', 'SORT', 'ACTIVE', 'IBLOCK_SECTION_ID']);
         while ($row = $res->Fetch()) {
             $rows[] = $row;
         }
@@ -103,6 +107,25 @@ function eportaHardwareKinds(): array {
     return array_values(array_filter(eportaHardwareAllSections(true), function ($row) use ($parentId) {
         return (int)$row['IBLOCK_SECTION_ID'] === $parentId && $row['CODE'] !== '';
     }));
+}
+
+// Проверка названия типа (админка типов): непустое, не длиннее 100, не дублирует другой тип того же родителя
+// (импорт ищет тип по названию без учёта регистра — дубль сделал бы выбор неоднозначным). null — можно.
+function eportaHardwareKindValidateName(array $rows, int $parentId, string $name, int $exceptId = 0): ?string {
+    $name = trim($name);
+    if ($name === '') {
+        return 'Название не может быть пустым';
+    }
+    if (mb_strlen($name) > 100) {
+        return 'Название длиннее 100 символов';
+    }
+    foreach ($rows as $row) {
+        if ((int)$row['IBLOCK_SECTION_ID'] === $parentId && (int)$row['ID'] !== $exceptId && (int)$row['ID'] !== $parentId
+            && mb_strtolower(trim((string)$row['NAME'])) === mb_strtolower($name)) {
+            return 'Тип с таким названием уже есть';
+        }
+    }
+    return null;
 }
 
 function eportaHardwareKindUrl(string $code): string {

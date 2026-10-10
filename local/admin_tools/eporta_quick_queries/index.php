@@ -122,7 +122,7 @@ foreach ($options as $group => $values) {
         return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
     function emptyFilters() {
-        return { style: [], coating: [], color: [], size: [], price_min: 0, price_max: 0, category: '', sale: false, 'new': false };
+        return { style: [], coating: [], color: [], size: [], price_min: 0, price_max: 0, category: '', type: '', sale: false, 'new': false };
     }
     function setStatus(text, cls) {
         statusEl.textContent = text;
@@ -139,8 +139,11 @@ foreach ($options as $group => $values) {
                 '<button type="button" class="f-up"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
                 '<button type="button" class="f-down"' + (i === state.length - 1 ? ' disabled' : '') + '>↓</button>' +
                 '<button type="button" class="f-del danger">Удалить</button></div>';
+            var isHw = q.filters.category === 'hardware';
             GROUPS.forEach(function (g) {
                 var key = g[0];
+                // У фурнитуры «Стиль» и «Цвет» (оттенок двери) не применяются — см. eportaQuickQueryNormalizeOne.
+                if (isHw && (key === 'style' || key === 'color')) return;
                 var picked = (q.filters[key] || []).map(String);
                 html += '<details class="q-section"' + (picked.length ? ' open' : '') + '><summary>' + g[1] + (picked.length ? ' (' + picked.length + ')' : '') + '</summary><div class="chk-list">';
                 OPTIONS[key].forEach(function (opt) {
@@ -153,10 +156,18 @@ foreach ($options as $group => $values) {
             OPTIONS.category.forEach(function (opt) {
                 html += '<option value="' + esc(opt.value) + '"' + (q.filters.category === opt.value ? ' selected' : '') + '>' + esc(opt.label) + '</option>';
             });
-            html += '</select></span><label><input type="checkbox" class="f-sale"' + (q.filters.sale ? ' checked' : '') + '> Распродажа</label>' +
+            html += '</select></span>';
+            if (isHw) {
+                html += '<span>Тип фурнитуры <select class="f-type"><option value="">— любой —</option>';
+                OPTIONS.type.forEach(function (opt) {
+                    html += '<option value="' + esc(opt.value) + '"' + (q.filters.type === opt.value ? ' selected' : '') + '>' + esc(opt.label) + '</option>';
+                });
+                html += '</select></span>';
+            }
+            html += '<label><input type="checkbox" class="f-sale"' + (q.filters.sale ? ' checked' : '') + '> Распродажа</label>' +
                 '<label><input type="checkbox" class="f-new"' + (q.filters['new'] ? ' checked' : '') + '> Новинки</label></div>';
-            html += '<div class="q-section"><b style="font-size:13px">Закреплённые двери</b> <span style="font-size:12px;color:#888">(показываются первыми)</span><div class="pin-list"></div>' +
-                '<div class="search-box"><input type="text" class="f-search" placeholder="Найти дверь по названию или артикулу…"><div class="search-res" style="display:none"></div></div></div>';
+            html += '<div class="q-section"><b style="font-size:13px">Закреплённые товары</b> <span style="font-size:12px;color:#888">(показываются первыми)</span><div class="pin-list"></div>' +
+                '<div class="search-box"><input type="text" class="f-search" placeholder="Найти товар по названию или артикулу…"><div class="search-res" style="display:none"></div></div></div>';
             html += '<div class="url">' + (q.url ? 'Ссылка: ' + esc(q.url) : 'Ссылка появится после сохранения') + '</div>';
             card.innerHTML = html;
             listEl.appendChild(card);
@@ -201,12 +212,16 @@ foreach ($options as $group => $values) {
             q.filters.price_min = parseInt(card.querySelector('.f-pmin').value, 10) || 0;
             q.filters.price_max = parseInt(card.querySelector('.f-pmax').value, 10) || 0;
             q.filters.category = card.querySelector('.f-cat').value;
+            var typeSel = card.querySelector('.f-type');
+            q.filters.type = typeSel ? typeSel.value : '';
             q.filters.sale = card.querySelector('.f-sale').checked;
             q.filters['new'] = card.querySelector('.f-new').checked;
         });
     }
 
     function wire(card, q, i) {
+        // Смена категории перерисовывает карточку: для «Фурнитуры» показываются «Тип» вместо «Стиль/Цвет».
+        card.querySelector('.f-cat').onchange = function () { syncAll(); render(); };
         card.querySelector('.f-up').onclick = function () { syncAll(); move(state, i, -1); render(); };
         card.querySelector('.f-down').onclick = function () { syncAll(); move(state, i, 1); render(); };
         card.querySelector('.f-del').onclick = function () {

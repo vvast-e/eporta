@@ -933,7 +933,11 @@ img { display: block; }
    dropdown'ом сортировки не помещается и вылезал за край экрана. */
 @media (max-width: 560px) {
   .eporta-catalog-headrow { flex-wrap: wrap; gap: 10px; align-items: flex-start; }
-  .eporta-catalog-toolrow { flex: 0 0 100%; justify-content: space-between; }
+  .eporta-catalog-toolrow { flex: 0 0 100%; justify-content: space-between; gap: 8px !important; min-width: 0; }
+  /* Сортировка уступает место («Сначала популярные» обрезается), иначе три контрола шире экрана и страница скроллится вбок. */
+  .eporta-catalog-toolrow .eporta-sort-dd { flex: 1 1 0; min-width: 0; }
+  .eporta-catalog-toolrow .eporta-sort-dd > summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .eporta-catalog-toolrow .eporta-filters-toggle, .eporta-catalog-toolrow .eporta-view-switch { flex: none; }
 }
 
 /* ---- Фильтры каталога на мобильном (выезжающая шторка справа) ----
@@ -1291,7 +1295,7 @@ a.eporta-subcoll-btn:hover { border-color: #e8820a; }
   gap: 14px;
 }
 .site-footer .f-logo { font: 800 17px var(--font); color: #fff; }
-.site-footer nav { display: flex; gap: 24px; font-size: 13px; }
+.site-footer nav { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 13px; }
 .site-footer nav a { color: inherit; transition: color .15s; }
 .site-footer nav a:hover { color: #fff; }
 .site-footer .f-phone { font: 800 15px var(--font); color: #fff; }

@@ -11,6 +11,7 @@ require_once($_SERVER['DOCUMENT_ROOT'] . '/local/php_interface/include/eporta_ho
 require_once($_SERVER['DOCUMENT_ROOT'] . '/local/admin_tools/eporta_home_tabs/lib.php');
 require_once($_SERVER['DOCUMENT_ROOT'] . '/local/lib/eporta_quick_queries.php');
 require_once($_SERVER['DOCUMENT_ROOT'] . '/local/templates/eporta/inc/categories.php');
+require_once($_SERVER['DOCUMENT_ROOT'] . '/local/lib/eporta_hardware.php');
 
 function eportaQuickQueriesUserHasAccess(): bool {
     return eportaHomeTabsUserHasAccess();
@@ -21,7 +22,7 @@ function eportaQuickQueriesUserHasAccess(): bool {
 // категории из inc/categories.php. Возвращает [группа => [значение => подпись]].
 function eportaQuickQueriesFilterOptions(): array {
     \Bitrix\Main\Loader::includeModule('iblock');
-    $options = ['style' => [], 'coating' => [], 'color' => [], 'size' => [], 'category' => []];
+    $options = ['style' => [], 'coating' => [], 'color' => [], 'size' => [], 'category' => [], 'type' => []];
     $props = ['style' => 'STYLE', 'coating' => 'COATING', 'color' => 'MAIN_COLOR'];
     foreach ($props as $key => $code) {
         $res = \CIBlockPropertyEnum::GetList(['SORT' => 'ASC', 'VALUE' => 'ASC'], ['IBLOCK_ID' => EPORTA_HOME_TABS_IBLOCK_ID, 'CODE' => $code]);
@@ -54,6 +55,10 @@ function eportaQuickQueriesFilterOptions(): array {
     foreach (eportaGetCategoryMap() as $key => $category) {
         $options['category'][$key] = $category['LABEL'];
     }
+    // Типы фурнитуры (только для категории «Фурнитура»): код раздела => название.
+    foreach (eportaHardwareKinds() as $kind) {
+        $options['type'][$kind['CODE']] = $kind['NAME'];
+    }
     return $options;
 }
 
@@ -65,6 +70,7 @@ function eportaQuickQueriesAllowedFromOptions(array $options): array {
         'color' => array_keys($options['color']),
         'size' => array_keys($options['size']),
         'category' => array_map('strval', array_keys($options['category'])),
+        'type' => array_map('strval', array_keys($options['type'])),
     ];
 }
 

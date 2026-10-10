@@ -85,5 +85,18 @@ check('крошки: категория', eportaHardwareBreadcrumb(null), [['Г�
 check('крошки: тип', eportaHardwareBreadcrumb($kinds[0]), [['Главная', '/'], ['Каталог', '/catalog/'], ['Фурнитура', '/catalog/?category=hardware'], ['Ручки']]);
 check('крошки: товар', eportaHardwareBreadcrumb($kinds[0], 'Ручка Libra'), [['Главная', '/'], ['Каталог', '/catalog/'], ['Фурнитура', '/catalog/?category=hardware'], ['Ручки', '/catalog/?category=hardware&type=ruchki'], ['Ручка Libra']]);
 
+$vrows = [
+    ['ID' => 1, 'NAME' => 'Фурнитура', 'IBLOCK_SECTION_ID' => 0],
+    ['ID' => 2, 'NAME' => 'Ручки', 'IBLOCK_SECTION_ID' => 1],
+    ['ID' => 3, 'NAME' => 'Петли', 'IBLOCK_SECTION_ID' => 1],
+    ['ID' => 9, 'NAME' => 'Dorsum', 'IBLOCK_SECTION_ID' => 183],
+];
+check('название типа: свободное', eportaHardwareKindValidateName($vrows, 1, 'Замки'), null);
+check('название типа: пустое', eportaHardwareKindValidateName($vrows, 1, '  ') !== null, true);
+check('название типа: дубль без учёта регистра', eportaHardwareKindValidateName($vrows, 1, ' ручки ') !== null, true);
+check('название типа: своё же при переименовании допустимо', eportaHardwareKindValidateName($vrows, 1, 'Ручки', 2), null);
+check('название типа: совпадение с коллекцией дверей не мешает', eportaHardwareKindValidateName($vrows, 1, 'Dorsum'), null);
+check('название типа: слишком длинное', eportaHardwareKindValidateName($vrows, 1, str_repeat('а', 101)) !== null, true);
+
 echo $failures ? "\nПровалено: $failures\n" : "\nВсе проверки пройдены\n";
 exit($failures ? 1 : 0);

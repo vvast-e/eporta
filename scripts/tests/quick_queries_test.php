@@ -58,6 +58,15 @@ check('allowed: чужой color отсекается', $a['filters']['color'], 
 check('allowed: чужой size отсекается', $a['filters']['size'], ['800x2000']);
 check('allowed: неизвестная категория сбрасывается', $a['filters']['category'], '');
 check('allowed: валидная категория остаётся', eportaQuickQueryNormalizeOne(['label' => 'a', 'filters' => ['category' => 'mkd']], $allowed)['filters']['category'], 'mkd');
+// --- фурнитура: тип вместо стиля/цвета
+$hw = eportaQuickQueryNormalizeOne(['label' => 'Ручки', 'filters' => ['category' => 'hardware', 'type' => 'ruchki', 'style' => [1], 'color' => [7], 'coating' => [4]]]);
+check('фурнитура: тип сохраняется', $hw['filters']['type'], 'ruchki');
+check('фурнитура: стиль и цвет сбрасываются, покрытие остаётся', [$hw['filters']['style'], $hw['filters']['color'], $hw['filters']['coating']], [[], [], [4]]);
+check('фурнитура: url с типом', eportaQuickQueryUrl($hw + ['id' => 3]), '/catalog/?' . http_build_query(['coating' => [4], 'category' => 'hardware', 'type' => 'ruchki']));
+check('тип без категории фурнитура отбрасывается', eportaQuickQueryNormalizeOne(['label' => 'a', 'filters' => ['category' => 'mkd', 'type' => 'ruchki']])['filters']['type'], '');
+check('тип не из списка allowed отбрасывается', eportaQuickQueryNormalizeOne(['label' => 'a', 'filters' => ['category' => 'hardware', 'type' => 'zzz']], ['category' => ['hardware'], 'type' => ['ruchki']])['filters']['type'], '');
+check('тип из списка allowed остаётся', eportaQuickQueryNormalizeOne(['label' => 'a', 'filters' => ['category' => 'hardware', 'type' => 'ruchki']], ['category' => ['hardware'], 'type' => ['ruchki']])['filters']['type'], 'ruchki');
+check('двери: type не попадает в url', strpos(eportaQuickQueryUrl(['id' => 1, 'filters' => ['category' => 'mkd', 'type' => 'ruchki'], 'pinned' => []]), 'type'), false);
 check('category: мусорные символы отсекаются', eportaQuickQueryNormalizeOne(['label' => 'a', 'filters' => ['category' => '../x']])['filters']['category'], '');
 check('pinned: лимит', count(eportaQuickQueryNormalizeOne(['label' => 'a', 'pinned' => range(1, 500)])['pinned']), EPORTA_QUICK_QUERIES_PINNED_MAX);
 

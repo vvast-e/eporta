@@ -31,6 +31,7 @@ function navHtml(string $key): string {
 // ломает JS страниц, поэтому тест упадёт при любом изменении.
 $pages = [
     'collections' => ['eporta_collections', ['create', 'update', 'set_parent', 'upload_banner', 'update_banner_meta', 'get_models', 'set_showcase', 'set_show_in_list']],
+    'hardware_kinds' => ['eporta_hardware_kinds', ['create', 'update']],
     'banners' => ['eporta_banners', ['save_slot_meta', 'save_meta', 'set_overlay']],
     'home_tabs' => ['eporta_home_tabs', ['search', 'save']],
     'quick' => ['eporta_quick_queries', ['search', 'save']],

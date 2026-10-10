@@ -29,6 +29,7 @@ $USER = new class extends CUser {
 $pages = [
     'collections' => 'eporta_collections/index.php',
     'quick' => 'eporta_quick_queries/index.php',
+    'hardware_kinds' => 'eporta_hardware_kinds/index.php',
     'banners' => 'eporta_banners/index.php',
     'home_tabs' => 'eporta_home_tabs/index.php',
     'import' => 'eporta_import/index.php',
