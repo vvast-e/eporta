@@ -74,7 +74,7 @@ try {
     [$code, $html] = get('/catalog/?category=hardware');
     check('категория отвечает 200', $code === 200, (string)$code);
     check('полоска типов есть', str_contains($html, 'class="eporta-hwkind-nav"'));
-    check('кнопка «Ручки» со счётчиком ≥3', (bool)preg_match('~type=ruchki"[^>]*>Ручки <span class="eporta-hwkind-cnt">(\d+)</span>~u', $html, $m) && (int)$m[1] >= 3, $m[1] ?? 'нет кнопки');
+    check('кнопка «Ручки» со счётчиком моделей = 2', (bool)preg_match('~type=ruchki"[^>]*>Ручки <span class="eporta-hwkind-cnt">(\d+)</span>~u', $html, $m) && (int)$m[1] === 2, $m[1] ?? 'нет кнопки');
     check('кнопка «Петли» есть', str_contains($html, 'type=petli"'));
     check('кнопки без товаров («Пороги») скрыты', !str_contains($html, 'type=porogi"'));
     check('кнопка «Скрыть»', str_contains($html, 'id="eportaHwKindToggle"'));

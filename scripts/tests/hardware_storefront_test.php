@@ -85,6 +85,16 @@ check('крошки: категория', eportaHardwareBreadcrumb(null), [['Г�
 check('крошки: тип', eportaHardwareBreadcrumb($kinds[0]), [['Главная', '/'], ['Каталог', '/catalog/'], ['Фурнитура', '/catalog/?category=hardware'], ['Ручки']]);
 check('крошки: товар', eportaHardwareBreadcrumb($kinds[0], 'Ручка Libra'), [['Главная', '/'], ['Каталог', '/catalog/'], ['Фурнитура', '/catalog/?category=hardware'], ['Ручки', '/catalog/?category=hardware&type=ruchki'], ['Ручка Libra']]);
 
+check('счётчик моделей: цвета одной модели считаются один раз', eportaHardwareCountModelsBySection([
+    ['ID' => 1, 'IBLOCK_SECTION_ID' => 2, 'MODEL' => 'Libra'],
+    ['ID' => 2, 'IBLOCK_SECTION_ID' => 2, 'MODEL' => 'Libra'],
+    ['ID' => 3, 'IBLOCK_SECTION_ID' => 2, 'MODEL' => 'Aqua'],
+    ['ID' => 4, 'IBLOCK_SECTION_ID' => 2, 'MODEL' => ''],
+    ['ID' => 5, 'IBLOCK_SECTION_ID' => 2, 'MODEL' => ''],
+    ['ID' => 6, 'IBLOCK_SECTION_ID' => 3, 'MODEL' => 'Libra'],
+]), [2 => 4, 3 => 1]);
+check('счётчик моделей: пусто', eportaHardwareCountModelsBySection([]), []);
+
 $vrows = [
     ['ID' => 1, 'NAME' => 'Фурнитура', 'IBLOCK_SECTION_ID' => 0],
     ['ID' => 2, 'NAME' => 'Ручки', 'IBLOCK_SECTION_ID' => 1],
