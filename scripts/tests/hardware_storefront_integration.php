@@ -56,10 +56,11 @@ try {
     [$code, $html] = get('/catalog/?category=hardware');
     check('раздел фурнитуры отвечает 200', $code === 200, (string)$code);
     check('схлопывание: 3 карточки из 4 товаров (Libra x2 → 1)', cards($html) === 3, 'карточек: ' . cards($html));
-    check('полное название с запятой в карточке', str_contains($html, $n1));
+    // Представитель модели Libra — лучший по сортировке (при равном рейтинге — новее), поэтому любой из двух.
+    check('полное название с запятой в карточке', str_contains($html, $n1) || str_contains($html, 'Ручка Armadillo LD26 Libra BL-19, чёрный'));
     check('карточка: класс name--full', str_contains($html, 'name--full'));
     foreach (['Бренд', 'Серия', 'Покрытие', 'Цвет', 'Материал'] as $label) {
-        check("фильтр «$label» в сайдбаре", str_contains($html, '<!-- ' . $label . ' -->'));
+        check("фильтр «{$label}» в сайдбаре", str_contains($html, '<!-- ' . $label . ' -->'));
     }
     check('нет фильтра «Стиль»', !str_contains($html, '<!-- Стиль -->'));
     check('canonical раздела фурнитуры', str_contains($html, 'rel="canonical" href="https://eporta.ru/catalog/?category=hardware"'));
