@@ -1295,7 +1295,7 @@ a.eporta-subcoll-btn:hover { border-color: #e8820a; }
   gap: 14px;
 }
 .site-footer .f-logo { font: 800 17px var(--font); color: #fff; }
-.site-footer nav { display: flex; gap: 24px; font-size: 13px; }
+.site-footer nav { display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 13px; }
 .site-footer nav a { color: inherit; transition: color .15s; }
 .site-footer nav a:hover { color: #fff; }
 .site-footer .f-phone { font: 800 15px var(--font); color: #fff; }
