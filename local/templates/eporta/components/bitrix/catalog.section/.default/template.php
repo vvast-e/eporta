@@ -26,6 +26,7 @@ if ($eportaIsSquareCards) $eportaGridView .= " eporta-product-grid--square";
 // списки, где не у всех элементов одна и та же секция).
 require_once($_SERVER["DOCUMENT_ROOT"]."/local/lib/eporta_collections.php");
 require_once($_SERVER["DOCUMENT_ROOT"]."/local/lib/eporta_price.php");
+require_once($_SERVER["DOCUMENT_ROOT"]."/local/lib/eporta_hardware.php");
 $eportaSquareSectionIds = [];
 foreach (eportaCollections(true) as $eportaSquareColl) {
 	if (eportaCollectionHasSquareCards($eportaSquareColl)) {
@@ -61,7 +62,7 @@ if ($eportaItemIds) {
 		["IBLOCK_ID" => $arParams["IBLOCK_ID"], "ID" => $eportaItemIds],
 		false,
 		false,
-		["ID", "IBLOCK_ID", "IBLOCK_SECTION_ID", "PROPERTY_RATING", "PROPERTY_VOTE_COUNT", "PROPERTY_PRODUCT_DAY", "PROPERTY_DISCOUNT", "PROPERTY_ORIGINAL_PRICE"]
+		["ID", "IBLOCK_ID", "IBLOCK_SECTION_ID", "PROPERTY_RATING", "PROPERTY_VOTE_COUNT", "PROPERTY_PRODUCT_DAY", "PROPERTY_DISCOUNT", "PROPERTY_ORIGINAL_PRICE", "PROPERTY_CATEGORY"]
 	);
 	while ($eportaPropsEl = $eportaPropsRes->GetNextElement()) {
 		$eportaFields = $eportaPropsEl->GetFields();
@@ -72,6 +73,7 @@ if ($eportaItemIds) {
 			"DISCOUNT" => $eportaFields["PROPERTY_DISCOUNT_VALUE"] ?? 0,
 			"ORIGINAL_PRICE" => $eportaFields["PROPERTY_ORIGINAL_PRICE_VALUE"] ?? 0,
 			"SECTION_ID" => (int)($eportaFields["IBLOCK_SECTION_ID"] ?? 0),
+			"CATEGORY" => (string)($eportaFields["PROPERTY_CATEGORY_VALUE"] ?? ""),
 		];
 	}
 }
@@ -128,7 +130,10 @@ if ($eportaItemIds) {
 	// склейка "Покрытие"+"Цвет" при импорте, столбец "Цвет" в выгрузке иногда сам уже содержит
 	// название покрытия. Не трогает NAME в базе, только то, что видит покупатель.
 	$eportaDisplayName = eportaCleanDisplayName((string)$arItem["NAME"]);
-	$eportaNameParts = explode(",", $eportaDisplayName, 2);
+	// Фурнитура: NAME — полное название товара из выгрузки («Название»), в нём запятая не разделитель
+	// модели и отделки, поэтому не режем; длинное имя в карточке идёт в две строки (.name--full).
+	$eportaItemIsHardware = eportaIsHardwareCategory((string)($eportaExtra["CATEGORY"] ?? ""));
+	$eportaNameParts = $eportaItemIsHardware ? [$eportaDisplayName] : explode(",", $eportaDisplayName, 2);
 	$eportaModelNamePart = trim($eportaNameParts[0]);
 	$eportaCoatingNamePart = isset($eportaNameParts[1]) ? trim($eportaNameParts[1]) : "";
 
@@ -186,7 +191,7 @@ if ($eportaItemIds) {
 			<button class="btn-compare" onclick="addCompare(event, <?= (int)$arItem["ID"] ?>)" title="Сравнить">⇄</button>
 		</div>
 		<div class="info">
-			<div class="name" title="<?= htmlspecialcharsbx($eportaDisplayName) ?>"><?= htmlspecialcharsbx($eportaModelNamePart) ?></div>
+			<div class="name<?= $eportaItemIsHardware ? " name--full" : "" ?>" title="<?= htmlspecialcharsbx($eportaDisplayName) ?>"><?= htmlspecialcharsbx($eportaModelNamePart) ?></div>
 			<?php if ($eportaCoatingNamePart !== ""): ?>
 			<div class="coating" title="<?= htmlspecialcharsbx($eportaCoatingNamePart) ?>"><?= htmlspecialcharsbx($eportaCoatingNamePart) ?></div>
 			<?php endif; ?>

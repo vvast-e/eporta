@@ -308,6 +308,9 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		$eportaCategoryMap = eportaGetCategoryMap();
 		$eportaSelectedCategory = (!empty($_GET["category"]) && isset($eportaCategoryMap[$_GET["category"]]))
 			? $_GET["category"] : null;
+		// Фурнитура — свой набор фильтров, схлопывание по модели и canonical (local/lib/eporta_hardware.php).
+		require_once($_SERVER["DOCUMENT_ROOT"]."/local/lib/eporta_hardware.php");
+		$eportaIsHardwareScope = ($eportaSelectedCategory === "hardware");
 		if ($eportaSelectedCategory) {
 			$eportaScopeFilter["PROPERTY_CATEGORY"] = $eportaCategoryMap[$eportaSelectedCategory]["ALIASES"];
 			// Категория (шапка/плитки главной) — это раздел каталога, а не пользовательский фильтр,
@@ -355,19 +358,36 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 
 		// Свойства-чекбоксы: код свойства => [ query-параметр, подпись, ключ фильтра CIBlockElement ]
 		$eportaPropDefs = [
-			"style" => ["CODE" => "STYLE", "LABEL" => "Стиль", "FILTER_KEY" => "PROPERTY_STYLE"],
-			"coating" => ["CODE" => "COATING", "LABEL" => "Покрытие", "FILTER_KEY" => "PROPERTY_COATING"],
-			"color" => ["CODE" => "MAIN_COLOR", "LABEL" => "Цвет", "FILTER_KEY" => "PROPERTY_MAIN_COLOR"],
+			"style" => ["CODE" => "STYLE", "LABEL" => "Стиль", "FILTER_KEY" => "PROPERTY_STYLE", "TYPE" => "enum"],
+			"coating" => ["CODE" => "COATING", "LABEL" => "Покрытие", "FILTER_KEY" => "PROPERTY_COATING", "TYPE" => "enum"],
+			"color" => ["CODE" => "MAIN_COLOR", "LABEL" => "Цвет", "FILTER_KEY" => "PROPERTY_MAIN_COLOR", "TYPE" => "enum"],
 		];
+		if ($eportaIsHardwareScope) {
+			$eportaPropDefs = eportaHardwareFilterDefs();
+		}
 
 		// Выбранные значения из GET, санитизация — только реально существующие ID вариантов свойства.
 		$eportaSelected = [];
 		foreach ($eportaPropDefs as $eportaKey => $eportaDef) {
+			$eportaValues = [];
+			if ($eportaDef["TYPE"] === "string") {
+				// Строковое свойство (у фурнитуры: Бренд, Материал): значения — те, что реально есть у товаров
+				// текущей области. Ключ = само значение; числоподобный ключ PHP превращает в int, поэтому
+				// ниже везде сравнение через (string).
+				$eportaStrRes = \CIBlockElement::GetList(["PROPERTY_".$eportaDef["CODE"] => "ASC"], $eportaScopeFilter, ["PROPERTY_".$eportaDef["CODE"]]);
+				while ($eportaStrRow = $eportaStrRes->Fetch()) {
+					$eportaStrVal = trim((string)($eportaStrRow["PROPERTY_".$eportaDef["CODE"]."_VALUE"] ?? ""));
+					if ($eportaStrVal !== "") $eportaValues[$eportaStrVal] = $eportaStrVal;
+				}
+				$eportaPropDefs[$eportaKey]["VALUES"] = $eportaValues;
+				$eportaRawSel = array_map("strval", (array)($_GET[$eportaKey] ?? []));
+				$eportaSelected[$eportaKey] = array_values(array_intersect($eportaRawSel, array_map("strval", array_keys($eportaValues))));
+				continue;
+			}
 			$eportaEnumRes = \CIBlockPropertyEnum::GetList(
 				["SORT" => "ASC", "VALUE" => "ASC"],
 				["IBLOCK_ID" => 19, "CODE" => $eportaDef["CODE"]]
 			);
-			$eportaValues = [];
 			while ($eportaEnum = $eportaEnumRes->Fetch()) {
 				$eportaValues[(int)$eportaEnum["ID"]] = $eportaEnum["VALUE"];
 			}
@@ -464,7 +484,9 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		foreach ($eportaPropDefs as $eportaKey => $eportaDef) {
 			$eportaCountFilter = $eportaBuildFilter($eportaKey);
 			$eportaItems = [];
+			$eportaIsStrDef = $eportaDef["TYPE"] === "string";
 			foreach ($eportaDef["VALUES"] as $eportaEnumId => $eportaEnumValue) {
+				if ($eportaIsStrDef) $eportaEnumId = (string)$eportaEnumId;
 				$eportaCnt = \CIBlockElement::GetList([], $eportaCountFilter + [$eportaDef["FILTER_KEY"] => $eportaEnumId], false, false, ["ID"])->SelectedRowsCount();
 				if ($eportaCnt < 1) continue;
 				$eportaItems[] = [
@@ -479,6 +501,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			if (!empty($eportaSelected[$eportaKey])) {
 				$eportaArrFilter[$eportaDef["FILTER_KEY"]] = $eportaSelected[$eportaKey];
 				foreach ($eportaDef["VALUES"] as $eportaEnumId => $eportaEnumValue) {
+					if ($eportaIsStrDef) $eportaEnumId = (string)$eportaEnumId;
 					if (in_array($eportaEnumId, $eportaSelected[$eportaKey], true)) {
 						$eportaActiveChips[] = ["LABEL" => $eportaEnumValue, "REMOVE_KEY" => $eportaKey, "REMOVE_VALUE" => $eportaEnumId];
 					}
@@ -597,6 +620,10 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		} elseif ($eportaSeoSlug && $eportaSeoCanonicalParams !== null) {
 			$eportaCanonicalPath = "/catalog/";
 			$eportaCanonicalQuery = $eportaSeoCanonicalParams ? http_build_query($eportaSeoCanonicalParams) : "";
+		} elseif ($eportaIsHardwareScope) {
+			// Фурнитура: любые фильтры/сортировки/страницы канонизируются на раздел, а не на корень /catalog/ (двери).
+			$eportaCanonicalPath = "/catalog/";
+			$eportaCanonicalQuery = "category=hardware";
 		} else {
 			$eportaCanonicalPath = "/catalog/";
 			$eportaCanonicalQuery = "";
@@ -611,7 +638,8 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		// же связку eportaMatchSeoSlug(), а не отдельным хардкод-списком — иначе список рассинхронится
 		// с реальным ассортиментом (см. историю с Лофт/Прованс/Скандинавские в _catalog_filter_map.php).
 		$eportaSeoLinks = [];
-		if (!$eportaCollectionSection) {
+		// Фурнитура: готовых SEO-состояний нет (слаги/тексты — только под двери), ссылки не строим.
+		if (!$eportaCollectionSection && !$eportaIsHardwareScope) {
 			require_once($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/seo/_catalog_filter_map.php");
 			$eportaSeoLinkRegistry = include($_SERVER["DOCUMENT_ROOT"]."/local/templates/eporta/inc/seo/_registry_draft.php");
 			$eportaSeoLinkSeen = [];
@@ -749,11 +777,18 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			});
 
 			$eportaOrderedIds = [];
-			$eportaMaxGroupSize = $eportaModelGroups ? max(array_map("count", $eportaModelGroups)) : 0;
-			for ($eportaRound = 0; $eportaRound < $eportaMaxGroupSize; $eportaRound++) {
-				foreach ($eportaModelGroups as $eportaGroupItems) {
-					if (isset($eportaGroupItems[$eportaRound])) {
-						$eportaOrderedIds[] = $eportaGroupItems[$eportaRound]["ID"];
+			if ($eportaIsHardwareScope) {
+				// Фурнитура (решение заказчика 10.10.2026): выдача схлопывается — одна карточка на модель
+				// (лучшая по текущей сортировке), остальные цвета/покрытия модели открываются из карточки.
+				// Товары без MODEL не схлопываются (каждый — своя группа).
+				$eportaOrderedIds = eportaCollapseModelGroups($eportaModelGroups);
+			} else {
+				$eportaMaxGroupSize = $eportaModelGroups ? max(array_map("count", $eportaModelGroups)) : 0;
+				for ($eportaRound = 0; $eportaRound < $eportaMaxGroupSize; $eportaRound++) {
+					foreach ($eportaModelGroups as $eportaGroupItems) {
+						if (isset($eportaGroupItems[$eportaRound])) {
+							$eportaOrderedIds[] = $eportaGroupItems[$eportaRound]["ID"];
+						}
 					}
 				}
 			}

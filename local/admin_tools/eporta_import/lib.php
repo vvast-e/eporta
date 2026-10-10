@@ -10,8 +10,8 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
 
 require_once __DIR__ . '/webp_convert.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/local/lib/eporta_price.php';
-// eportaGetCategoryMap() — алиасы категорий (для определения «Фурнитуры» в выгрузке).
-require_once $_SERVER['DOCUMENT_ROOT'] . '/local/templates/eporta/inc/categories.php';
+// eportaIsHardwareCategory() — «Фурнитура» по алиасам категорий (inc/categories.php).
+require_once $_SERVER['DOCUMENT_ROOT'] . '/local/lib/eporta_hardware.php';
 
 const EPORTA_IMPORT_IBLOCK_ID = 19;
 const EPORTA_IMPORT_COLLECTIONS_SECTION_ID = 183;
@@ -364,14 +364,9 @@ function eportaImportGetOrCreateEnumId(int $iblockId, string $propertyCode, stri
 }
 
 // Товар относится к фурнитуре, если «Категория» выгрузки — один из алиасов категории hardware
-// (local/templates/eporta/inc/categories.php), регистр не важен.
+// (local/templates/eporta/inc/categories.php), регистр не важен. Логика общая с витриной.
 function eportaImportIsHardware(array $p): bool {
-    $category = mb_strtolower(trim($p['category'] ?? ''));
-    if ($category === '') {
-        return false;
-    }
-    $aliases = eportaGetCategoryMap()['hardware']['ALIASES'] ?? [];
-    return in_array($category, array_map('mb_strtolower', $aliases), true);
+    return eportaIsHardwareCategory((string)($p['category'] ?? ''));
 }
 
 // Поставщик фурнитуры даёт ссылки без схемы («www.tlock.ru/photo_bank/1.jpg»), а проверка
