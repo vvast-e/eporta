@@ -46,7 +46,7 @@ check('список коллекций дверей без типов фурни
 
 cleanup();
 try {
-    $base = ['category' => 'Фурнитура', 'price' => 1500.0, 'discount' => 0, 'rating' => 5, 'brand' => 'ZZBRAND'];
+    $base = ['category' => 'Фурнитура', 'price' => 1500.0, 'discount' => 0, 'rating' => 5, 'brand' => 'ZZBRAND', 'series' => 'Legend', 'coating' => 'Гальваника', 'material' => ['ZAMAK']];
     $rows = [
         ['article' => 'ZZ-HWK-1', 'model' => 'Libra', 'name' => 'Ручка ZZ Libra хром', 'collection' => 'Ручки', 'coating_color' => 'Хром'],
         ['article' => 'ZZ-HWK-2', 'model' => 'Libra', 'name' => 'Ручка ZZ Libra чёрная', 'collection' => 'Ручки', 'coating_color' => 'Чёрный'],
