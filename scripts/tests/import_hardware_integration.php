@@ -18,7 +18,7 @@ require(getenv('EPORTA_IMPORT_LIB') ?: $_SERVER['DOCUMENT_ROOT'] . '/local/admin
 
 const HW = 'ZZ-HW-TEST';
 const DOOR = 'ZZ-HW-DOOR';
-$photo = 'eporta.ru/upload/iblock/279/lohenp6nnlnz8irtjxpzrzsz6pyskvra.jpg'; // без схемы — как у поставщика
+$photo = 'www.tlock.ru/photo_bank/13739_01.jpg'; // без схемы — как в выгрузке поставщика
 $full = 'Ручка Armadillo (Армадилло) раздельная LD26 Libra SN/CP-3, матовый никель/хром';
 $failures = 0;
 function check(string $name, bool $cond, string $info = ''): void {
