@@ -46,5 +46,44 @@ check('схлопывание: по первому товару каждой г�
 check('схлопывание: пусто', eportaCollapseModelGroups([]), []);
 check('схлопывание: пустая группа пропускается', eportaCollapseModelGroups(['a' => [], 'b' => [['ID' => 1, 'SORT' => 0]]]), [1]);
 
+// --- Типы фурнитуры (этап 3) ---
+$kindDefs = eportaHardwareKindDefs();
+check('типы: 11 штук в порядке заказчика', array_column($kindDefs, 'NAME'), ['Ручки', 'Петли', 'Защёлки', 'Фиксаторы', 'Ограничители', 'Накладки', 'Цилиндры', 'Замки', 'Доводчики', 'Задвижки', 'Пороги']);
+check('типы: коды уникальны', count(array_unique(array_column($kindDefs, 'CODE'))), 11);
+check('типы: коды — латиница/дефис', count(array_filter(array_column($kindDefs, 'CODE'), function ($c) { return preg_match('/^[a-z-]+$/', $c); })), 11);
+
+$rows = [
+    ['ID' => 1, 'NAME' => 'Фурнитура', 'IBLOCK_SECTION_ID' => 0],
+    ['ID' => 2, 'NAME' => 'Ручки', 'IBLOCK_SECTION_ID' => 1],
+    ['ID' => 3, 'NAME' => ' Петли ', 'IBLOCK_SECTION_ID' => '1'],
+    ['ID' => 183, 'NAME' => 'Коллекции', 'IBLOCK_SECTION_ID' => 183],
+    ['ID' => 184, 'NAME' => 'Dorsum', 'IBLOCK_SECTION_ID' => 183],
+    ['ID' => 5, 'NAME' => 'Ручки', 'IBLOCK_SECTION_ID' => 183],
+];
+check('карта разделов: только дети родителя, имя в нижнем регистре', eportaSectionNameMap($rows, 1), ['ручки' => 2, 'петли' => 3]);
+check('карта разделов: дети 183, сам 183 не входит', eportaSectionNameMap($rows, 183), ['dorsum' => 184, 'ручки' => 5]);
+check('карта разделов: родитель без детей', eportaSectionNameMap($rows, 99), []);
+
+$kinds = [
+    ['ID' => 2, 'NAME' => 'Ручки', 'CODE' => 'ruchki'],
+    ['ID' => 3, 'NAME' => 'Петли', 'CODE' => 'petli'],
+    ['ID' => 4, 'NAME' => 'Замки', 'CODE' => 'zamki'],
+];
+$nav = eportaHardwareKindsNav($kinds, [2 => 14, 4 => 3], '');
+check('полоска: пустые типы скрыты', array_column($nav, 'CODE'), ['ruchki', 'zamki']);
+check('полоска: счётчики', array_column($nav, 'COUNT'), [14, 3]);
+check('полоска: ссылка типа', $nav[0]['URL'], '/catalog/?category=hardware&type=ruchki');
+check('полоска: активного нет', array_column($nav, 'ACTIVE'), [false, false]);
+$navActive = eportaHardwareKindsNav($kinds, [2 => 14, 4 => 3], 'zamki');
+check('полоска: активный помечен и ведёт в категорию', [$navActive[1]['ACTIVE'], $navActive[1]['URL'], $navActive[0]['ACTIVE']], [true, '/catalog/?category=hardware', false]);
+check('полоска: нет товаров — пусто', eportaHardwareKindsNav($kinds, [], ''), []);
+check('поиск типа: найден', eportaHardwareFindKind($kinds, 'petli')['ID'], 3);
+check('поиск типа: неизвестный', eportaHardwareFindKind($kinds, 'x'), null);
+check('поиск типа: пустой', eportaHardwareFindKind($kinds, ''), null);
+
+check('крошки: категория', eportaHardwareBreadcrumb(null), [['Главная', '/'], ['Каталог', '/catalog/'], ['Фурнитура']]);
+check('крошки: тип', eportaHardwareBreadcrumb($kinds[0]), [['Главная', '/'], ['Каталог', '/catalog/'], ['Фурнитура', '/catalog/?category=hardware'], ['Ручки']]);
+check('крошки: товар', eportaHardwareBreadcrumb($kinds[0], 'Ручка Libra'), [['Главная', '/'], ['Каталог', '/catalog/'], ['Фурнитура', '/catalog/?category=hardware'], ['Ручки', '/catalog/?category=hardware&type=ruchki'], ['Ручка Libra']]);
+
 echo $failures ? "\nПровалено: $failures\n" : "\nВсе проверки пройдены\n";
 exit($failures ? 1 : 0);
