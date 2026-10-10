@@ -70,6 +70,18 @@ function eportaQuickQueryNormalizeOne(array $raw, ?array $allowed = null): ?arra
         $category = '';
     }
     $filters['category'] = preg_match('/^[a-z0-9_-]{1,30}$/', $category) ? $category : '';
+    // Фурнитура: «Стиль» и «Цвет» (MAIN_COLOR) — дверные свойства, у фурнитуры в каталоге «Цвет» — другое свойство
+    // (COATING_COLOR), поэтому ID из дверного списка дали бы чужой фильтр — сбрасываем. Добавляется «Тип» (код раздела).
+    $isHardware = $filters['category'] === 'hardware';
+    if ($isHardware) {
+        $filters['style'] = [];
+        $filters['color'] = [];
+    }
+    $type = trim((string)($rawFilters['type'] ?? ''));
+    if ($allowed !== null && !in_array($type, array_map('strval', (array)($allowed['type'] ?? [])), true)) {
+        $type = '';
+    }
+    $filters['type'] = ($isHardware && preg_match('/^[a-z0-9_-]{1,40}$/', $type)) ? $type : '';
     $filters['sale'] = !empty($rawFilters['sale']);
     $filters['new'] = !empty($rawFilters['new']);
 
@@ -150,6 +162,9 @@ function eportaQuickQueryUrl(array $query): string {
     }
     if (!empty($filters['category'])) {
         $params['category'] = $filters['category'];
+    }
+    if (!empty($filters['type']) && ($filters['category'] ?? '') === 'hardware') {
+        $params['type'] = $filters['type'];
     }
     if (!empty($filters['sale'])) {
         $params['sale'] = 1;

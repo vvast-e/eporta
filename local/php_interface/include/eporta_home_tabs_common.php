@@ -98,6 +98,13 @@ function eportaHomeTabsUserHasAccess(): bool {
 // new — RATING <= 0 (тот же, что плашка "Новинка").
 function eportaHomeTabsAutoFilter(string $tabKey): array {
     $filter = ['IBLOCK_ID' => EPORTA_HOME_TABS_IBLOCK_ID, 'ACTIVE' => 'Y'];
+    // Автоотбор — только двери: главная про двери, фурнитура с RATING>=4.8 / без рейтинга иначе заполнила бы
+    // «Хиты» и «Новинки». Закреплённые вручную товары (в т.ч. фурнитура) это не затрагивает — они в списке всегда.
+    require_once($_SERVER['DOCUMENT_ROOT'] . '/local/lib/eporta_hardware.php');
+    $hardwareAliases = eportaGetCategoryMap()['hardware']['ALIASES'] ?? [];
+    if ($hardwareAliases) {
+        $filter['!PROPERTY_CATEGORY'] = $hardwareAliases;
+    }
     if ($tabKey === 'sale') {
         $saleYEnumId = eportaGetIblock19EnumId('SALE', 'Y');
         // Свойство ещё может отсутствовать на окружении, где не прогнан add_iblock19_sale.php —

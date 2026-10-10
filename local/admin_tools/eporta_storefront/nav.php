@@ -12,6 +12,7 @@ function eportaStorefrontTabs(): array {
     return [
         'main' => [
             'collections' => ['Коллекции', '/local/admin_tools/eporta_collections/', 'Названия, порядок, подколлекции, блок на главной, баннер страницы, модели и цвета'],
+            'hardware_kinds' => ['Типы фурнитуры', '/local/admin_tools/eporta_hardware_kinds/', 'Типы изделий раздела «Фурнитура»: названия, порядок, видимость, новый тип'],
             'banners' => ['Баннеры', '/local/admin_tools/eporta_banners/', 'Слайдер главной и плитки категорий и коллекций'],
             'home_tabs' => ['Табы главной', '/local/admin_tools/eporta_home_tabs/', 'Какие товары показываются в табах на главной'],
             'quick' => ['Популярные запросы', '/local/admin_tools/eporta_quick_queries/', 'Быстрые ссылки в каталог с фильтрами на главной и в каталоге'],
