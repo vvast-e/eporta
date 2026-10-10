@@ -145,18 +145,30 @@ function eportaHardwareFindKind(array $kinds, string $code): ?array {
     return null;
 }
 
-// ID типа => число товаров: один запрос с группировкой по разделу в области $scopeFilter (категория без пользовательских фильтров).
+// Строки товаров [IBLOCK_SECTION_ID, MODEL] -> ID типа => число МОДЕЛЕЙ (выдача схлопнута по модели, поэтому число
+// на кнопке должно совпадать с числом карточек). Товар без модели считается отдельной моделью.
+function eportaHardwareCountModelsBySection(array $rows): array {
+    $seen = [];
+    foreach ($rows as $row) {
+        $sectionId = (int)$row['IBLOCK_SECTION_ID'];
+        $model = trim((string)($row['MODEL'] ?? ''));
+        $seen[$sectionId][$model !== '' ? 'm:' . $model : 'id:' . ($row['ID'] ?? count($seen[$sectionId] ?? []))] = true;
+    }
+    return array_map('count', $seen);
+}
+
+// ID типа => число моделей в области $scopeFilter (категория без пользовательских фильтров).
 function eportaHardwareKindCounts(array $scopeFilter, array $kinds): array {
     $ids = array_map('intval', array_column($kinds, 'ID'));
-    $counts = [];
     if (!$ids) {
-        return $counts;
+        return [];
     }
-    $res = \CIBlockElement::GetList([], $scopeFilter + ['IBLOCK_ID' => 19, 'ACTIVE' => 'Y', 'SECTION_ID' => $ids], ['IBLOCK_SECTION_ID'], false, ['ID', 'IBLOCK_SECTION_ID', 'CNT']);
+    $rows = [];
+    $res = \CIBlockElement::GetList([], $scopeFilter + ['IBLOCK_ID' => 19, 'ACTIVE' => 'Y', 'SECTION_ID' => $ids], false, false, ['ID', 'IBLOCK_SECTION_ID', 'PROPERTY_MODEL']);
     while ($row = $res->Fetch()) {
-        $counts[(int)$row['IBLOCK_SECTION_ID']] = (int)($row['CNT'] ?? 0);
+        $rows[] = ['ID' => (int)$row['ID'], 'IBLOCK_SECTION_ID' => $row['IBLOCK_SECTION_ID'], 'MODEL' => $row['PROPERTY_MODEL_VALUE'] ?? ''];
     }
-    return $counts;
+    return eportaHardwareCountModelsBySection($rows);
 }
 
 // Кнопки полоски типов: только типы с товарами; активный — со ссылкой на всю категорию (клик снимает тип).
