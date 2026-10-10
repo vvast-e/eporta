@@ -61,6 +61,9 @@ $isHit = $rating >= 4.8;
 // "Новинка" — товар без рейтинга (0 или пусто в выгрузке); взаимоисключающе с ХИТ.
 $isNew = $rating <= 0;
 $article = eportaPropText($eportaDirectProps, "CML2_ARTICLE");
+// Фурнитура (CATEGORY из алиасов hardware): в характеристиках — бренд и серия, «Похожие товары» вместо «Похожие двери».
+require_once($_SERVER["DOCUMENT_ROOT"]."/local/lib/eporta_hardware.php");
+$eportaIsHardware = eportaIsHardwareCategory(eportaPropText($eportaDirectProps, "CATEGORY"));
 $discountPercent = (float)eportaPropText($eportaDirectProps, "DISCOUNT");
 require_once($_SERVER["DOCUMENT_ROOT"]."/local/lib/eporta_price.php");
 $originalPrice = (float)eportaPropText($eportaDirectProps, "ORIGINAL_PRICE");
@@ -417,6 +420,8 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 				// Цвет/остекление дублировать в характеристиках не нужно, когда они уже вынесены
 				// в переключаемые селекторы выше (count > 1) — там они хорошо видны и так.
 				$specs = [
+					"Бренд" => $eportaIsHardware ? eportaPropText($eportaDirectProps, "BRAND") : "",
+					"Серия" => $eportaIsHardware ? eportaPropText($eportaDirectProps, "SERIES") : "",
 					"Стиль" => eportaPropText($eportaDirectProps, "STYLE"),
 					"Вид двери" => eportaPropText($eportaDirectProps, "DOOR_TYPE"),
 					"Открывание" => eportaPropText($eportaDirectProps, "OPEN_TYPE"),
@@ -442,7 +447,7 @@ $arrFilterEportaSimilar = ["!ID" => $arResult["ID"]];
 <?php if ($eportaSectionId): ?>
 <!-- Похожие двери: тот же раздел IBLOCK 19, исключая текущий товар -->
 <div style="padding:24px var(--pad-x) 36px">
-	<h2 style="margin:0 0 16px;font:800 20px 'Manrope';letter-spacing:-0.01em">Похожие двери</h2>
+	<h2 style="margin:0 0 16px;font:800 20px 'Manrope';letter-spacing:-0.01em"><?= $eportaIsHardware ? "Похожие товары" : "Похожие двери" ?></h2>
 	<?$APPLICATION->IncludeComponent(
 		"bitrix:catalog.section",
 		".default",
