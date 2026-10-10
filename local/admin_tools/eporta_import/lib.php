@@ -10,6 +10,8 @@ if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
 
 require_once __DIR__ . '/webp_convert.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/local/lib/eporta_price.php';
+// eportaGetCategoryMap() — алиасы категорий (для определения «Фурнитуры» в выгрузке).
+require_once $_SERVER['DOCUMENT_ROOT'] . '/local/templates/eporta/inc/categories.php';
 
 const EPORTA_IMPORT_IBLOCK_ID = 19;
 const EPORTA_IMPORT_COLLECTIONS_SECTION_ID = 183;
@@ -19,6 +21,8 @@ const EPORTA_IMPORT_PRICE_TYPE_ID = 1; // BASE
 const EPORTA_IMPORT_FIELD_MAP = [
     'Артикул' => 'article',
     'Модель' => 'model',
+    // Только фурнитура (заявка 07.10, п.14): серия производителя (Legend и т.п.), список для фильтра.
+    'Серия' => 'series',
     'Название' => 'name',
     'Фабрика' => 'manufacturer',
     'Бренд' => 'brand',
@@ -205,7 +209,10 @@ function eportaImportReadSheet(string $filePath, string $sheetName): ?array {
         return null;
     }
 
-    $sheetPath = 'xl/' . ltrim($sheetTarget, '/');
+    // Excel пишет Target относительно xl/ («worksheets/sheet1.xml»), openpyxl и часть других
+    // генераторов — абсолютным путём («/xl/worksheets/sheet1.xml»): с префиксом 'xl/' он
+    // превращался в xl/xl/... и лист «не читался» (шаблон фурнитуры, 10.10.2026).
+    $sheetPath = str_starts_with($sheetTarget, '/') ? ltrim($sheetTarget, '/') : 'xl/' . $sheetTarget;
     $sheetXml = $zip->getFromName($sheetPath);
     $zip->close();
     if ($sheetXml === false) {
@@ -356,6 +363,31 @@ function eportaImportGetOrCreateEnumId(int $iblockId, string $propertyCode, stri
     return $enumId;
 }
 
+// Товар относится к фурнитуре, если «Категория» выгрузки — один из алиасов категории hardware
+// (local/templates/eporta/inc/categories.php), регистр не важен.
+function eportaImportIsHardware(array $p): bool {
+    $category = mb_strtolower(trim($p['category'] ?? ''));
+    if ($category === '') {
+        return false;
+    }
+    $aliases = eportaGetCategoryMap()['hardware']['ALIASES'] ?? [];
+    return in_array($category, array_map('mb_strtolower', $aliases), true);
+}
+
+// Поставщик фурнитуры даёт ссылки без схемы («www.tlock.ru/photo_bank/1.jpg»), а проверка
+// eportaImportIsPublicImageUrl требует http(s) — такие фото молча отбрасывались. «//host/..» и
+// «host.tld/..» дополняем https://; всё остальное (в т.ч. file://, ftp://) не трогаем — отсеет проверка.
+function eportaImportNormalizeImageUrl(string $url): string {
+    $url = trim($url);
+    if (str_starts_with($url, '//')) {
+        return 'https:' . $url;
+    }
+    if (!preg_match('~^[a-z][a-z0-9+.-]*:~i', $url) && preg_match('~^[a-z0-9-]+(\.[a-z0-9-]+)+(:\d+)?/~i', $url)) {
+        return 'https://' . $url;
+    }
+    return $url;
+}
+
 // Символьный код нужен для SEF-ссылки на карточку товара (/catalog/<code>.html).
 // Генерируется транслитерацией названия с добавлением артикула для уникальности —
 // сам транслит не гарантирует уникальность при похожих названиях моделей.
@@ -376,6 +408,15 @@ function eportaImportGetOrCreateEnumId(int $iblockId, string $propertyCode, stri
 // остальное (см. catalog.section/.default/template.php) — кромка просто оказывается частью
 // "остального" вместе с покрытием и цветом, доп. правки шаблона не нужны.
 function eportaImportComposeName(array $p, string $article): string {
+    // Фурнитура: «Название» — полное название товара, как есть (Ручка Armadillo ... LD26 Libra),
+    // из других колонок не собирается. Пусто — «Модель», затем артикул (2026-10-10, п.14).
+    if (eportaImportIsHardware($p)) {
+        $full = trim($p['name'] ?? '');
+        if ($full === '') {
+            $full = trim($p['model'] ?? '');
+        }
+        return $full !== '' ? $full : $article;
+    }
     $collection = trim($p['collection'] ?? '');
     $model = trim($p['model'] ?? '');
     $displayName = trim($p['name'] ?? '');
@@ -451,6 +492,7 @@ function eportaImportIsPublicImageUrl(string $url): bool {
 }
 
 function eportaImportDownloadImage(?string $url) {
+    $url = $url ? eportaImportNormalizeImageUrl($url) : $url;
     if (!$url || !eportaImportIsPublicImageUrl($url)) {
         return false;
     }
@@ -545,7 +587,13 @@ function eportaImportOneProduct(array $p): array {
     // коллекции, catalog/index.php) сохранялось из сырой "Модели" — из-за этого там не менялось.
     // Приводим MODEL к тому же значению, чтобы оба места были согласованы (заявка заказчика,
     // коллекция Invi, 2026-09-14).
-    $displayModel = trim($p['name'] ?? '') !== '' ? trim($p['name']) : ($p['model'] ?? '');
+    // Фурнитура: «Название» — полное имя товара, а не модель, поэтому MODEL остаётся «Моделью»
+    // (по ней схлопываются варианты цвета); пустая «Модель» — fallback на «Название».
+    if (eportaImportIsHardware($p)) {
+        $displayModel = trim($p['model'] ?? '') !== '' ? trim($p['model']) : trim($p['name'] ?? '');
+    } else {
+        $displayModel = trim($p['name'] ?? '') !== '' ? trim($p['name']) : ($p['model'] ?? '');
+    }
     $propertyValues = [
         'CML2_ARTICLE'    => $article,
         'MODEL'           => $displayModel,
@@ -571,7 +619,7 @@ function eportaImportOneProduct(array $p): array {
         'RATING'          => $p['rating'] ?? 0,
     ];
 
-    foreach (['COATING' => 'coating', 'COATING_COLOR' => 'coating_color', 'MAIN_COLOR' => 'main_color', 'GLAZING' => 'glazing'] as $code => $key) {
+    foreach (['COATING' => 'coating', 'COATING_COLOR' => 'coating_color', 'MAIN_COLOR' => 'main_color', 'GLAZING' => 'glazing', 'SERIES' => 'series'] as $code => $key) {
         $enumId = eportaImportGetOrCreateEnumId(EPORTA_IMPORT_IBLOCK_ID, $code, $p[$key] ?? '');
         if ($enumId) {
             $propertyValues[$code] = $enumId;
