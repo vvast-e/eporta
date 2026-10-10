@@ -279,6 +279,9 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	$eportaPriceSelMin = null;
 	$eportaPriceSelMax = null;
 	$eportaFoundCount = 0;
+	$eportaIsHardwareScope = false;
+	$eportaHwKind = null;
+	$eportaHwKindsNav = [];
 	if ($isEportaTemplate && !$isEportaProductDetail) {
 		\Bitrix\Main\Loader::includeModule("iblock");
 		\Bitrix\Main\Loader::includeModule("catalog");
@@ -325,6 +328,27 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			// ниже) — эта неявная фильтрация их не задевает. "Распродажа"/"Новинки" — сквозные по
 			// всему каталогу, поэтому явно выведены из-под этого умолчания.
 			$eportaScopeFilter["PROPERTY_CATEGORY"] = $eportaCategoryMap["mkd"]["ALIASES"];
+		}
+
+		// Фурнитура: типы изделий (разделы под «Фурнитурой», eportaHardwareKinds) — полоска кнопок со
+		// счётчиками и страница типа ?category=hardware&type=<code>. Счётчики считаются в области
+		// категории (до сужения по типу и без пользовательских фильтров), чтобы не прыгали при выборе.
+		$eportaHwKinds = [];
+		$eportaHwKind = null;
+		$eportaHwKindsNav = [];
+		if ($eportaIsHardwareScope) {
+			$eportaHwKinds = eportaHardwareKinds();
+			$eportaHwKind = eportaHardwareFindKind($eportaHwKinds, is_scalar($_GET["type"] ?? null) ? (string)$_GET["type"] : "");
+			$eportaHwKindsNav = eportaHardwareKindsNav(
+				$eportaHwKinds,
+				eportaHardwareKindCounts($eportaScopeFilter, $eportaHwKinds),
+				$eportaHwKind ? $eportaHwKind["CODE"] : ""
+			);
+			if ($eportaHwKind) {
+				$eportaScopeFilter["SECTION_ID"] = (int)$eportaHwKind["ID"];
+				$APPLICATION->SetPageProperty("title", $eportaHwKind["NAME"]." — фурнитура");
+				$APPLICATION->SetTitle($eportaHwKind["NAME"]);
+			}
 		}
 
 		// "Распродажа" (шапка, /catalog/?sale=1) — задача 09.09.2026: раньше это была та же
@@ -623,7 +647,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		} elseif ($eportaIsHardwareScope) {
 			// Фурнитура: любые фильтры/сортировки/страницы канонизируются на раздел, а не на корень /catalog/ (двери).
 			$eportaCanonicalPath = "/catalog/";
-			$eportaCanonicalQuery = "category=hardware";
+			$eportaCanonicalQuery = $eportaHwKind ? "category=hardware&type=".rawurlencode($eportaHwKind["CODE"]) : "category=hardware";
 		} else {
 			$eportaCanonicalPath = "/catalog/";
 			$eportaCanonicalQuery = "";
@@ -843,7 +867,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 		// (правка 15.09.2026). RestartBuffer сбрасывает уже выведенные header.php/шапку/сайдбар —
 		// тот же приём, что и в короткое замыкание AJAX-подгрузки ниже ($eportaIsAjaxGrid) и в
 		// самом dev-гейте header.php. Кнопка "Назад" ведёт на главную (правка 08.10.2026, раньше вела в /catalog/).
-		if ($eportaSelectedCategory && $eportaSelectedCategory !== "hidden" && !$eportaCollectionSection && $eportaFoundCount === 0) {
+		if ($eportaSelectedCategory && $eportaSelectedCategory !== "hidden" && !$eportaCollectionSection && !$eportaHwKind && $eportaFoundCount === 0) {
 			$APPLICATION->RestartBuffer();
 			header("Content-Type: text/html; charset=UTF-8");
 			$eportaStubHeading = $eportaCategoryMap[$eportaSelectedCategory]["HEADING"];
@@ -1091,11 +1115,24 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	<?
 		// Хлебные крошки карточки: Главная › Каталог › [коллекция и её родитель] › товар.
 		$eportaCrumbEl = \CIBlockElement::GetList([], ["IBLOCK_ID" => 19, "CODE" => $eportaElementCode, "ACTIVE" => "Y"], false, false, ["ID", "NAME", "IBLOCK_SECTION_ID"])->Fetch();
-		eportaBreadcrumb(array_merge(
-			[["Главная", "/"], ["Каталог", "/catalog/"]],
-			eportaBreadcrumbCollectionChain(eportaCollections(), (int)($eportaCrumbEl["IBLOCK_SECTION_ID"] ?? 0)),
-			[[(string)($eportaCrumbEl["NAME"] ?? "")]]
-		));
+		// Фурнитура: раздел товара — тип под «Фурнитурой» (вне коллекций 183), цепочка Фурнитура › Тип.
+		require_once($_SERVER["DOCUMENT_ROOT"]."/local/lib/eporta_hardware.php");
+		$eportaCrumbHwKind = null;
+		foreach (eportaHardwareKinds() as $eportaCrumbKindCandidate) {
+			if ((int)$eportaCrumbKindCandidate["ID"] === (int)($eportaCrumbEl["IBLOCK_SECTION_ID"] ?? 0)) {
+				$eportaCrumbHwKind = $eportaCrumbKindCandidate;
+				break;
+			}
+		}
+		if ($eportaCrumbHwKind) {
+			eportaBreadcrumb(eportaHardwareBreadcrumb($eportaCrumbHwKind, (string)($eportaCrumbEl["NAME"] ?? "")));
+		} else {
+			eportaBreadcrumb(array_merge(
+				[["Главная", "/"], ["Каталог", "/catalog/"]],
+				eportaBreadcrumbCollectionChain(eportaCollections(), (int)($eportaCrumbEl["IBLOCK_SECTION_ID"] ?? 0)),
+				[[(string)($eportaCrumbEl["NAME"] ?? "")]]
+			));
+		}
 	?>
 	<?$APPLICATION->IncludeComponent(
 		"bitrix:catalog.element",
@@ -1193,7 +1230,7 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	<?if ($eportaCollectionSection):?>
 	<?php eportaBreadcrumb([["Главная","/"],["Коллекции","/collection/"],...eportaBreadcrumbCollectionChain(eportaCollections(), (int)$eportaCollectionSection["ID"])]);?>
 	<?else:?>
-	<?php eportaBreadcrumb([["Главная","/"],["Каталог","/catalog/"],["Межкомнатные"]]);?>
+	<?php eportaBreadcrumb($eportaIsHardwareScope ? eportaHardwareBreadcrumb($eportaHwKind) : [["Главная","/"],["Каталог","/catalog/"],["Межкомнатные"]]);?>
 	<?endif;?>
 
 	<?if ($eportaCollectionSection):
@@ -1335,6 +1372,37 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 	<div style="border-top:1px solid #efece6;margin:26px var(--pad-x) 0"></div>
 	<?endif;?>
 
+	<?if ($eportaIsHardwareScope && $eportaHwKindsNav):?>
+	<!-- Типы фурнитуры (этап 3): кнопки со счётчиками товаров, «Скрыть/Показать» запоминается в localStorage. -->
+	<div class="eporta-hwkind" id="eportaHwKind">
+		<nav class="eporta-hwkind-nav" aria-label="Типы фурнитуры">
+			<?foreach ($eportaHwKindsNav as $eportaHwItem):?>
+			<a class="eporta-subcoll-btn eporta-hwkind-btn<?=$eportaHwItem["ACTIVE"] ? " eporta-subcoll-btn--active" : ""?>" href="<?=htmlspecialcharsbx($eportaHwItem["URL"])?>"<?=$eportaHwItem["ACTIVE"] ? ' aria-current="page"' : ""?>><?=htmlspecialcharsbx($eportaHwItem["NAME"])?> <span class="eporta-hwkind-cnt"><?=(int)$eportaHwItem["COUNT"]?></span></a>
+			<?endforeach;?>
+		</nav>
+		<button type="button" class="eporta-hwkind-toggle" id="eportaHwKindToggle" aria-expanded="true">Скрыть</button>
+	</div>
+	<script>
+	(function () {
+		var box = document.getElementById('eportaHwKind'), btn = document.getElementById('eportaHwKindToggle');
+		if (!box || !btn) return;
+		function apply(hidden) {
+			box.classList.toggle('eporta-hwkind--hidden', hidden);
+			btn.textContent = hidden ? 'Показать типы' : 'Скрыть';
+			btn.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+		}
+		var hidden = false;
+		try { hidden = localStorage.getItem('eportaHwKindHidden') === '1'; } catch (e) {}
+		apply(hidden);
+		btn.addEventListener('click', function () {
+			hidden = !hidden;
+			apply(hidden);
+			try { localStorage.setItem('eportaHwKindHidden', hidden ? '1' : '0'); } catch (e) {}
+		});
+	})();
+	</script>
+	<?endif;?>
+
 	<!-- Заголовок + сортировка -->
 	<div class="eporta-catalog-headrow" style="display:flex;align-items:flex-end;justify-content:space-between;padding:8px var(--pad-x) 4px">
 		<div>
@@ -1346,6 +1414,8 @@ $APPLICATION->SetTitle($eportaCatalogPageTitle);
 			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em">Новинки</h1>
 			<?elseif ($eportaSeoH1):?>
 			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em"><?=htmlspecialcharsbx($eportaSeoH1)?></h1>
+			<?elseif ($eportaHwKind):?>
+			<h1 style="margin:0;font:800 27px 'Manrope';letter-spacing:-0.01em"><?=htmlspecialcharsbx($eportaHwKind["NAME"])?></h1>
 			<?elseif ($eportaSelectedCategory):?>
 			<!-- Заголовок по выбранной категории (шапка/плитки главной) — задача 09.09.2026: раньше
 			     тут всегда был захардкожен "Межкомнатные двери" независимо от категории (SEO H1 выше

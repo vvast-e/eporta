@@ -1200,6 +1200,23 @@ img { display: block; }
 .eporta-subcoll-btn { display: inline-flex; align-items: center; padding: 10px 22px; border: 1.6px solid #e7e3db; border-radius: 999px; background: #fff; color: #2b2620; font: 700 14px 'Manrope'; text-decoration: none; transition: border-color .15s, background .15s; }
 a.eporta-subcoll-btn:hover { border-color: #e8820a; }
 .eporta-subcoll-btn--active { background: #e8820a; border-color: #c96f06; color: #fff; cursor: default; }
+/* Типы фурнитуры (этап 3): полоска кнопок со счётчиками + «Скрыть/Показать»; на мобильном — одна прокручиваемая строка */
+.eporta-hwkind { display: flex; align-items: center; gap: 14px; padding: 20px var(--pad-x) 4px; }
+.eporta-hwkind-nav { display: flex; flex-wrap: wrap; flex: 1; gap: 10px; padding: 0; }
+.eporta-hwkind-btn { gap: 8px; padding: 8px 16px; }
+.eporta-hwkind-btn.eporta-subcoll-btn--active { cursor: pointer; }
+.eporta-hwkind-cnt { font: 600 12px 'Manrope'; color: #8a857b; }
+.eporta-hwkind-btn.eporta-subcoll-btn--active .eporta-hwkind-cnt { color: rgba(255, 255, 255, .85); }
+.eporta-hwkind-toggle { flex: none; border: 0; background: none; padding: 6px 2px; font: 600 13px 'Manrope'; color: #8a857b; cursor: pointer; text-decoration: underline; }
+.eporta-hwkind-toggle:hover { color: #e8820a; }
+.eporta-hwkind--hidden .eporta-hwkind-nav { display: none; }
+.eporta-hwkind--hidden { justify-content: flex-end; }
+@media (max-width: 720px) {
+  .eporta-hwkind { flex-direction: column; align-items: stretch; gap: 6px; }
+  .eporta-hwkind-nav { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 6px; }
+  .eporta-hwkind-btn { flex: none; white-space: nowrap; }
+  .eporta-hwkind-toggle { align-self: flex-end; }
+}
 
 /* Мозаика категорий на главной — на десктопе 4 колонки с явной раскладкой плиток
    (grid-column/grid-row в инлайн-стилях), на узких экранах раскладка ломается,

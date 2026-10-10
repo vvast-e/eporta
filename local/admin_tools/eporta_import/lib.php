@@ -451,20 +451,21 @@ function eportaImportGenerateCode(string $name, string $article): string {
     return $code !== '' ? $code : 'element';
 }
 
-function eportaImportSectionMap(): array {
-    static $map = null;
-    if ($map !== null) {
-        return $map;
+// Карта «имя в нижнем регистре => ID раздела»: у дверей — коллекции (дети 183), у фурнитуры — типы изделий
+// (дети раздела «Фурнитура», создаётся scripts/add_hardware_kinds_sections.php).
+function eportaImportSectionMap(bool $hardware = false): array {
+    static $maps = [];
+    $key = $hardware ? 'hw' : 'doors';
+    if (isset($maps[$key])) {
+        return $maps[$key];
     }
-    $map = [];
-    $res = CIBlockSection::GetList([], [
-        'IBLOCK_ID' => EPORTA_IMPORT_IBLOCK_ID,
-        '=IBLOCK_SECTION_ID' => EPORTA_IMPORT_COLLECTIONS_SECTION_ID,
-    ], false, ['ID', 'NAME']);
+    $parentId = $hardware ? eportaHardwareKindsParentId() : EPORTA_IMPORT_COLLECTIONS_SECTION_ID;
+    $rows = [];
+    $res = CIBlockSection::GetList([], ['IBLOCK_ID' => EPORTA_IMPORT_IBLOCK_ID], false, ['ID', 'NAME', 'IBLOCK_SECTION_ID']);
     while ($s = $res->Fetch()) {
-        $map[mb_strtolower($s['NAME'])] = $s['ID'];
+        $rows[] = $s;
     }
-    return $map;
+    return $maps[$key] = $parentId > 0 ? eportaSectionNameMap($rows, $parentId) : [];
 }
 
 // URL приходит из загруженного сотрудником xlsx — не доверенный источник.
@@ -564,11 +565,15 @@ function eportaImportOneProduct(array $p): array {
     $article = $p['article'] ?? '';
     $GLOBALS['__eportaImportTmpFiles'] = [];
 
-    $sectionMap = eportaImportSectionMap();
+    $isHardware = eportaImportIsHardware($p);
+    $sectionMap = eportaImportSectionMap($isHardware);
     $collection = $p['collection'] ?? '';
-    $sectionId = $sectionMap[mb_strtolower($collection)] ?? false;
+    $sectionId = $sectionMap[mb_strtolower(trim($collection))] ?? false;
     if ($collection !== '' && $sectionId === false) {
-        return ['article' => $article, 'status' => 'error', 'message' => "Не найдена коллекция \"$collection\" в разделе Коллекции"];
+        $message = $isHardware
+            ? "Не найден тип фурнитуры \"$collection\" в разделе Фурнитура"
+            : "Не найдена коллекция \"$collection\" в разделе Коллекции";
+        return ['article' => $article, 'status' => 'error', 'message' => $message];
     }
 
     // SHOWCASE (витринный вариант модели, local/admin_tools/eporta_showcase/) сюда не входит —
